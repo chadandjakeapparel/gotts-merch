@@ -945,6 +945,12 @@ fieldset {
   font-size: 1.15rem;
 }
 
+.gm-admin-hint {
+  margin-top: -6px;
+  color: var(--gm-ink-soft);
+  font-size: 0.82rem;
+}
+
 .gm-admin-section label,
 .gm-admin-login label {
   display: flex;

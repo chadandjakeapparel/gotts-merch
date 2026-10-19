@@ -21,6 +21,10 @@ export type SiteContent = {
   tagline: string;
   inquiryEmail: string;
   shopUrl: string;
+  // Shown as the headline/description when this link is shared (texts,
+  // Slack, social media) — not the same as the on-page hero text.
+  metaTitle: string;
+  metaDescription: string;
   heroEyebrow: string;
   heroLead: string;
   productsEyebrow: string;
@@ -50,6 +54,9 @@ export const defaultContent: SiteContent = {
   // Swap this for a real inbox at the gottsmerch.com domain before launch.
   inquiryEmail: "hello@gottsmerch.com",
   shopUrl: "https://shopnow.gottsmerch.com",
+  metaTitle: "Gotts Merch — Promotional Products for Hospitality",
+  metaDescription:
+    "We've Gotts you covered. Apparel, print, drinkware, and retail merch made for restaurants, hotels, bars, and cafés.",
   heroEyebrow: "Promotional products for restaurants, bars & hotels",
   heroLead:
     "Apparel, printed paper goods, drinkware, and retail merch — sourced and produced for hospitality, and nothing else. Commercial-grade materials, fast turns on seasonal menus, and one team that understands what a busy shift does to a product.",

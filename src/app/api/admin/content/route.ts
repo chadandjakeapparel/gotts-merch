@@ -22,6 +22,8 @@ function isValidContent(value: unknown): value is SiteContent {
     "tagline",
     "inquiryEmail",
     "shopUrl",
+    "metaTitle",
+    "metaDescription",
     "heroEyebrow",
     "heroLead",
     "productsEyebrow",

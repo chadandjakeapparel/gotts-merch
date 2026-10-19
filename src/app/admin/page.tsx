@@ -215,6 +215,31 @@ export default function AdminPage() {
         </section>
 
         <section className="gm-admin-section">
+          <h2>Link preview (SEO)</h2>
+          <p className="gm-admin-hint">
+            This is what shows up as the headline and description when someone
+            shares the gottsmerch.com link in a text, Slack, or social media —
+            separate from the text on the page itself.
+          </p>
+          <label>
+            <span>Preview title</span>
+            <input
+              onChange={(event) => update("metaTitle", event.target.value)}
+              type="text"
+              value={content.metaTitle}
+            />
+          </label>
+          <label>
+            <span>Preview description</span>
+            <textarea
+              onChange={(event) => update("metaDescription", event.target.value)}
+              rows={3}
+              value={content.metaDescription}
+            />
+          </label>
+        </section>
+
+        <section className="gm-admin-section">
           <h2>Hero</h2>
           <label>
             <span>Eyebrow</span>

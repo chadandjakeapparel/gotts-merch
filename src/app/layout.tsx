@@ -18,8 +18,19 @@ const inter = Inter({
 export async function generateMetadata(): Promise<Metadata> {
   const content = await getSiteContent();
   return {
-    title: `${content.brandName} | Promotional Products for Hospitality`,
-    description: `${content.tagline} Apparel, print, drinkware, and retail merch made for restaurants, hotels, bars, and cafés.`,
+    title: content.metaTitle,
+    description: content.metaDescription,
+    openGraph: {
+      title: content.metaTitle,
+      description: content.metaDescription,
+      siteName: content.brandName,
+      type: "website",
+    },
+    twitter: {
+      card: "summary",
+      title: content.metaTitle,
+      description: content.metaDescription,
+    },
   };
 }
 
