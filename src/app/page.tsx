@@ -106,6 +106,25 @@ export default async function HomePage() {
           </div>
         </section>
 
+        <section className="gm-about" id="about">
+          <div className="gm-container">
+            <div className="gm-section-heading">
+              <p className="gm-eyebrow">{content.aboutEyebrow}</p>
+              <h2>{content.aboutTitle}</h2>
+            </div>
+            <p className="gm-about__history">{content.aboutHistory}</p>
+            <div className="gm-about__team">
+              {content.teamMembers.map((member) => (
+                <div className="gm-about__member" key={member.name}>
+                  <h3>{member.name}</h3>
+                  <p className="gm-about__role">{member.role}</p>
+                  <p>{member.bio}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
         <section className="gm-retail">
           <div className="gm-container gm-retail__grid">
             <div>
@@ -172,6 +191,7 @@ export default async function HomePage() {
           <nav aria-label="Footer navigation" className="gm-footer__nav">
             <a href="#products">Products</a>
             <a href="#why-us">Why Us</a>
+            <a href="#about">About Us</a>
             <a href="#process">How It Works</a>
             <a href="#quote">Get a Quote</a>
           </nav>

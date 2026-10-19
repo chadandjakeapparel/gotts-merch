@@ -16,6 +16,12 @@ export type ProcessStep = {
   description: string;
 };
 
+export type TeamMember = {
+  name: string;
+  role: string;
+  bio: string;
+};
+
 export type SiteContent = {
   brandName: string;
   tagline: string;
@@ -33,6 +39,10 @@ export type SiteContent = {
   whyEyebrow: string;
   whyTitle: string;
   differentiators: Differentiator[];
+  aboutEyebrow: string;
+  aboutTitle: string;
+  aboutHistory: string;
+  teamMembers: TeamMember[];
   retailEyebrow: string;
   retailTitle: string;
   retailBody: string;
@@ -127,6 +137,22 @@ export const defaultContent: SiteContent = {
       title: "In-house design support",
       description:
         "Logo placement, embroidery digitizing, and print proofs handled before anything goes to production.",
+    },
+  ],
+  aboutEyebrow: "Our story",
+  aboutTitle: "Built by people who know the back of house.",
+  aboutHistory:
+    "Replace this paragraph with the real story of Gotts Merch — when the business got started, what problem it set out to solve for restaurants and hotels, and what's changed (or stayed the same) since.",
+  teamMembers: [
+    {
+      name: "Team Member One",
+      role: "Co-Founder",
+      bio: "Replace with a short bio — background, role at Gotts Merch, and what they focus on day to day.",
+    },
+    {
+      name: "Team Member Two",
+      role: "Co-Founder",
+      bio: "Replace with a short bio — background, role at Gotts Merch, and what they focus on day to day.",
     },
   ],
   retailEyebrow: "Turn merch into a revenue line",

@@ -6,6 +6,7 @@ import { Logo, Wordmark } from "@/components/logo";
 const navLinks = [
   { href: "#products", label: "Products" },
   { href: "#why-us", label: "Why Us" },
+  { href: "#about", label: "About Us" },
   { href: "#process", label: "How It Works" },
   { href: "#quote", label: "Get a Quote" },
 ];

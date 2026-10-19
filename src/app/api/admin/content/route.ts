@@ -30,6 +30,9 @@ function isValidContent(value: unknown): value is SiteContent {
     "productsTitle",
     "whyEyebrow",
     "whyTitle",
+    "aboutEyebrow",
+    "aboutTitle",
+    "aboutHistory",
     "retailEyebrow",
     "retailTitle",
     "retailBody",
@@ -71,6 +74,20 @@ function isValidContent(value: unknown): value is SiteContent {
         typeof item === "object" &&
         typeof (item as Record<string, unknown>).title === "string" &&
         typeof (item as Record<string, unknown>).description === "string",
+    )
+  ) {
+    return false;
+  }
+
+  if (
+    !Array.isArray(data.teamMembers) ||
+    !data.teamMembers.every(
+      (item) =>
+        item &&
+        typeof item === "object" &&
+        typeof (item as Record<string, unknown>).name === "string" &&
+        typeof (item as Record<string, unknown>).role === "string" &&
+        typeof (item as Record<string, unknown>).bio === "string",
     )
   ) {
     return false;

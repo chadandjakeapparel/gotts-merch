@@ -459,6 +459,52 @@ fieldset {
   font-size: 0.92rem;
 }
 
+/* About */
+
+.gm-about {
+  padding-block: clamp(70px, 9vw, 130px);
+  background: var(--gm-white);
+}
+
+.gm-about__history {
+  max-width: 760px;
+  margin-bottom: clamp(44px, 6vw, 72px);
+  color: var(--gm-ink-soft);
+  font-size: 1.05rem;
+}
+
+.gm-about__team {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+}
+
+.gm-about__member {
+  padding: 28px 24px;
+  background: var(--gm-paper);
+  border: 1px solid var(--gm-line);
+  border-radius: 18px;
+}
+
+.gm-about__member h3 {
+  margin-bottom: 6px;
+  font-size: 1.3rem;
+}
+
+.gm-about__role {
+  margin-bottom: 14px;
+  color: var(--gm-blue);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.gm-about__member > p:last-child {
+  color: var(--gm-ink-soft);
+  font-size: 0.92rem;
+}
+
 /* Retail */
 
 .gm-retail {
@@ -835,7 +881,8 @@ fieldset {
 
   .gm-products__grid,
   .gm-why__grid,
-  .gm-process__grid {
+  .gm-process__grid,
+  .gm-about__team {
     grid-template-columns: 1fr;
   }
 

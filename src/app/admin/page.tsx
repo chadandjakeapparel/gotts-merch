@@ -155,6 +155,19 @@ export default function AdminPage() {
     });
   }
 
+  function updateTeamMember(
+    index: number,
+    field: "name" | "role" | "bio",
+    value: string,
+  ) {
+    setContent((current) => {
+      if (!current) return current;
+      const next = [...current.teamMembers];
+      next[index] = { ...next[index], [field]: value };
+      return { ...current, teamMembers: next };
+    });
+  }
+
   return (
     <div className="gm-admin">
       <header className="gm-admin-bar">
@@ -352,6 +365,63 @@ export default function AdminPage() {
                   }
                   rows={2}
                   value={item.description}
+                />
+              </label>
+            </div>
+          ))}
+        </section>
+
+        <section className="gm-admin-section">
+          <h2>About Us</h2>
+          <label>
+            <span>Section eyebrow</span>
+            <input
+              onChange={(event) => update("aboutEyebrow", event.target.value)}
+              type="text"
+              value={content.aboutEyebrow}
+            />
+          </label>
+          <label>
+            <span>Section title</span>
+            <input
+              onChange={(event) => update("aboutTitle", event.target.value)}
+              type="text"
+              value={content.aboutTitle}
+            />
+          </label>
+          <label>
+            <span>Business history (leading paragraph)</span>
+            <textarea
+              onChange={(event) => update("aboutHistory", event.target.value)}
+              rows={5}
+              value={content.aboutHistory}
+            />
+          </label>
+          {content.teamMembers.map((member, index) => (
+            <div className="gm-admin-card" key={index}>
+              <p className="gm-admin-card__label">Team member {index + 1}</p>
+              <label>
+                <span>Name</span>
+                <input
+                  onChange={(event) => updateTeamMember(index, "name", event.target.value)}
+                  type="text"
+                  value={member.name}
+                />
+              </label>
+              <label>
+                <span>Role / title</span>
+                <input
+                  onChange={(event) => updateTeamMember(index, "role", event.target.value)}
+                  type="text"
+                  value={member.role}
+                />
+              </label>
+              <label>
+                <span>Bio</span>
+                <textarea
+                  onChange={(event) => updateTeamMember(index, "bio", event.target.value)}
+                  rows={4}
+                  value={member.bio}
                 />
               </label>
             </div>
