@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Sora } from "next/font/google";
-import { BRAND_NAME, TAGLINE } from "@/content/site-content";
+import { getSiteContent } from "@/lib/content";
 import "@/styles/site.css";
 
 const sora = Sora({
@@ -15,10 +15,13 @@ const inter = Inter({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  title: `${BRAND_NAME} | Promotional Products for Hospitality`,
-  description: `${TAGLINE} Apparel, print, drinkware, and retail merch made for restaurants, hotels, bars, and cafés.`,
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const content = await getSiteContent();
+  return {
+    title: `${content.brandName} | Promotional Products for Hospitality`,
+    description: `${content.tagline} Apparel, print, drinkware, and retail merch made for restaurants, hotels, bars, and cafés.`,
+  };
+}
 
 export const viewport: Viewport = {
   themeColor: "#0b2545",

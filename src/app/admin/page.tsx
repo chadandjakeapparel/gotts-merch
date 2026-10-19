@@ -1,0 +1,458 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import type { SiteContent } from "@/content/site-content";
+
+type LoadState = "loading" | "needs-login" | "ready";
+type SaveState = "idle" | "saving" | "saved" | "error";
+
+function itemsToText(items: string[]): string {
+  return items.join("\n");
+}
+
+function textToItems(text: string): string[] {
+  return text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+export default function AdminPage() {
+  const [loadState, setLoadState] = useState<LoadState>("loading");
+  const [content, setContent] = useState<SiteContent | null>(null);
+  const [password, setPassword] = useState("");
+  const [loginError, setLoginError] = useState("");
+  const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [saveError, setSaveError] = useState("");
+
+  async function loadContent() {
+    const response = await fetch("/api/admin/content");
+    if (response.status === 401) {
+      setLoadState("needs-login");
+      return;
+    }
+    const data = (await response.json()) as { content: SiteContent };
+    setContent(data.content);
+    setLoadState("ready");
+  }
+
+  useEffect(() => {
+    loadContent();
+  }, []);
+
+  async function handleLogin(event: React.FormEvent) {
+    event.preventDefault();
+    setLoginError("");
+    const response = await fetch("/api/admin/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password }),
+    });
+    if (!response.ok) {
+      setLoginError("Incorrect password.");
+      return;
+    }
+    setPassword("");
+    setLoadState("loading");
+    await loadContent();
+  }
+
+  async function handleLogout() {
+    await fetch("/api/admin/logout", { method: "POST" });
+    setContent(null);
+    setLoadState("needs-login");
+  }
+
+  async function handleSave() {
+    if (!content) return;
+    setSaveState("saving");
+    setSaveError("");
+    const response = await fetch("/api/admin/content", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(content),
+    });
+    if (!response.ok) {
+      setSaveState("error");
+      const data = (await response.json().catch(() => null)) as { error?: string } | null;
+      setSaveError(data?.error || "Save failed.");
+      return;
+    }
+    setSaveState("saved");
+    setTimeout(() => setSaveState("idle"), 2500);
+  }
+
+  if (loadState === "loading") {
+    return (
+      <div className="gm-admin gm-admin--centered">
+        <p>Loading…</p>
+      </div>
+    );
+  }
+
+  if (loadState === "needs-login") {
+    return (
+      <div className="gm-admin gm-admin--centered">
+        <form className="gm-admin-login" onSubmit={handleLogin}>
+          <h1>Gotts Merch — Site Editor</h1>
+          <label>
+            <span>Password</span>
+            <input
+              autoFocus
+              onChange={(event) => setPassword(event.target.value)}
+              type="password"
+              value={password}
+            />
+          </label>
+          {loginError ? <p className="gm-admin-error">{loginError}</p> : null}
+          <button className="gm-btn gm-btn--primary" type="submit">
+            Log in
+          </button>
+        </form>
+      </div>
+    );
+  }
+
+  if (!content) return null;
+
+  function update<K extends keyof SiteContent>(key: K, value: SiteContent[K]) {
+    setContent((current) => (current ? { ...current, [key]: value } : current));
+  }
+
+  function updateCategory(index: number, field: "title" | "description", value: string) {
+    setContent((current) => {
+      if (!current) return current;
+      const next = [...current.productCategories];
+      next[index] = { ...next[index], [field]: value };
+      return { ...current, productCategories: next };
+    });
+  }
+
+  function updateCategoryItems(index: number, value: string) {
+    setContent((current) => {
+      if (!current) return current;
+      const next = [...current.productCategories];
+      next[index] = { ...next[index], items: textToItems(value) };
+      return { ...current, productCategories: next };
+    });
+  }
+
+  function updateDifferentiator(index: number, field: "title" | "description", value: string) {
+    setContent((current) => {
+      if (!current) return current;
+      const next = [...current.differentiators];
+      next[index] = { ...next[index], [field]: value };
+      return { ...current, differentiators: next };
+    });
+  }
+
+  function updateProcessStep(index: number, field: "title" | "description", value: string) {
+    setContent((current) => {
+      if (!current) return current;
+      const next = [...current.processSteps];
+      next[index] = { ...next[index], [field]: value };
+      return { ...current, processSteps: next };
+    });
+  }
+
+  return (
+    <div className="gm-admin">
+      <header className="gm-admin-bar">
+        <h1>Gotts Merch — Site Editor</h1>
+        <div className="gm-admin-bar__actions">
+          <a href="/" target="_blank" rel="noreferrer">
+            View site ↗
+          </a>
+          <button className="gm-btn gm-btn--ghost" onClick={handleLogout} type="button">
+            Log out
+          </button>
+        </div>
+      </header>
+
+      <div className="gm-admin-body">
+        <section className="gm-admin-section">
+          <h2>Brand</h2>
+          <label>
+            <span>Brand name (used in copyright line)</span>
+            <input
+              onChange={(event) => update("brandName", event.target.value)}
+              type="text"
+              value={content.brandName}
+            />
+          </label>
+          <label>
+            <span>Tagline (main headline)</span>
+            <input
+              onChange={(event) => update("tagline", event.target.value)}
+              type="text"
+              value={content.tagline}
+            />
+          </label>
+          <label>
+            <span>Quote request inbox</span>
+            <input
+              onChange={(event) => update("inquiryEmail", event.target.value)}
+              type="email"
+              value={content.inquiryEmail}
+            />
+          </label>
+          <label>
+            <span>Footer tagline</span>
+            <input
+              onChange={(event) => update("footerTagline", event.target.value)}
+              type="text"
+              value={content.footerTagline}
+            />
+          </label>
+        </section>
+
+        <section className="gm-admin-section">
+          <h2>Hero</h2>
+          <label>
+            <span>Eyebrow</span>
+            <input
+              onChange={(event) => update("heroEyebrow", event.target.value)}
+              type="text"
+              value={content.heroEyebrow}
+            />
+          </label>
+          <label>
+            <span>Lead paragraph</span>
+            <textarea
+              onChange={(event) => update("heroLead", event.target.value)}
+              rows={4}
+              value={content.heroLead}
+            />
+          </label>
+          <label>
+            <span>Venue types (one per line, shown as pills)</span>
+            <textarea
+              onChange={(event) => update("venueTypes", textToItems(event.target.value))}
+              rows={6}
+              value={itemsToText(content.venueTypes)}
+            />
+          </label>
+        </section>
+
+        <section className="gm-admin-section">
+          <h2>Product categories</h2>
+          <label>
+            <span>Section eyebrow</span>
+            <input
+              onChange={(event) => update("productsEyebrow", event.target.value)}
+              type="text"
+              value={content.productsEyebrow}
+            />
+          </label>
+          <label>
+            <span>Section title</span>
+            <input
+              onChange={(event) => update("productsTitle", event.target.value)}
+              type="text"
+              value={content.productsTitle}
+            />
+          </label>
+          {content.productCategories.map((category, index) => (
+            <div className="gm-admin-card" key={category.key}>
+              <p className="gm-admin-card__label">{category.key}</p>
+              <label>
+                <span>Title</span>
+                <input
+                  onChange={(event) => updateCategory(index, "title", event.target.value)}
+                  type="text"
+                  value={category.title}
+                />
+              </label>
+              <label>
+                <span>Description</span>
+                <textarea
+                  onChange={(event) => updateCategory(index, "description", event.target.value)}
+                  rows={2}
+                  value={category.description}
+                />
+              </label>
+              <label>
+                <span>Items (one per line)</span>
+                <textarea
+                  onChange={(event) => updateCategoryItems(index, event.target.value)}
+                  rows={5}
+                  value={itemsToText(category.items)}
+                />
+              </label>
+            </div>
+          ))}
+        </section>
+
+        <section className="gm-admin-section">
+          <h2>Why Gotts Merch</h2>
+          <label>
+            <span>Section eyebrow</span>
+            <input
+              onChange={(event) => update("whyEyebrow", event.target.value)}
+              type="text"
+              value={content.whyEyebrow}
+            />
+          </label>
+          <label>
+            <span>Section title</span>
+            <input
+              onChange={(event) => update("whyTitle", event.target.value)}
+              type="text"
+              value={content.whyTitle}
+            />
+          </label>
+          {content.differentiators.map((item, index) => (
+            <div className="gm-admin-card" key={index}>
+              <label>
+                <span>Title</span>
+                <input
+                  onChange={(event) => updateDifferentiator(index, "title", event.target.value)}
+                  type="text"
+                  value={item.title}
+                />
+              </label>
+              <label>
+                <span>Description</span>
+                <textarea
+                  onChange={(event) =>
+                    updateDifferentiator(index, "description", event.target.value)
+                  }
+                  rows={2}
+                  value={item.description}
+                />
+              </label>
+            </div>
+          ))}
+        </section>
+
+        <section className="gm-admin-section">
+          <h2>Retail merch callout</h2>
+          <label>
+            <span>Eyebrow</span>
+            <input
+              onChange={(event) => update("retailEyebrow", event.target.value)}
+              type="text"
+              value={content.retailEyebrow}
+            />
+          </label>
+          <label>
+            <span>Title</span>
+            <input
+              onChange={(event) => update("retailTitle", event.target.value)}
+              type="text"
+              value={content.retailTitle}
+            />
+          </label>
+          <label>
+            <span>Body</span>
+            <textarea
+              onChange={(event) => update("retailBody", event.target.value)}
+              rows={3}
+              value={content.retailBody}
+            />
+          </label>
+          <label>
+            <span>Checklist items (one per line)</span>
+            <textarea
+              onChange={(event) => update("retailListItems", textToItems(event.target.value))}
+              rows={4}
+              value={itemsToText(content.retailListItems)}
+            />
+          </label>
+        </section>
+
+        <section className="gm-admin-section">
+          <h2>How it works</h2>
+          <label>
+            <span>Section eyebrow</span>
+            <input
+              onChange={(event) => update("processEyebrow", event.target.value)}
+              type="text"
+              value={content.processEyebrow}
+            />
+          </label>
+          <label>
+            <span>Section title</span>
+            <input
+              onChange={(event) => update("processTitle", event.target.value)}
+              type="text"
+              value={content.processTitle}
+            />
+          </label>
+          {content.processSteps.map((step, index) => (
+            <div className="gm-admin-card" key={step.number}>
+              <p className="gm-admin-card__label">Step {step.number}</p>
+              <label>
+                <span>Title</span>
+                <input
+                  onChange={(event) => updateProcessStep(index, "title", event.target.value)}
+                  type="text"
+                  value={step.title}
+                />
+              </label>
+              <label>
+                <span>Description</span>
+                <textarea
+                  onChange={(event) =>
+                    updateProcessStep(index, "description", event.target.value)
+                  }
+                  rows={2}
+                  value={step.description}
+                />
+              </label>
+            </div>
+          ))}
+        </section>
+
+        <section className="gm-admin-section">
+          <h2>Quote request section</h2>
+          <label>
+            <span>Eyebrow</span>
+            <input
+              onChange={(event) => update("quoteEyebrow", event.target.value)}
+              type="text"
+              value={content.quoteEyebrow}
+            />
+          </label>
+          <label>
+            <span>Title</span>
+            <input
+              onChange={(event) => update("quoteTitle", event.target.value)}
+              type="text"
+              value={content.quoteTitle}
+            />
+          </label>
+          <label>
+            <span>Body</span>
+            <textarea
+              onChange={(event) => update("quoteBody", event.target.value)}
+              rows={3}
+              value={content.quoteBody}
+            />
+          </label>
+          <label>
+            <span>Note (shown in italic below the body)</span>
+            <textarea
+              onChange={(event) => update("quoteNote", event.target.value)}
+              rows={2}
+              value={content.quoteNote}
+            />
+          </label>
+        </section>
+      </div>
+
+      <div className="gm-admin-savebar">
+        <button
+          className="gm-btn gm-btn--primary"
+          disabled={saveState === "saving"}
+          onClick={handleSave}
+          type="button"
+        >
+          {saveState === "saving" ? "Saving…" : "Save changes"}
+        </button>
+        {saveState === "saved" ? <span className="gm-admin-saved">Saved ✓</span> : null}
+        {saveState === "error" ? <span className="gm-admin-error">{saveError}</span> : null}
+      </div>
+    </div>
+  );
+}

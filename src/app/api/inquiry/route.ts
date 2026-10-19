@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { INQUIRY_EMAIL } from "@/content/site-content";
+import { getSiteContent } from "@/lib/content";
 
 type InquiryPayload = {
   name?: string;
@@ -66,8 +66,10 @@ export async function POST(request: Request) {
     ].join("\n"),
   );
 
+  const { inquiryEmail } = await getSiteContent();
+
   return NextResponse.json({
     ok: true,
-    mailto: `mailto:${INQUIRY_EMAIL}?subject=${subject}&body=${body}`,
+    mailto: `mailto:${inquiryEmail}?subject=${subject}&body=${body}`,
   });
 }

@@ -12,7 +12,7 @@ const productOptions = [
   "Not sure yet",
 ];
 
-export function InquiryForm() {
+export function InquiryForm({ inquiryEmail }: { inquiryEmail: string }) {
   const [status, setStatus] = useState<Status>("idle");
   const [mailto, setMailto] = useState("");
 
@@ -167,7 +167,7 @@ export function InquiryForm() {
       {status === "error" ? (
         <p aria-live="polite" className="gm-form-error">
           We could not prepare the message. Email{" "}
-          <a href="mailto:hello@gottsmerch.com">hello@gottsmerch.com</a>{" "}
+          <a href={`mailto:${inquiryEmail}`}>{inquiryEmail}</a>{" "}
           directly.
         </p>
       ) : null}
