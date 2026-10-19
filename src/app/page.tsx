@@ -2,6 +2,7 @@ import { InquiryForm } from "@/components/inquiry-form";
 import { CheckIcon, CupIcon, MenuCardIcon, PenIcon, ShirtIcon } from "@/components/icons";
 import { Logo, Wordmark } from "@/components/logo";
 import { Nav } from "@/components/nav";
+import { TeamAvatar } from "@/components/team-avatar";
 import { getSiteContent } from "@/lib/content";
 
 export const dynamic = "force-dynamic";
@@ -116,8 +117,13 @@ export default async function HomePage() {
             <div className="gm-about__team">
               {content.teamMembers.map((member) => (
                 <div className="gm-about__member" key={member.name}>
-                  <h3>{member.name}</h3>
-                  <p className="gm-about__role">{member.role}</p>
+                  <div className="gm-about__member-header">
+                    <TeamAvatar name={member.name} photoUrl={member.photoUrl} />
+                    <div>
+                      <h3>{member.name}</h3>
+                      <p className="gm-about__role">{member.role}</p>
+                    </div>
+                  </div>
                   <p>{member.bio}</p>
                 </div>
               ))}

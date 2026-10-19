@@ -5,6 +5,7 @@ import type { SiteContent } from "@/content/site-content";
 
 type LoadState = "loading" | "needs-login" | "ready";
 type SaveState = "idle" | "saving" | "saved" | "error";
+type PhotoStatus = "idle" | "uploading" | "error";
 
 function itemsToText(items: string[]): string {
   return items.join("\n");
@@ -24,6 +25,8 @@ export default function AdminPage() {
   const [loginError, setLoginError] = useState("");
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [saveError, setSaveError] = useState("");
+  const [photoStatus, setPhotoStatus] = useState<Record<number, PhotoStatus>>({});
+  const [photoError, setPhotoError] = useState<Record<number, string>>({});
 
   async function loadContent() {
     const response = await fetch("/api/admin/content");
@@ -157,7 +160,7 @@ export default function AdminPage() {
 
   function updateTeamMember(
     index: number,
-    field: "name" | "role" | "bio",
+    field: "name" | "role" | "bio" | "photoUrl",
     value: string,
   ) {
     setContent((current) => {
@@ -166,6 +169,31 @@ export default function AdminPage() {
       next[index] = { ...next[index], [field]: value };
       return { ...current, teamMembers: next };
     });
+  }
+
+  async function handlePhotoUpload(index: number, file: File) {
+    setPhotoStatus((current) => ({ ...current, [index]: "uploading" }));
+    setPhotoError((current) => ({ ...current, [index]: "" }));
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const response = await fetch("/api/admin/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const data = (await response.json()) as { ok?: boolean; url?: string; error?: string };
+      if (!response.ok || !data.ok || !data.url) {
+        throw new Error(data.error || "Upload failed");
+      }
+      updateTeamMember(index, "photoUrl", data.url);
+      setPhotoStatus((current) => ({ ...current, [index]: "idle" }));
+    } catch (error) {
+      setPhotoStatus((current) => ({ ...current, [index]: "error" }));
+      setPhotoError((current) => ({
+        ...current,
+        [index]: error instanceof Error ? error.message : "Upload failed",
+      }));
+    }
   }
 
   return (
@@ -424,6 +452,41 @@ export default function AdminPage() {
                   value={member.bio}
                 />
               </label>
+              <div className="gm-admin-photo">
+                {member.photoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- admin-only preview thumbnail
+                  <img alt="" className="gm-admin-photo__preview" src={member.photoUrl} />
+                ) : null}
+                <div>
+                  <label>
+                    <span>Photo (JPG, PNG, or WEBP — max 5MB)</span>
+                    <input
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
+                        if (file) handlePhotoUpload(index, file);
+                        event.target.value = "";
+                      }}
+                      type="file"
+                    />
+                  </label>
+                  {photoStatus[index] === "uploading" ? (
+                    <p className="gm-admin-hint">Uploading…</p>
+                  ) : null}
+                  {photoStatus[index] === "error" ? (
+                    <p className="gm-admin-error">{photoError[index]}</p>
+                  ) : null}
+                  {member.photoUrl ? (
+                    <button
+                      className="gm-form-restart"
+                      onClick={() => updateTeamMember(index, "photoUrl", "")}
+                      type="button"
+                    >
+                      Remove photo
+                    </button>
+                  ) : null}
+                </div>
+              </div>
             </div>
           ))}
         </section>

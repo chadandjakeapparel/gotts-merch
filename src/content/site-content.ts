@@ -20,6 +20,7 @@ export type TeamMember = {
   name: string;
   role: string;
   bio: string;
+  photoUrl: string;
 };
 
 export type SiteContent = {
@@ -148,11 +149,13 @@ export const defaultContent: SiteContent = {
       name: "Team Member One",
       role: "Co-Founder",
       bio: "Replace with a short bio — background, role at Gotts Merch, and what they focus on day to day.",
+      photoUrl: "",
     },
     {
       name: "Team Member Two",
       role: "Co-Founder",
       bio: "Replace with a short bio — background, role at Gotts Merch, and what they focus on day to day.",
+      photoUrl: "",
     },
   ],
   retailEyebrow: "Turn merch into a revenue line",

@@ -87,7 +87,8 @@ function isValidContent(value: unknown): value is SiteContent {
         typeof item === "object" &&
         typeof (item as Record<string, unknown>).name === "string" &&
         typeof (item as Record<string, unknown>).role === "string" &&
-        typeof (item as Record<string, unknown>).bio === "string",
+        typeof (item as Record<string, unknown>).bio === "string" &&
+        typeof (item as Record<string, unknown>).photoUrl === "string",
     )
   ) {
     return false;
