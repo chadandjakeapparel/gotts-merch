@@ -10,7 +10,7 @@ const navLinks = [
   { href: "#quote", label: "Get a Quote" },
 ];
 
-export function Nav() {
+export function Nav({ shopUrl }: { shopUrl: string }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -26,10 +26,23 @@ export function Nav() {
               {link.label}
             </a>
           ))}
+          <a href={shopUrl} rel="noreferrer" target="_blank">
+            Shop Now
+          </a>
         </nav>
-        <a className="gm-btn gm-btn--primary gm-nav__cta" href="#quote">
-          Get a Quote
-        </a>
+        <div className="gm-nav__actions">
+          <a className="gm-btn gm-btn--primary gm-nav__cta" href="#quote">
+            Get a Quote
+          </a>
+          <a
+            className="gm-btn gm-btn--primary gm-nav__cta"
+            href={shopUrl}
+            rel="noreferrer"
+            target="_blank"
+          >
+            Shop Now
+          </a>
+        </div>
         <button
           aria-expanded={open}
           aria-label={open ? "Close menu" : "Open menu"}
@@ -48,6 +61,9 @@ export function Nav() {
               {link.label}
             </a>
           ))}
+          <a href={shopUrl} onClick={() => setOpen(false)} rel="noreferrer" target="_blank">
+            Shop Now
+          </a>
         </nav>
       ) : null}
     </header>

@@ -20,6 +20,7 @@ export type SiteContent = {
   brandName: string;
   tagline: string;
   inquiryEmail: string;
+  shopUrl: string;
   heroEyebrow: string;
   heroLead: string;
   productsEyebrow: string;
@@ -48,6 +49,7 @@ export const defaultContent: SiteContent = {
   tagline: "We've Gotts you covered.",
   // Swap this for a real inbox at the gottsmerch.com domain before launch.
   inquiryEmail: "hello@gottsmerch.com",
+  shopUrl: "https://shopnow.gottsmerch.com",
   heroEyebrow: "Promotional products for restaurants, bars & hotels",
   heroLead:
     "Apparel, printed paper goods, drinkware, and retail merch — sourced and produced for hospitality, and nothing else. Commercial-grade materials, fast turns on seasonal menus, and one team that understands what a busy shift does to a product.",

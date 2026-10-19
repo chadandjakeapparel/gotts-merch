@@ -197,6 +197,14 @@ export default function AdminPage() {
             />
           </label>
           <label>
+            <span>Shop Now link (external store)</span>
+            <input
+              onChange={(event) => update("shopUrl", event.target.value)}
+              type="url"
+              value={content.shopUrl}
+            />
+          </label>
+          <label>
             <span>Footer tagline</span>
             <input
               onChange={(event) => update("footerTagline", event.target.value)}

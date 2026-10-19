@@ -19,7 +19,7 @@ export default async function HomePage() {
 
   return (
     <div id="top">
-      <Nav />
+      <Nav shopUrl={content.shopUrl} />
 
       <main>
         <section className="gm-hero">
