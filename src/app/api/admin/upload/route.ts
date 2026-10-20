@@ -9,6 +9,7 @@ const ALLOWED_TYPES: Record<string, string> = {
   "image/png": "png",
   "image/webp": "webp",
 };
+const ALLOWED_FOLDERS = new Set(["team", "brand"]);
 
 export async function POST(request: Request) {
   const store = await cookies();
@@ -38,7 +39,13 @@ export async function POST(request: Request) {
     );
   }
 
-  const blob = await put(`team/${Date.now()}.${extension}`, file, {
+  const requestedFolder = formData.get("folder");
+  const folder =
+    typeof requestedFolder === "string" && ALLOWED_FOLDERS.has(requestedFolder)
+      ? requestedFolder
+      : "team";
+
+  const blob = await put(`${folder}/${Date.now()}.${extension}`, file, {
     access: "public",
     contentType: file.type,
   });

@@ -15,10 +15,12 @@ const productOptions = [
 export function InquiryForm({ inquiryEmail }: { inquiryEmail: string }) {
   const [status, setStatus] = useState<Status>("idle");
   const [mailto, setMailto] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setStatus("submitting");
+    setErrorMessage("");
     const form = event.currentTarget;
     const formData = new FormData(form);
     const products = formData
@@ -29,10 +31,39 @@ export function InquiryForm({ inquiryEmail }: { inquiryEmail: string }) {
       ...(Object.fromEntries(formData.entries()) as Record<string, string>),
       products,
     };
+    delete payload.attachment;
 
     if (payload.website) {
       setStatus("success");
       return;
+    }
+
+    const attachment = formData.get("attachment");
+    if (attachment instanceof File && attachment.size > 0) {
+      try {
+        const uploadData = new FormData();
+        uploadData.append("file", attachment);
+        const uploadResponse = await fetch("/api/attachments", {
+          method: "POST",
+          body: uploadData,
+        });
+        const uploadResult = (await uploadResponse.json()) as {
+          ok?: boolean;
+          url?: string;
+          error?: string;
+        };
+        if (!uploadResponse.ok || !uploadResult.ok || !uploadResult.url) {
+          throw new Error(uploadResult.error || "Could not upload the attachment");
+        }
+        payload.attachmentUrl = uploadResult.url;
+        payload.attachmentName = attachment.name;
+      } catch (error) {
+        setStatus("error");
+        setErrorMessage(
+          error instanceof Error ? error.message : "Could not upload the attachment",
+        );
+        return;
+      }
     }
 
     try {
@@ -153,6 +184,14 @@ export function InquiryForm({ inquiryEmail }: { inquiryEmail: string }) {
           rows={5}
         />
       </label>
+      <label>
+        <span>Attach a file (optional — logo art, reference image, or PDF, max 8MB)</span>
+        <input
+          accept="image/jpeg,image/png,image/webp,application/pdf"
+          name="attachment"
+          type="file"
+        />
+      </label>
       <label aria-hidden="true" className="gm-honeypot">
         Website
         <input autoComplete="off" name="website" tabIndex={-1} type="text" />
@@ -166,7 +205,7 @@ export function InquiryForm({ inquiryEmail }: { inquiryEmail: string }) {
       </button>
       {status === "error" ? (
         <p aria-live="polite" className="gm-form-error">
-          We could not prepare the message. Email{" "}
+          {errorMessage || "We could not prepare the message."} Email{" "}
           <a href={`mailto:${inquiryEmail}`}>{inquiryEmail}</a>{" "}
           directly.
         </p>

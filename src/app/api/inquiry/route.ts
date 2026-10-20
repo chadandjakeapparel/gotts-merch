@@ -11,6 +11,8 @@ type InquiryPayload = {
   products?: string;
   message?: string;
   website?: string;
+  attachmentUrl?: string;
+  attachmentName?: string;
 };
 
 function clean(value: unknown, maxLength: number) {
@@ -40,6 +42,8 @@ export async function POST(request: Request) {
   const quantity = clean(payload.quantity, 80);
   const products = clean(payload.products, 300);
   const message = clean(payload.message, 4000);
+  const attachmentUrl = clean(payload.attachmentUrl, 500);
+  const attachmentName = clean(payload.attachmentName, 200);
 
   if (!name || !email || !message || !email.includes("@")) {
     return NextResponse.json(
@@ -60,6 +64,9 @@ export async function POST(request: Request) {
       `Venue type: ${venueType || "Not selected"}`,
       `Products of interest: ${products || "Not selected"}`,
       `Estimated quantity: ${quantity || "Not selected"}`,
+      ...(attachmentUrl
+        ? [`Attachment (${attachmentName || "file"}): ${attachmentUrl}`]
+        : []),
       "",
       "Message:",
       message,

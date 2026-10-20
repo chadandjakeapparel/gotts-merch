@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Logo, Wordmark } from "@/components/logo";
+import { BrandMark } from "@/components/logo";
 
 const navLinks = [
   { href: "#products", label: "Products" },
@@ -11,15 +11,22 @@ const navLinks = [
   { href: "#quote", label: "Get a Quote" },
 ];
 
-export function Nav({ shopUrl }: { shopUrl: string }) {
+export function Nav({
+  brandName,
+  logoUrl,
+  shopUrl,
+}: {
+  brandName: string;
+  logoUrl: string;
+  shopUrl: string;
+}) {
   const [open, setOpen] = useState(false);
 
   return (
     <header className="gm-nav">
       <div className="gm-nav__inner">
         <a className="gm-nav__brand" href="#top">
-          <Logo size={30} />
-          <Wordmark size={17} />
+          <BrandMark brandName={brandName} height={34} logoSize={30} logoUrl={logoUrl} wordmarkSize={17} />
         </a>
         <nav aria-label="Main navigation" className="gm-nav__links">
           {navLinks.map((link) => (
@@ -27,9 +34,6 @@ export function Nav({ shopUrl }: { shopUrl: string }) {
               {link.label}
             </a>
           ))}
-          <a href={shopUrl} rel="noreferrer" target="_blank">
-            Shop Now
-          </a>
         </nav>
         <div className="gm-nav__actions">
           <a className="gm-btn gm-btn--primary gm-nav__cta" href="#quote">

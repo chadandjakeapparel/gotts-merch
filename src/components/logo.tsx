@@ -25,3 +25,31 @@ export function Wordmark({ size = 20 }: { size?: number }) {
     </span>
   );
 }
+
+export function BrandMark({
+  logoUrl,
+  brandName,
+  height = 34,
+  logoSize = 30,
+  wordmarkSize = 16,
+}: {
+  logoUrl: string;
+  brandName: string;
+  height?: number;
+  logoSize?: number;
+  wordmarkSize?: number;
+}) {
+  if (logoUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element -- intrinsic size of an uploaded logo isn't known ahead of time
+      <img alt={brandName} className="gm-brand-mark" height={height} src={logoUrl} />
+    );
+  }
+
+  return (
+    <>
+      <Logo size={logoSize} />
+      <Wordmark size={wordmarkSize} />
+    </>
+  );
+}

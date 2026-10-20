@@ -1,6 +1,6 @@
 import { InquiryForm } from "@/components/inquiry-form";
 import { CheckIcon, CupIcon, MenuCardIcon, PenIcon, ShirtIcon } from "@/components/icons";
-import { Logo, Wordmark } from "@/components/logo";
+import { BrandMark } from "@/components/logo";
 import { Nav } from "@/components/nav";
 import { TeamAvatar } from "@/components/team-avatar";
 import { getSiteContent } from "@/lib/content";
@@ -20,7 +20,7 @@ export default async function HomePage() {
 
   return (
     <div id="top">
-      <Nav shopUrl={content.shopUrl} />
+      <Nav brandName={content.brandName} logoUrl={content.logoUrl} shopUrl={content.shopUrl} />
 
       <main>
         <section className="gm-hero">
@@ -186,13 +186,16 @@ export default async function HomePage() {
       <footer className="gm-footer">
         <div className="gm-container gm-footer__inner">
           <div className="gm-footer__brand">
-            <Logo size={30} />
-            <div className="gm-footer__brand-text">
-              <p>
-                <Wordmark size={15} />
-              </p>
-              <p className="gm-footer__tagline">{content.footerTagline}</p>
+            <div className="gm-footer__brand-mark">
+              <BrandMark
+                brandName={content.brandName}
+                height={32}
+                logoSize={30}
+                logoUrl={content.logoUrl}
+                wordmarkSize={15}
+              />
             </div>
+            <p className="gm-footer__tagline">{content.footerTagline}</p>
           </div>
           <nav aria-label="Footer navigation" className="gm-footer__nav">
             <a href="#products">Products</a>

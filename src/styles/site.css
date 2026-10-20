@@ -230,6 +230,11 @@ fieldset {
   align-items: center;
 }
 
+.gm-brand-mark {
+  width: auto;
+  object-fit: contain;
+}
+
 .gm-nav__links {
   display: flex;
   gap: clamp(18px, 2.5vw, 34px);
@@ -829,17 +834,14 @@ fieldset {
 
 .gm-footer__brand {
   display: flex;
-  gap: 10px;
-  align-items: center;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.gm-footer__brand-text p:first-child {
-  margin-bottom: 4px;
-  font-family: var(--gm-font-display), sans-serif;
-  font-size: 1.2rem;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
+.gm-footer__brand-mark {
+  display: flex;
+  gap: 10px;
+  align-items: center;
 }
 
 .gm-footer__tagline {

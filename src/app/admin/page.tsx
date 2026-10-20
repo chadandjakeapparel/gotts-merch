@@ -27,6 +27,8 @@ export default function AdminPage() {
   const [saveError, setSaveError] = useState("");
   const [photoStatus, setPhotoStatus] = useState<Record<number, PhotoStatus>>({});
   const [photoError, setPhotoError] = useState<Record<number, string>>({});
+  const [logoStatus, setLogoStatus] = useState<PhotoStatus>("idle");
+  const [logoError, setLogoError] = useState("");
 
   async function loadContent() {
     const response = await fetch("/api/admin/content");
@@ -171,21 +173,27 @@ export default function AdminPage() {
     });
   }
 
+  async function uploadFile(file: File, folder: "team" | "brand"): Promise<string> {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("folder", folder);
+    const response = await fetch("/api/admin/upload", {
+      method: "POST",
+      body: formData,
+    });
+    const data = (await response.json()) as { ok?: boolean; url?: string; error?: string };
+    if (!response.ok || !data.ok || !data.url) {
+      throw new Error(data.error || "Upload failed");
+    }
+    return data.url;
+  }
+
   async function handlePhotoUpload(index: number, file: File) {
     setPhotoStatus((current) => ({ ...current, [index]: "uploading" }));
     setPhotoError((current) => ({ ...current, [index]: "" }));
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const response = await fetch("/api/admin/upload", {
-        method: "POST",
-        body: formData,
-      });
-      const data = (await response.json()) as { ok?: boolean; url?: string; error?: string };
-      if (!response.ok || !data.ok || !data.url) {
-        throw new Error(data.error || "Upload failed");
-      }
-      updateTeamMember(index, "photoUrl", data.url);
+      const url = await uploadFile(file, "team");
+      updateTeamMember(index, "photoUrl", url);
       setPhotoStatus((current) => ({ ...current, [index]: "idle" }));
     } catch (error) {
       setPhotoStatus((current) => ({ ...current, [index]: "error" }));
@@ -193,6 +201,19 @@ export default function AdminPage() {
         ...current,
         [index]: error instanceof Error ? error.message : "Upload failed",
       }));
+    }
+  }
+
+  async function handleLogoUpload(file: File) {
+    setLogoStatus("uploading");
+    setLogoError("");
+    try {
+      const url = await uploadFile(file, "brand");
+      update("logoUrl", url);
+      setLogoStatus("idle");
+    } catch (error) {
+      setLogoStatus("error");
+      setLogoError(error instanceof Error ? error.message : "Upload failed");
     }
   }
 
@@ -213,6 +234,40 @@ export default function AdminPage() {
       <div className="gm-admin-body">
         <section className="gm-admin-section">
           <h2>Brand</h2>
+          <div className="gm-admin-photo">
+            {content.logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- admin-only preview thumbnail
+              <img alt="" className="gm-admin-photo__preview" src={content.logoUrl} />
+            ) : null}
+            <div>
+              <label>
+                <span>Logo (top-left of the site) — JPG, PNG, or WEBP, max 5MB</span>
+                <input
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) handleLogoUpload(file);
+                    event.target.value = "";
+                  }}
+                  type="file"
+                />
+              </label>
+              <p className="gm-admin-hint">
+                Leave this empty to use the default &ldquo;G&rdquo; mark and wordmark.
+              </p>
+              {logoStatus === "uploading" ? <p className="gm-admin-hint">Uploading…</p> : null}
+              {logoStatus === "error" ? <p className="gm-admin-error">{logoError}</p> : null}
+              {content.logoUrl ? (
+                <button
+                  className="gm-form-restart"
+                  onClick={() => update("logoUrl", "")}
+                  type="button"
+                >
+                  Remove logo
+                </button>
+              ) : null}
+            </div>
+          </div>
           <label>
             <span>Brand name (used in copyright line)</span>
             <input
