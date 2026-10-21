@@ -250,7 +250,7 @@ export default function AdminPage() {
             ) : null}
             <div>
               <label>
-                <span>Logo (top-left of the site) — JPG, PNG, or WEBP, max 5MB</span>
+                <span>Logo mark (icon only, top-left of the site) — JPG, PNG, or WEBP, max 5MB</span>
                 <input
                   accept="image/jpeg,image/png,image/webp"
                   onChange={(event) => {
@@ -262,7 +262,10 @@ export default function AdminPage() {
                 />
               </label>
               <p className="gm-admin-hint">
-                Leave this empty to use the default &ldquo;G&rdquo; mark and wordmark.
+                This replaces just the icon next to your brand name — leave it
+                empty to use the default &ldquo;G&rdquo; mark. The text next
+                to it comes from Brand name below, so the two can be changed
+                independently.
               </p>
               {logoStatus === "uploading" ? <p className="gm-admin-hint">Uploading…</p> : null}
               {logoStatus === "error" ? <p className="gm-admin-error">{logoError}</p> : null}
@@ -278,7 +281,7 @@ export default function AdminPage() {
             </div>
           </div>
           <label>
-            <span>Brand name (used in copyright line)</span>
+            <span>Brand name (nav/footer wordmark text + copyright line)</span>
             <input
               onChange={(event) => update("brandName", event.target.value)}
               type="text"

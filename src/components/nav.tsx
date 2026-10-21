@@ -27,7 +27,7 @@ export function Nav({
     <header className="gm-nav">
       <div className="gm-nav__inner">
         <a className="gm-nav__brand" href="#top">
-          <BrandMark brandName={brandName} height={34} logoSize={30} logoUrl={logoUrl} wordmarkSize={17} />
+          <BrandMark brandName={brandName} logoSize={30} logoUrl={logoUrl} wordmarkSize={17} />
         </a>
         <nav aria-label="Main navigation" className="gm-nav__links">
           {navLinks.map((link) => (

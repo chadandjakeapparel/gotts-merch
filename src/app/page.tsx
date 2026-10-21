@@ -236,7 +236,6 @@ export default async function HomePage() {
             <div className="gm-footer__brand-mark">
               <BrandMark
                 brandName={content.brandName}
-                height={32}
                 logoSize={30}
                 logoUrl={content.logoUrl}
                 wordmarkSize={15}
