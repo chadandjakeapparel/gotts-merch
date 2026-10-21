@@ -29,6 +29,14 @@ function isValidContent(value: unknown): value is SiteContent {
     "heroLead",
     "productsEyebrow",
     "productsTitle",
+    "activationsEyebrow",
+    "activationsTitle",
+    "activationsLead",
+    "activationsStat",
+    "activationsProcessEyebrow",
+    "activationsProcessTitle",
+    "activationsCtaTitle",
+    "activationsCtaBody",
     "whyEyebrow",
     "whyTitle",
     "aboutEyebrow",
@@ -51,6 +59,20 @@ function isValidContent(value: unknown): value is SiteContent {
 
   if (!isStringArray(data.retailListItems)) return false;
   if (!isStringArray(data.venueTypes)) return false;
+  if (!isStringArray(data.activationsProcessItems)) return false;
+
+  if (
+    !Array.isArray(data.activationsStations) ||
+    !data.activationsStations.every(
+      (item) =>
+        item &&
+        typeof item === "object" &&
+        typeof (item as Record<string, unknown>).title === "string" &&
+        typeof (item as Record<string, unknown>).description === "string",
+    )
+  ) {
+    return false;
+  }
 
   if (
     !Array.isArray(data.productCategories) ||

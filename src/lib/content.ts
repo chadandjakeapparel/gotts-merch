@@ -2,6 +2,7 @@ import { list, put } from "@vercel/blob";
 import {
   defaultContent,
   type SiteContent,
+  type ActivationStation,
   type Differentiator,
   type ProcessStep,
   type ProductCategory,
@@ -46,6 +47,10 @@ export async function getSiteContent(): Promise<SiteContent> {
       ),
       processSteps: mergeArray<ProcessStep>(data.processSteps, defaultContent.processSteps),
       teamMembers: mergeArray<TeamMember>(data.teamMembers, defaultContent.teamMembers),
+      activationsStations: mergeArray<ActivationStation>(
+        data.activationsStations,
+        defaultContent.activationsStations,
+      ),
     };
   } catch {
     return defaultContent;

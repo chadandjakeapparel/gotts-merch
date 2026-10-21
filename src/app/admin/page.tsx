@@ -173,6 +173,15 @@ export default function AdminPage() {
     });
   }
 
+  function updateStation(index: number, field: "title" | "description", value: string) {
+    setContent((current) => {
+      if (!current) return current;
+      const next = [...current.activationsStations];
+      next[index] = { ...next[index], [field]: value };
+      return { ...current, activationsStations: next };
+    });
+  }
+
   async function uploadFile(file: File, folder: "team" | "brand"): Promise<string> {
     const formData = new FormData();
     formData.append("file", file);
@@ -410,6 +419,105 @@ export default function AdminPage() {
               </label>
             </div>
           ))}
+        </section>
+
+        <section className="gm-admin-section">
+          <h2>Merch Activations</h2>
+          <label>
+            <span>Section eyebrow</span>
+            <input
+              onChange={(event) => update("activationsEyebrow", event.target.value)}
+              type="text"
+              value={content.activationsEyebrow}
+            />
+          </label>
+          <label>
+            <span>Section title</span>
+            <input
+              onChange={(event) => update("activationsTitle", event.target.value)}
+              type="text"
+              value={content.activationsTitle}
+            />
+          </label>
+          <label>
+            <span>Lead paragraph</span>
+            <textarea
+              onChange={(event) => update("activationsLead", event.target.value)}
+              rows={3}
+              value={content.activationsLead}
+            />
+          </label>
+          <label>
+            <span>Stat badge (e.g. &ldquo;250+ live events produced&rdquo;)</span>
+            <input
+              onChange={(event) => update("activationsStat", event.target.value)}
+              type="text"
+              value={content.activationsStat}
+            />
+          </label>
+          {content.activationsStations.map((station, index) => (
+            <div className="gm-admin-card" key={index}>
+              <p className="gm-admin-card__label">Station {index + 1}</p>
+              <label>
+                <span>Title</span>
+                <input
+                  onChange={(event) => updateStation(index, "title", event.target.value)}
+                  type="text"
+                  value={station.title}
+                />
+              </label>
+              <label>
+                <span>Description</span>
+                <textarea
+                  onChange={(event) => updateStation(index, "description", event.target.value)}
+                  rows={2}
+                  value={station.description}
+                />
+              </label>
+            </div>
+          ))}
+          <label>
+            <span>Process eyebrow</span>
+            <input
+              onChange={(event) => update("activationsProcessEyebrow", event.target.value)}
+              type="text"
+              value={content.activationsProcessEyebrow}
+            />
+          </label>
+          <label>
+            <span>Process title</span>
+            <input
+              onChange={(event) => update("activationsProcessTitle", event.target.value)}
+              type="text"
+              value={content.activationsProcessTitle}
+            />
+          </label>
+          <label>
+            <span>Process checklist (one per line)</span>
+            <textarea
+              onChange={(event) =>
+                update("activationsProcessItems", textToItems(event.target.value))
+              }
+              rows={6}
+              value={itemsToText(content.activationsProcessItems)}
+            />
+          </label>
+          <label>
+            <span>CTA title</span>
+            <input
+              onChange={(event) => update("activationsCtaTitle", event.target.value)}
+              type="text"
+              value={content.activationsCtaTitle}
+            />
+          </label>
+          <label>
+            <span>CTA body</span>
+            <textarea
+              onChange={(event) => update("activationsCtaBody", event.target.value)}
+              rows={2}
+              value={content.activationsCtaBody}
+            />
+          </label>
         </section>
 
         <section className="gm-admin-section">

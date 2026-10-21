@@ -90,6 +90,53 @@ export default async function HomePage() {
           </div>
         </section>
 
+        <section className="gm-activations" id="merch-activations">
+          <div className="gm-container">
+            <div className="gm-section-heading">
+              <p className="gm-eyebrow">{content.activationsEyebrow}</p>
+              <h2>{content.activationsTitle}</h2>
+            </div>
+            <div className="gm-activations__intro">
+              <p>{content.activationsLead}</p>
+              <span className="gm-activations__stat">{content.activationsStat}</span>
+            </div>
+            <div className="gm-activations__grid">
+              {content.activationsStations.map((station, index) => (
+                <div className="gm-activations__station" key={station.title}>
+                  <span className="gm-activations__number">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <h3>{station.title}</h3>
+                  <p>{station.description}</p>
+                </div>
+              ))}
+            </div>
+            <div className="gm-activations__process">
+              <div>
+                <p className="gm-eyebrow">{content.activationsProcessEyebrow}</p>
+                <h3>{content.activationsProcessTitle}</h3>
+              </div>
+              <ul className="gm-retail__list">
+                {content.activationsProcessItems.map((item) => (
+                  <li key={item}>
+                    <CheckIcon />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="gm-activations__cta">
+              <div>
+                <h3>{content.activationsCtaTitle}</h3>
+                <p>{content.activationsCtaBody}</p>
+              </div>
+              <a className="gm-btn gm-btn--primary" href="#quote">
+                Request a quote
+              </a>
+            </div>
+          </div>
+        </section>
+
         <section className="gm-why" id="why-us">
           <div className="gm-container">
             <div className="gm-section-heading gm-section-heading--light">
@@ -199,6 +246,7 @@ export default async function HomePage() {
           </div>
           <nav aria-label="Footer navigation" className="gm-footer__nav">
             <a href="#products">Products</a>
+            <a href="#merch-activations">Merch Activations</a>
             <a href="#why-us">Why Us</a>
             <a href="#about">About Us</a>
             <a href="#process">How It Works</a>

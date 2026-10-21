@@ -23,6 +23,11 @@ export type TeamMember = {
   photoUrl: string;
 };
 
+export type ActivationStation = {
+  title: string;
+  description: string;
+};
+
 export type SiteContent = {
   brandName: string;
   // Leave blank to use the default recreated wordmark/G mark.
@@ -39,6 +44,16 @@ export type SiteContent = {
   productsEyebrow: string;
   productsTitle: string;
   productCategories: ProductCategory[];
+  activationsEyebrow: string;
+  activationsTitle: string;
+  activationsLead: string;
+  activationsStat: string;
+  activationsStations: ActivationStation[];
+  activationsProcessEyebrow: string;
+  activationsProcessTitle: string;
+  activationsProcessItems: string[];
+  activationsCtaTitle: string;
+  activationsCtaBody: string;
   whyEyebrow: string;
   whyTitle: string;
   differentiators: Differentiator[];
@@ -119,6 +134,50 @@ export const defaultContent: SiteContent = {
       items: ["Pens", "Tees & hats", "Tote bags", "Register-ready merch"],
     },
   ],
+  activationsEyebrow: "Live, on-site merch production",
+  activationsTitle: "Watch the merch get made — right at your event.",
+  activationsLead:
+    "From a grand opening to a staff kickoff, our on-site production stations turn branded merch into part of the event. Guests and staff watch their gear get made in real time, then walk away with it that same day.",
+  activationsStat: "250+ live events produced",
+  activationsStations: [
+    {
+      title: "Live heat press",
+      description:
+        "A staffed DTF heat-press station that applies full-color designs to apparel on the spot.",
+    },
+    {
+      title: "Hat bar",
+      description: "Guests pick a style and watch their cap get customized in minutes.",
+    },
+    {
+      title: "Embroidery",
+      description:
+        "On-site embroidery for a cleaner, more premium finish on apparel and accessories.",
+    },
+    {
+      title: "UV DTF for hard goods",
+      description:
+        "Full-color branding applied live to cups, bottles, and other hard-surface items.",
+    },
+    {
+      title: "Laser engraving",
+      description:
+        "Precision engraving for a lasting, upscale touch on wood, metal, and leather goods.",
+    },
+  ],
+  activationsProcessEyebrow: "How we run it",
+  activationsProcessTitle: "End-to-end, so all you do is show up.",
+  activationsProcessItems: [
+    "Blank sourcing",
+    "Artwork and file prep",
+    "On-floor crew for the full event",
+    "Throughput planning for guest volume",
+    "Travel and logistics handled",
+    "Clean, finished-piece handoff",
+  ],
+  activationsCtaTitle: "Have an event on the calendar?",
+  activationsCtaBody:
+    "Tell us the date, the venue, and the crowd size — we'll help you scope the right stations for it.",
   whyEyebrow: "Why hospitality teams work with us",
   whyTitle: "We've Gotts you covered. That's the point.",
   differentiators: [
