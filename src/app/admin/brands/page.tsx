@@ -8,6 +8,19 @@ type LoadState = "loading" | "needs-login" | "ready";
 type SaveState = "idle" | "saving" | "saved" | "error";
 type PhotoStatus = "idle" | "uploading" | "error";
 
+// Swaps whatever is stored at two indexes (e.g. per-row upload status),
+// keeping each value attached to its row when brands are reordered.
+function swapIndexed<T>(map: Record<number, T>, a: number, b: number): Record<number, T> {
+  const next = { ...map };
+  const valueAtA = map[a];
+  const valueAtB = map[b];
+  if (valueAtB === undefined) delete next[a];
+  else next[a] = valueAtB;
+  if (valueAtA === undefined) delete next[b];
+  else next[b] = valueAtA;
+  return next;
+}
+
 export default function AdminBrandsPage() {
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [content, setContent] = useState<SiteContent | null>(null);
@@ -151,6 +164,20 @@ export default function AdminBrandsPage() {
     });
   }
 
+  function moveBrand(index: number, direction: -1 | 1) {
+    const targetIndex = index + direction;
+    if (!content || targetIndex < 0 || targetIndex >= content.brandPartners.length) return;
+
+    setContent((current) => {
+      if (!current) return current;
+      const next = [...current.brandPartners];
+      [next[index], next[targetIndex]] = [next[targetIndex], next[index]];
+      return { ...current, brandPartners: next };
+    });
+    setBrandLogoStatus((current) => swapIndexed(current, index, targetIndex));
+    setBrandLogoError((current) => swapIndexed(current, index, targetIndex));
+  }
+
   async function uploadFile(file: File): Promise<string> {
     const formData = new FormData();
     formData.append("file", file);
@@ -236,7 +263,27 @@ export default function AdminBrandsPage() {
           </p>
           {content.brandPartners.map((brand, index) => (
             <div className="gm-admin-card" key={index}>
-              <p className="gm-admin-card__label">Brand {index + 1}</p>
+              <div className="gm-admin-card__header">
+                <p className="gm-admin-card__label">Brand {index + 1}</p>
+                <div className="gm-admin-reorder">
+                  <button
+                    aria-label="Move brand up"
+                    disabled={index === 0}
+                    onClick={() => moveBrand(index, -1)}
+                    type="button"
+                  >
+                    ↑
+                  </button>
+                  <button
+                    aria-label="Move brand down"
+                    disabled={index === content.brandPartners.length - 1}
+                    onClick={() => moveBrand(index, 1)}
+                    type="button"
+                  >
+                    ↓
+                  </button>
+                </div>
+              </div>
               <label>
                 <span>Name</span>
                 <input
