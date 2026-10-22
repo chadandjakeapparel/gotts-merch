@@ -7,6 +7,7 @@ const navLinks = [
   { href: "#products", label: "Products" },
   { href: "#merch-activations", label: "On-Site Activations" },
   { href: "#why-us", label: "Why Us" },
+  { href: "#brands", label: "Brands" },
   { href: "#about", label: "About Us" },
   { href: "#process", label: "How It Works" },
   { href: "#quote", label: "Get a Quote" },

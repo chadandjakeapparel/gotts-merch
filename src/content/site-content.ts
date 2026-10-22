@@ -28,6 +28,12 @@ export type ActivationStation = {
   description: string;
 };
 
+export type BrandPartner = {
+  name: string;
+  description: string;
+  logoUrl: string;
+};
+
 export type SiteContent = {
   brandName: string;
   // Leave blank to use the default recreated wordmark/G mark.
@@ -57,6 +63,10 @@ export type SiteContent = {
   whyEyebrow: string;
   whyTitle: string;
   differentiators: Differentiator[];
+  brandsEyebrow: string;
+  brandsTitle: string;
+  brandsLead: string;
+  brandPartners: BrandPartner[];
   aboutEyebrow: string;
   aboutTitle: string;
   aboutHistory: string;
@@ -200,6 +210,42 @@ export const defaultContent: SiteContent = {
       title: "In-house design support",
       description:
         "Logo placement, embroidery digitizing, and print proofs handled before anything goes to production.",
+    },
+  ],
+  brandsEyebrow: "Who we print for",
+  brandsTitle: "Brands we're proud to work with.",
+  brandsLead:
+    "Replace this section with the real supplier and manufacturer brands Gotts Merch carries — add, remove, and reorder entries below as your catalog changes.",
+  brandPartners: [
+    {
+      name: "Brand One",
+      description: "Replace with a short line about this brand and what you offer from it.",
+      logoUrl: "",
+    },
+    {
+      name: "Brand Two",
+      description: "Replace with a short line about this brand and what you offer from it.",
+      logoUrl: "",
+    },
+    {
+      name: "Brand Three",
+      description: "Replace with a short line about this brand and what you offer from it.",
+      logoUrl: "",
+    },
+    {
+      name: "Brand Four",
+      description: "Replace with a short line about this brand and what you offer from it.",
+      logoUrl: "",
+    },
+    {
+      name: "Brand Five",
+      description: "Replace with a short line about this brand and what you offer from it.",
+      logoUrl: "",
+    },
+    {
+      name: "Brand Six",
+      description: "Replace with a short line about this brand and what you offer from it.",
+      logoUrl: "",
     },
   ],
   aboutEyebrow: "Our story",

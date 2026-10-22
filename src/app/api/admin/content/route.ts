@@ -39,6 +39,9 @@ function isValidContent(value: unknown): value is SiteContent {
     "activationsCtaBody",
     "whyEyebrow",
     "whyTitle",
+    "brandsEyebrow",
+    "brandsTitle",
+    "brandsLead",
     "aboutEyebrow",
     "aboutTitle",
     "aboutHistory",
@@ -97,6 +100,20 @@ function isValidContent(value: unknown): value is SiteContent {
         typeof item === "object" &&
         typeof (item as Record<string, unknown>).title === "string" &&
         typeof (item as Record<string, unknown>).description === "string",
+    )
+  ) {
+    return false;
+  }
+
+  if (
+    !Array.isArray(data.brandPartners) ||
+    !data.brandPartners.every(
+      (item) =>
+        item &&
+        typeof item === "object" &&
+        typeof (item as Record<string, unknown>).name === "string" &&
+        typeof (item as Record<string, unknown>).description === "string" &&
+        typeof (item as Record<string, unknown>).logoUrl === "string",
     )
   ) {
     return false;

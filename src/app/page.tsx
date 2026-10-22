@@ -1,4 +1,5 @@
 import { InquiryForm } from "@/components/inquiry-form";
+import { BrandLogo } from "@/components/brand-logo";
 import { CheckIcon, CupIcon, MenuCardIcon, PenIcon, ShirtIcon } from "@/components/icons";
 import { BrandMark } from "@/components/logo";
 import { Nav } from "@/components/nav";
@@ -154,6 +155,25 @@ export default async function HomePage() {
           </div>
         </section>
 
+        <section className="gm-brands" id="brands">
+          <div className="gm-container">
+            <div className="gm-section-heading">
+              <p className="gm-eyebrow">{content.brandsEyebrow}</p>
+              <h2>{content.brandsTitle}</h2>
+              <p className="gm-brands__lead">{content.brandsLead}</p>
+            </div>
+            <div className="gm-brands__grid">
+              {content.brandPartners.map((brand) => (
+                <div className="gm-brands__card" key={brand.name}>
+                  <BrandLogo logoUrl={brand.logoUrl} name={brand.name} />
+                  <h3>{brand.name}</h3>
+                  <p>{brand.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
         <section className="gm-about" id="about">
           <div className="gm-container">
             <div className="gm-section-heading">
@@ -247,6 +267,7 @@ export default async function HomePage() {
             <a href="#products">Products</a>
             <a href="#merch-activations">On-Site Activations</a>
             <a href="#why-us">Why Us</a>
+            <a href="#brands">Brands</a>
             <a href="#about">About Us</a>
             <a href="#process">How It Works</a>
             <a href="#quote">Get a Quote</a>

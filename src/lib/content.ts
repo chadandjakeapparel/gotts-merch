@@ -3,6 +3,7 @@ import {
   defaultContent,
   type SiteContent,
   type ActivationStation,
+  type BrandPartner,
   type Differentiator,
   type ProcessStep,
   type ProductCategory,
@@ -20,6 +21,24 @@ function mergeArray<T>(saved: unknown, defaults: T[]): T[] {
     ...defaultItem,
     ...(saved[index] && typeof saved[index] === "object" ? saved[index] : {}),
   }));
+}
+
+// For variable-length, admin-managed lists (add/remove rather than a fixed
+// set of items): normalizes each saved item against a blank shape instead
+// of a same-length defaults array, so entries can be added or removed
+// without ever producing an incomplete item.
+function normalizeArray<T extends Record<string, unknown>>(saved: unknown, blank: T): T[] {
+  if (!Array.isArray(saved)) return [];
+  return saved.map((item) => {
+    const record = item && typeof item === "object" ? (item as Record<string, unknown>) : {};
+    const next = { ...blank };
+    for (const key of Object.keys(blank)) {
+      if (typeof record[key] === typeof blank[key]) {
+        (next as Record<string, unknown>)[key] = record[key];
+      }
+    }
+    return next;
+  });
 }
 
 export async function getSiteContent(): Promise<SiteContent> {
@@ -51,6 +70,13 @@ export async function getSiteContent(): Promise<SiteContent> {
         data.activationsStations,
         defaultContent.activationsStations,
       ),
+      brandPartners: Array.isArray(data.brandPartners)
+        ? normalizeArray<BrandPartner>(data.brandPartners, {
+            name: "",
+            description: "",
+            logoUrl: "",
+          })
+        : defaultContent.brandPartners,
     };
   } catch {
     return defaultContent;
