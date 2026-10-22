@@ -7,10 +7,8 @@ const navLinks = [
   { href: "#products", label: "Products" },
   { href: "#merch-activations", label: "On-Site Activations" },
   { href: "#why-us", label: "Why Us" },
-  { href: "#brands", label: "Brands" },
   { href: "#about", label: "About Us" },
   { href: "#process", label: "How It Works" },
-  { href: "#quote", label: "Get a Quote" },
 ];
 
 export function Nav({
@@ -68,6 +66,9 @@ export function Nav({
               {link.label}
             </a>
           ))}
+          <a href="#quote" onClick={() => setOpen(false)}>
+            Get a Quote
+          </a>
           <a href={shopUrl} onClick={() => setOpen(false)} rel="noreferrer" target="_blank">
             Shop Now
           </a>
