@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import type { SiteContent } from "@/content/site-content";
 
 type LoadState = "loading" | "needs-login" | "ready";
@@ -31,8 +32,6 @@ export default function AdminPage() {
   const [logoError, setLogoError] = useState("");
   const [faviconStatus, setFaviconStatus] = useState<PhotoStatus>("idle");
   const [faviconError, setFaviconError] = useState("");
-  const [brandLogoStatus, setBrandLogoStatus] = useState<Record<number, PhotoStatus>>({});
-  const [brandLogoError, setBrandLogoError] = useState<Record<number, string>>({});
 
   async function loadContent() {
     const response = await fetch("/api/admin/content");
@@ -186,45 +185,6 @@ export default function AdminPage() {
     });
   }
 
-  function updateBrand(index: number, field: "name" | "description" | "logoUrl", value: string) {
-    setContent((current) => {
-      if (!current) return current;
-      const next = [...current.brandPartners];
-      next[index] = { ...next[index], [field]: value };
-      return { ...current, brandPartners: next };
-    });
-  }
-
-  function addBrand() {
-    setContent((current) => {
-      if (!current) return current;
-      return {
-        ...current,
-        brandPartners: [...current.brandPartners, { name: "", description: "", logoUrl: "" }],
-      };
-    });
-  }
-
-  function removeBrand(index: number) {
-    setContent((current) => {
-      if (!current) return current;
-      return {
-        ...current,
-        brandPartners: current.brandPartners.filter((_, itemIndex) => itemIndex !== index),
-      };
-    });
-    setBrandLogoStatus((current) => {
-      const next = { ...current };
-      delete next[index];
-      return next;
-    });
-    setBrandLogoError((current) => {
-      const next = { ...current };
-      delete next[index];
-      return next;
-    });
-  }
-
   async function uploadFile(file: File, folder: "team" | "brand" | "favicon"): Promise<string> {
     const formData = new FormData();
     formData.append("file", file);
@@ -279,22 +239,6 @@ export default function AdminPage() {
     } catch (error) {
       setFaviconStatus("error");
       setFaviconError(error instanceof Error ? error.message : "Upload failed");
-    }
-  }
-
-  async function handleBrandLogoUpload(index: number, file: File) {
-    setBrandLogoStatus((current) => ({ ...current, [index]: "uploading" }));
-    setBrandLogoError((current) => ({ ...current, [index]: "" }));
-    try {
-      const url = await uploadFile(file, "brand");
-      updateBrand(index, "logoUrl", url);
-      setBrandLogoStatus((current) => ({ ...current, [index]: "idle" }));
-    } catch (error) {
-      setBrandLogoStatus((current) => ({ ...current, [index]: "error" }));
-      setBrandLogoError((current) => ({
-        ...current,
-        [index]: error instanceof Error ? error.message : "Upload failed",
-      }));
     }
   }
 
@@ -678,96 +622,15 @@ export default function AdminPage() {
 
         <section className="gm-admin-section">
           <h2>Brands</h2>
-          <label>
-            <span>Section eyebrow</span>
-            <input
-              onChange={(event) => update("brandsEyebrow", event.target.value)}
-              type="text"
-              value={content.brandsEyebrow}
-            />
-          </label>
-          <label>
-            <span>Section title</span>
-            <input
-              onChange={(event) => update("brandsTitle", event.target.value)}
-              type="text"
-              value={content.brandsTitle}
-            />
-          </label>
-          <label>
-            <span>Lead paragraph</span>
-            <textarea
-              onChange={(event) => update("brandsLead", event.target.value)}
-              rows={2}
-              value={content.brandsLead}
-            />
-          </label>
-          {content.brandPartners.map((brand, index) => (
-            <div className="gm-admin-card" key={index}>
-              <p className="gm-admin-card__label">Brand {index + 1}</p>
-              <label>
-                <span>Name</span>
-                <input
-                  onChange={(event) => updateBrand(index, "name", event.target.value)}
-                  type="text"
-                  value={brand.name}
-                />
-              </label>
-              <label>
-                <span>Description</span>
-                <textarea
-                  onChange={(event) => updateBrand(index, "description", event.target.value)}
-                  rows={2}
-                  value={brand.description}
-                />
-              </label>
-              <div className="gm-admin-photo">
-                {brand.logoUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element -- admin-only preview thumbnail
-                  <img alt="" className="gm-admin-photo__preview" src={brand.logoUrl} />
-                ) : null}
-                <div>
-                  <label>
-                    <span>Logo (JPG, PNG, or WEBP — max 5MB)</span>
-                    <input
-                      accept="image/jpeg,image/png,image/webp"
-                      onChange={(event) => {
-                        const file = event.target.files?.[0];
-                        if (file) handleBrandLogoUpload(index, file);
-                        event.target.value = "";
-                      }}
-                      type="file"
-                    />
-                  </label>
-                  {brandLogoStatus[index] === "uploading" ? (
-                    <p className="gm-admin-hint">Uploading…</p>
-                  ) : null}
-                  {brandLogoStatus[index] === "error" ? (
-                    <p className="gm-admin-error">{brandLogoError[index]}</p>
-                  ) : null}
-                  {brand.logoUrl ? (
-                    <button
-                      className="gm-form-restart"
-                      onClick={() => updateBrand(index, "logoUrl", "")}
-                      type="button"
-                    >
-                      Remove logo
-                    </button>
-                  ) : null}
-                </div>
-              </div>
-              <button
-                className="gm-form-restart"
-                onClick={() => removeBrand(index)}
-                type="button"
-              >
-                Remove brand
-              </button>
-            </div>
-          ))}
-          <button className="gm-btn gm-btn--ghost" onClick={addBrand} type="button">
-            Add a brand
-          </button>
+          <p className="gm-admin-hint">
+            Brands have their own workspace now, built for uploading a long list of logos
+            without scrolling through the rest of the site — currently{" "}
+            {content.brandPartners.length}{" "}
+            {content.brandPartners.length === 1 ? "entry" : "entries"}.
+          </p>
+          <Link className="gm-btn gm-btn--primary" href="/admin/brands">
+            Open Brands editor →
+          </Link>
         </section>
 
         <section className="gm-admin-section">
