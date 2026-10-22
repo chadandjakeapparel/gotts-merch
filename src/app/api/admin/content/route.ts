@@ -20,6 +20,7 @@ function isValidContent(value: unknown): value is SiteContent {
   const requiredStrings: (keyof SiteContent)[] = [
     "brandName",
     "logoUrl",
+    "faviconUrl",
     "tagline",
     "inquiryEmail",
     "shopUrl",

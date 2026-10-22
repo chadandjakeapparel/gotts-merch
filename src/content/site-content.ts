@@ -38,6 +38,8 @@ export type SiteContent = {
   brandName: string;
   // Leave blank to use the default recreated wordmark/G mark.
   logoUrl: string;
+  // Leave blank to use the default "G" mark favicon.
+  faviconUrl: string;
   tagline: string;
   inquiryEmail: string;
   shopUrl: string;
@@ -89,6 +91,7 @@ export type SiteContent = {
 export const defaultContent: SiteContent = {
   brandName: "Gotts Merch",
   logoUrl: "",
+  faviconUrl: "",
   tagline: "We've Gotts you covered.",
   // Swap this for a real inbox at the gottsmerch.com domain before launch.
   inquiryEmail: "hello@gottsmerch.com",

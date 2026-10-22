@@ -29,6 +29,8 @@ export default function AdminPage() {
   const [photoError, setPhotoError] = useState<Record<number, string>>({});
   const [logoStatus, setLogoStatus] = useState<PhotoStatus>("idle");
   const [logoError, setLogoError] = useState("");
+  const [faviconStatus, setFaviconStatus] = useState<PhotoStatus>("idle");
+  const [faviconError, setFaviconError] = useState("");
   const [brandLogoStatus, setBrandLogoStatus] = useState<Record<number, PhotoStatus>>({});
   const [brandLogoError, setBrandLogoError] = useState<Record<number, string>>({});
 
@@ -223,7 +225,7 @@ export default function AdminPage() {
     });
   }
 
-  async function uploadFile(file: File, folder: "team" | "brand"): Promise<string> {
+  async function uploadFile(file: File, folder: "team" | "brand" | "favicon"): Promise<string> {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("folder", folder);
@@ -264,6 +266,19 @@ export default function AdminPage() {
     } catch (error) {
       setLogoStatus("error");
       setLogoError(error instanceof Error ? error.message : "Upload failed");
+    }
+  }
+
+  async function handleFaviconUpload(file: File) {
+    setFaviconStatus("uploading");
+    setFaviconError("");
+    try {
+      const url = await uploadFile(file, "favicon");
+      update("faviconUrl", url);
+      setFaviconStatus("idle");
+    } catch (error) {
+      setFaviconStatus("error");
+      setFaviconError(error instanceof Error ? error.message : "Upload failed");
     }
   }
 
@@ -333,6 +348,45 @@ export default function AdminPage() {
                   type="button"
                 >
                   Remove logo
+                </button>
+              ) : null}
+            </div>
+          </div>
+          <div className="gm-admin-photo">
+            {content.faviconUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- admin-only preview thumbnail
+              <img alt="" className="gm-admin-photo__preview" src={content.faviconUrl} />
+            ) : null}
+            <div>
+              <label>
+                <span>Favicon (browser tab icon) — JPG, PNG, or WEBP, max 5MB</span>
+                <input
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) handleFaviconUpload(file);
+                    event.target.value = "";
+                  }}
+                  type="file"
+                />
+              </label>
+              <p className="gm-admin-hint">
+                Shown in the browser tab and bookmarks. Leave it empty to use
+                the default &ldquo;G&rdquo; mark. A square image works best.
+              </p>
+              {faviconStatus === "uploading" ? (
+                <p className="gm-admin-hint">Uploading…</p>
+              ) : null}
+              {faviconStatus === "error" ? (
+                <p className="gm-admin-error">{faviconError}</p>
+              ) : null}
+              {content.faviconUrl ? (
+                <button
+                  className="gm-form-restart"
+                  onClick={() => update("faviconUrl", "")}
+                  type="button"
+                >
+                  Remove favicon
                 </button>
               ) : null}
             </div>

@@ -20,6 +20,8 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: content.metaTitle,
     description: content.metaDescription,
+    // Leaving faviconUrl blank keeps the default src/app/icon.svg mark.
+    icons: content.faviconUrl ? { icon: content.faviconUrl } : undefined,
     openGraph: {
       title: content.metaTitle,
       description: content.metaDescription,
