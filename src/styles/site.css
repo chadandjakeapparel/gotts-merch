@@ -586,7 +586,7 @@ fieldset {
 
 .gm-brands__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(6, 1fr);
   gap: 22px;
 }
 
@@ -1063,6 +1063,10 @@ fieldset {
     grid-template-columns: repeat(2, 1fr);
   }
 
+  .gm-brands__grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
   .gm-retail__grid,
   .gm-quote__grid,
   .gm-activations__intro,
@@ -1091,6 +1095,10 @@ fieldset {
   .gm-about__team,
   .gm-activations__grid {
     grid-template-columns: 1fr;
+  }
+
+  .gm-brands__grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .gm-hero__visual {
