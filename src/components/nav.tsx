@@ -28,21 +28,48 @@ export function Nav({
   const [productsOpen, setProductsOpen] = useState(false);
   const [mobileProductsOpen, setMobileProductsOpen] = useState(false);
   const megaRef = useRef<HTMLDivElement>(null);
+  const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function clearCloseTimeout() {
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
+  }
+
+  function openProducts() {
+    clearCloseTimeout();
+    setProductsOpen(true);
+  }
+
+  // A short grace period before closing — without it, moving the mouse from
+  // the trigger down into the panel (crossing the gap between them, which
+  // isn't part of this element) reads as the pointer leaving and closes the
+  // menu before it ever reaches the panel.
+  function scheduleCloseProducts() {
+    clearCloseTimeout();
+    closeTimeoutRef.current = setTimeout(() => setProductsOpen(false), 250);
+  }
 
   useEffect(() => {
     function handlePointerDown(event: MouseEvent) {
       if (megaRef.current && !megaRef.current.contains(event.target as Node)) {
+        clearCloseTimeout();
         setProductsOpen(false);
       }
     }
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") setProductsOpen(false);
+      if (event.key === "Escape") {
+        clearCloseTimeout();
+        setProductsOpen(false);
+      }
     }
     document.addEventListener("mousedown", handlePointerDown);
     document.addEventListener("keydown", handleKeyDown);
     return () => {
       document.removeEventListener("mousedown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
+      clearCloseTimeout();
     };
   }, []);
 
@@ -57,17 +84,19 @@ export function Nav({
             className="gm-mega"
             onBlur={(event) => {
               if (!megaRef.current?.contains(event.relatedTarget as Node)) {
+                clearCloseTimeout();
                 setProductsOpen(false);
               }
             }}
-            onMouseLeave={() => setProductsOpen(false)}
+            onMouseEnter={clearCloseTimeout}
+            onMouseLeave={scheduleCloseProducts}
             ref={megaRef}
           >
             <button
               aria-expanded={productsOpen}
               className="gm-mega__trigger"
-              onClick={() => setProductsOpen(true)}
-              onMouseEnter={() => setProductsOpen(true)}
+              onClick={openProducts}
+              onMouseEnter={openProducts}
               type="button"
             >
               Products
