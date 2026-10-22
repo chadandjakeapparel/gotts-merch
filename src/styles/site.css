@@ -593,6 +593,7 @@ fieldset {
 .gm-brands__card {
   position: relative;
   z-index: 1;
+  min-width: 0;
   padding: 28px 24px;
   text-align: center;
   background: var(--gm-white);
@@ -626,9 +627,12 @@ fieldset {
   font-weight: 700;
 }
 
-.gm-brands__card h3 {
+.gm-brands__name {
+  overflow: hidden;
   margin-bottom: 8px;
   font-size: 1.15rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .gm-brands__card p {

@@ -1,5 +1,6 @@
 import { InquiryForm } from "@/components/inquiry-form";
 import { BrandLogo } from "@/components/brand-logo";
+import { FitBrandName } from "@/components/fit-brand-name";
 import { CheckIcon, CupIcon, MenuCardIcon, PenIcon, ShirtIcon } from "@/components/icons";
 import { BrandMark } from "@/components/logo";
 import { Nav } from "@/components/nav";
@@ -166,7 +167,7 @@ export default async function HomePage() {
               {content.brandPartners.map((brand) => (
                 <div className="gm-brands__card" key={brand.name}>
                   <BrandLogo logoUrl={brand.logoUrl} name={brand.name} />
-                  <h3>{brand.name}</h3>
+                  <FitBrandName name={brand.name} />
                   <p>{brand.description}</p>
                 </div>
               ))}
