@@ -107,6 +107,27 @@ export function PenIcon({ size = 26, className }: IconProps) {
   );
 }
 
+export function ChevronDownIcon({ size = 14, className }: IconProps) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      height={size}
+      viewBox="0 0 24 24"
+      width={size}
+    >
+      <path
+        d="m6 9 6 6 6-6"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+      />
+    </svg>
+  );
+}
+
 export function CheckIcon({ size = 18, className }: IconProps) {
   return (
     <svg

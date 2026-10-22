@@ -1,9 +1,7 @@
 import { InquiryForm } from "@/components/inquiry-form";
-import { BrandLogo } from "@/components/brand-logo";
-import { FitBrandName } from "@/components/fit-brand-name";
 import { CheckIcon, CupIcon, MenuCardIcon, PenIcon, ShirtIcon } from "@/components/icons";
-import { BrandMark } from "@/components/logo";
 import { Nav } from "@/components/nav";
+import { SiteFooter } from "@/components/site-footer";
 import { TeamAvatar } from "@/components/team-avatar";
 import { getSiteContent } from "@/lib/content";
 
@@ -18,11 +16,15 @@ const categoryIcons = {
 
 export default async function HomePage() {
   const content = await getSiteContent();
-  const year = new Date().getFullYear();
 
   return (
     <div id="top">
-      <Nav brandName={content.brandName} logoUrl={content.logoUrl} shopUrl={content.shopUrl} />
+      <Nav
+        brandName={content.brandName}
+        logoUrl={content.logoUrl}
+        productCategories={content.productCategories}
+        shopUrl={content.shopUrl}
+      />
 
       <main>
         <section className="gm-hero">
@@ -74,7 +76,11 @@ export default async function HomePage() {
               {content.productCategories.map((category) => {
                 const Icon = categoryIcons[category.key as keyof typeof categoryIcons];
                 return (
-                  <article className="gm-product-card" key={category.key}>
+                  <article
+                    className="gm-product-card"
+                    id={`product-${category.key}`}
+                    key={category.key}
+                  >
                     <div className="gm-product-card__icon">
                       <Icon />
                     </div>
@@ -150,25 +156,6 @@ export default async function HomePage() {
                 <div className="gm-why__item" key={item.title}>
                   <h3>{item.title}</h3>
                   <p>{item.description}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="gm-brands" id="brands">
-          <div className="gm-container">
-            <div className="gm-section-heading">
-              <p className="gm-eyebrow">{content.brandsEyebrow}</p>
-              <h2>{content.brandsTitle}</h2>
-              <p className="gm-brands__lead">{content.brandsLead}</p>
-            </div>
-            <div className="gm-brands__grid">
-              {content.brandPartners.map((brand) => (
-                <div className="gm-brands__card" key={brand.name}>
-                  <BrandLogo logoUrl={brand.logoUrl} name={brand.name} />
-                  <FitBrandName name={brand.name} />
-                  <p>{brand.description}</p>
                 </div>
               ))}
             </div>
@@ -251,35 +238,7 @@ export default async function HomePage() {
         </section>
       </main>
 
-      <footer className="gm-footer">
-        <div className="gm-container gm-footer__inner">
-          <div className="gm-footer__brand">
-            <div className="gm-footer__brand-mark">
-              <BrandMark
-                brandName={content.brandName}
-                logoSize={30}
-                logoUrl={content.logoUrl}
-                wordmarkSize={15}
-              />
-            </div>
-            <p className="gm-footer__tagline">{content.footerTagline}</p>
-          </div>
-          <nav aria-label="Footer navigation" className="gm-footer__nav">
-            <a href="#products">Products</a>
-            <a href="#merch-activations">On-Site Activations</a>
-            <a href="#why-us">Why Us</a>
-            <a href="#brands">Brands</a>
-            <a href="#about">About Us</a>
-            <a href="#process">How It Works</a>
-            <a href="#quote">Get a Quote</a>
-          </nav>
-        </div>
-        <div className="gm-container gm-footer__bottom">
-          <p>
-            © {year} {content.brandName}. All rights reserved.
-          </p>
-        </div>
-      </footer>
+      <SiteFooter content={content} />
     </div>
   );
 }
