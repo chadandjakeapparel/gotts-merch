@@ -591,11 +591,19 @@ fieldset {
 }
 
 .gm-brands__card {
+  position: relative;
+  z-index: 1;
   padding: 28px 24px;
   text-align: center;
   background: var(--gm-white);
   border: 1px solid var(--gm-line);
   border-radius: 18px;
+  transition: transform 300ms var(--gm-ease);
+}
+
+.gm-brands__card:hover {
+  z-index: 2;
+  transform: scale(1.3);
 }
 
 .gm-brands__logo {
@@ -607,14 +615,6 @@ fieldset {
   align-items: center;
   justify-content: center;
   margin-bottom: 18px;
-}
-
-.gm-brands__logo img {
-  transition: transform 300ms var(--gm-ease);
-}
-
-.gm-brands__logo:hover img {
-  transform: scale(1.1);
 }
 
 .gm-brands__logo--placeholder {
