@@ -245,7 +245,7 @@ export default async function HomePage() {
           </div>
           <nav aria-label="Footer navigation" className="gm-footer__nav">
             <a href="#products">Products</a>
-            <a href="#merch-activations">Merch Activations</a>
+            <a href="#merch-activations">On-Site Activations</a>
             <a href="#why-us">Why Us</a>
             <a href="#about">About Us</a>
             <a href="#process">How It Works</a>

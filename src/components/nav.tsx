@@ -5,7 +5,7 @@ import { BrandMark } from "@/components/logo";
 
 const navLinks = [
   { href: "#products", label: "Products" },
-  { href: "#merch-activations", label: "Merch Activations" },
+  { href: "#merch-activations", label: "On-Site Activations" },
   { href: "#why-us", label: "Why Us" },
   { href: "#about", label: "About Us" },
   { href: "#process", label: "How It Works" },
