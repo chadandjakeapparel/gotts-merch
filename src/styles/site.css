@@ -1056,10 +1056,6 @@ fieldset {
     grid-template-columns: 1fr;
   }
 
-  .gm-hero__visual {
-    order: -1;
-  }
-
   .gm-products__grid,
   .gm-why__grid,
   .gm-process__grid,
