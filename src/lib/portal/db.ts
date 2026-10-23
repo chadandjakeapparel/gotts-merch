@@ -137,6 +137,35 @@ create table if not exists stock_moves (
   created_at timestamptz not null default now()
 );
 create index if not exists stock_moves_client_created_idx on stock_moves (client_id, created_at desc);
+
+create table if not exists leads (
+  id serial primary key,
+  company_name text not null default '',
+  contact_name text not null default '',
+  email text not null default '',
+  phone text not null default '',
+  source text not null default '',
+  status text not null default 'new'
+    check (status in ('new', 'contacted', 'qualified', 'proposal', 'won', 'lost')),
+  estimated_value numeric(12, 2) not null default 0,
+  owner text not null default '',
+  notes text not null default '',
+  lost_reason text not null default '',
+  client_id integer references clients(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists leads_status_idx on leads (status);
+
+create table if not exists lead_activities (
+  id serial primary key,
+  lead_id integer not null references leads(id) on delete cascade,
+  kind text not null default 'note' check (kind in ('note', 'call', 'email', 'meeting', 'status')),
+  body text not null default '',
+  created_by text not null default '',
+  created_at timestamptz not null default now()
+);
+create index if not exists lead_activities_lead_idx on lead_activities (lead_id, created_at desc);
 `;
 
 /** Creates the tables on first use, so a fresh database needs no setup step. */

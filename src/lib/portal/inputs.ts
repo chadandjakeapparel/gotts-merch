@@ -1,5 +1,20 @@
+import type { LeadInput } from "./crm";
 import type { ItemInput, OrderInput } from "./data";
 import { int, money, PortalError, text } from "./http";
+
+export function toLeadInput(body: Record<string, unknown>): LeadInput {
+  const value = money(body.estimatedValue);
+  return {
+    companyName: text(body.companyName, 200),
+    contactName: text(body.contactName, 200),
+    email: text(body.email, 200),
+    phone: text(body.phone, 60),
+    source: text(body.source, 120),
+    estimatedValue: Number.isFinite(value) && value > 0 ? value : 0,
+    owner: text(body.owner, 120),
+    notes: text(body.notes, 2000),
+  };
+}
 
 export function toItemInput(body: Record<string, unknown>): ItemInput {
   return {

@@ -74,6 +74,34 @@ export type ClientSummary = {
   userCount: number;
 };
 
+export type LeadStatus = "new" | "contacted" | "qualified" | "proposal" | "won" | "lost";
+
+export type LeadActivity = {
+  id: number;
+  kind: "note" | "call" | "email" | "meeting" | "status";
+  body: string;
+  createdBy: string;
+  createdAt: string;
+};
+
+export type Lead = {
+  id: number;
+  companyName: string;
+  contactName: string;
+  email: string;
+  phone: string;
+  source: string;
+  status: LeadStatus;
+  estimatedValue: number;
+  owner: string;
+  notes: string;
+  lostReason: string;
+  clientId: number | null;
+  createdAt: string;
+  updatedAt: string;
+  activities: LeadActivity[];
+};
+
 export type PortalUser = {
   id: number;
   email: string;
