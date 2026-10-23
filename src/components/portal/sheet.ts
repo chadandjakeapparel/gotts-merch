@@ -1,4 +1,4 @@
-export type SheetRow = { styleNumber: string; styleName: string; color: string; qty: number; unitValue: number };
+export type SheetRow = { styleNumber: string; styleName: string; color: string; size: string; qty: number; unitValue: number };
 
 /** Splits pasted spreadsheet rows (tab-separated) or CSV text, honouring quotes. */
 function parseDelimited(text: string) {
@@ -27,13 +27,13 @@ function parseDelimited(text: string) {
   return out.map((r) => r.map((c) => c.trim())).filter((r) => r.some(Boolean));
 }
 
-/** Reads Style #, Style name, Color, Quantity, Unit value rows; a header row may reorder the columns. */
+/** Reads Style #, Style name, Color, Quantity, Unit value, Size rows; a header row may reorder the columns. */
 export function parseSheet(text: string): { rows: SheetRow[]; errors: string[] } {
   const grid = parseDelimited(text);
   if (!grid.length) return { rows: [], errors: ["Nothing to import yet. Paste rows or choose a file."] };
-  let cols = { num: 0, name: 1, color: 2, qty: 3, val: 4 };
+  let cols = { num: 0, name: 1, color: 2, qty: 3, val: 4, size: 5 };
   const h = grid[0].map((c) => c.toLowerCase());
-  const header = h.some((c) => /style|colou?r|qty|quantity|value|cost|price|sku/.test(c)) && !h.some((c) => /^\$?[\d,.]+$/.test(c));
+  const header = h.some((c) => /style|colou?r|qty|quantity|value|cost|price|sku|size/.test(c)) && !h.some((c) => /^\$?[\d,.]+$/.test(c));
   if (header) {
     const find = (re: RegExp, fallback: number) => {
       const i = h.findIndex((c) => re.test(c));
@@ -45,6 +45,7 @@ export function parseSheet(text: string): { rows: SheetRow[]; errors: string[] }
       color: find(/colou?r/, 2),
       qty: find(/qty|quantity|on\s*hand|units|count/, 3),
       val: find(/value|cost|price|unit/, 4),
+      size: find(/size/, 5),
     };
     grid.shift();
   }
@@ -58,6 +59,7 @@ export function parseSheet(text: string): { rows: SheetRow[]; errors: string[] }
       styleNumber: r[cols.num] || "",
       styleName: r[cols.name] || "",
       color: r[cols.color] || "",
+      size: r[cols.size] || "",
       qty: Number(qtyText.replace(/[,\s]/g, "")),
       unitValue: Number(valText.replace(/[$,\s]/g, "")),
     };

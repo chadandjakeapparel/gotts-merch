@@ -1,6 +1,6 @@
 import type { LineInput, OrderInput } from "./data";
 
-type MatchItem = { id: number; styleNumber: string; styleName: string; color: string };
+type MatchItem = { id: number; styleNumber: string; styleName: string; color: string; size: string };
 
 /**
  * Turns a JotForm submission into an order.
@@ -43,15 +43,16 @@ export function parseSubmission(
 
 // ---------- line extraction ----------
 
-type RawLine = { styleNumber: string; color: string; styleName: string; qty: number; rawText: string };
+type RawLine = { styleNumber: string; color: string; size: string; styleName: string; qty: number; rawText: string };
 
 const STYLE_KEY = /(style|sku|item|product)\s*(#|no|num|number|code)?$|^(style|sku)/;
 const COLOR_KEY = /colou?r/;
+const SIZE_KEY = /\bsizes?\b/;
 const QTY_KEY = /qty|quantity|units|count|amount|pcs|pieces/;
 const NAME_KEY = /name|description|desc/;
 
 function rowFromObject(obj: Record<string, unknown>): RawLine | null {
-  const row: RawLine = { styleNumber: "", color: "", styleName: "", qty: 0, rawText: "" };
+  const row: RawLine = { styleNumber: "", color: "", size: "", styleName: "", qty: 0, rawText: "" };
   const parts: string[] = [];
   for (const [k, v] of Object.entries(obj)) {
     const key = words(k);
@@ -59,6 +60,7 @@ function rowFromObject(obj: Record<string, unknown>): RawLine | null {
     if (!value) continue;
     parts.push(`${k}: ${value}`);
     if (COLOR_KEY.test(key)) row.color ||= value;
+    else if (SIZE_KEY.test(key)) row.size ||= value;
     else if (QTY_KEY.test(key)) row.qty ||= toQty(value);
     else if (STYLE_KEY.test(key) && !NAME_KEY.test(key)) row.styleNumber ||= value;
     else if (NAME_KEY.test(key) || /style/.test(key)) row.styleName ||= value;
@@ -106,7 +108,7 @@ function extractLines(fields: { name: string; value: unknown }[]): RawLine[] {
   const groups = new Map<string, Record<string, unknown>>();
   for (const f of fields) {
     const m = f.name.match(/^(.*?)\s*(\d+)$/);
-    if (!m || !(STYLE_KEY.test(m[1]) || COLOR_KEY.test(m[1]) || QTY_KEY.test(m[1]) || NAME_KEY.test(m[1]))) continue;
+    if (!m || !(STYLE_KEY.test(m[1]) || COLOR_KEY.test(m[1]) || SIZE_KEY.test(m[1]) || QTY_KEY.test(m[1]) || NAME_KEY.test(m[1]))) continue;
     const g = groups.get(m[2]) || {};
     g[m[1]] = f.value;
     groups.set(m[2], g);
@@ -122,7 +124,7 @@ function extractLines(fields: { name: string; value: unknown }[]): RawLine[] {
   const single = rowFromObject(
     Object.fromEntries(
       fields
-        .filter((f) => STYLE_KEY.test(f.name) || COLOR_KEY.test(f.name) || QTY_KEY.test(f.name))
+        .filter((f) => STYLE_KEY.test(f.name) || COLOR_KEY.test(f.name) || SIZE_KEY.test(f.name) || QTY_KEY.test(f.name))
         .map((f) => [f.name, f.value]),
     ),
   );
@@ -135,7 +137,7 @@ function extractLines(fields: { name: string; value: unknown }[]): RawLine[] {
       .split(/\r?\n|;/)
       .map((t) => t.trim())
       .filter(Boolean)
-      .map((t) => ({ styleNumber: "", color: "", styleName: "", qty: 0, rawText: t }));
+      .map((t) => ({ styleNumber: "", color: "", size: "", styleName: "", qty: 0, rawText: t }));
   }
   return [];
 }
@@ -162,6 +164,16 @@ function matchLine(line: RawLine, items: MatchItem[]): LineInput {
     candidates = [];
   }
 
+  if (candidates.length > 1) {
+    const size = norm(line.size);
+    const bySize = size
+      ? candidates.filter((i) => norm(i.size) === size)
+      : candidates.filter((i) => ` ${text} `.includes(` ${norm(i.size)} `));
+    candidates = bySize.length ? bySize : candidates;
+  } else if (candidates.length === 1 && line.size && norm(candidates[0].size) !== norm(line.size)) {
+    candidates = [];
+  }
+
   let qty = line.qty;
   if (!qty && line.rawText) {
     const explicit = line.rawText.match(/(?:qty|quantity|units|pcs|x|×)\s*[:=]?\s*(\d{1,6})\b/i) ||
@@ -181,7 +193,8 @@ function matchLine(line: RawLine, items: MatchItem[]): LineInput {
     styleNumber: item ? item.styleNumber : line.styleNumber,
     styleName: item ? item.styleName : line.styleName,
     color: item ? item.color : line.color,
-    rawText: line.rawText || [line.styleNumber, line.styleName, line.color, line.qty ? `qty ${line.qty}` : ""].filter(Boolean).join(" · "),
+    size: item ? item.size : line.size,
+    rawText: line.rawText || [line.styleNumber, line.styleName, line.color, line.size, line.qty ? `qty ${line.qty}` : ""].filter(Boolean).join(" · "),
   };
 }
 

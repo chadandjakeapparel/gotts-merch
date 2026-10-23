@@ -16,6 +16,7 @@ function toItem(r: Row): Item {
     styleNumber: str(r.style_number),
     styleName: str(r.style_name),
     color: str(r.color),
+    size: str(r.size),
     qty: num(r.qty),
     unitValue: num(r.unit_value),
     committed: num(r.committed),
@@ -30,6 +31,7 @@ function toLine(r: Row): OrderLine {
     styleNumber: str(r.style_number),
     styleName: str(r.style_name),
     color: str(r.color),
+    size: str(r.size),
     qty: num(r.qty),
     unitValue: num(r.unit_value),
     rawText: str(r.raw_text),
@@ -71,8 +73,8 @@ function toMove(r: Row): StockMove {
   };
 }
 
-const label = (r: { style_number?: unknown; color?: unknown }) =>
-  `${str(r.style_number)} ${str(r.color)}`.trim();
+const label = (r: { style_number?: unknown; color?: unknown; size?: unknown }) =>
+  [str(r.style_number), str(r.color), str(r.size)].filter(Boolean).join(" ");
 
 // ---------- reads ----------
 
@@ -89,7 +91,7 @@ export async function getState(clientId: number): Promise<PortalState> {
         group by l.item_id
       ) c on c.item_id = i.id
       where i.client_id = ${clientId}
-      order by lower(i.style_number), lower(i.color)`,
+      order by lower(i.style_number), lower(i.color), lower(i.size)`,
     sql`select * from orders where client_id = ${clientId} order by created_at desc limit 300`,
     sql`
       select l.* from order_lines l
@@ -116,6 +118,7 @@ export type ItemInput = {
   styleNumber: string;
   styleName: string;
   color: string;
+  size: string;
   qty: number;
   unitValue: number;
 };
@@ -136,8 +139,8 @@ export async function createItem(clientId: number, rec: ItemInput) {
   try {
     await sql.begin(async (tx) => {
       const [row] = await tx`
-        insert into items (client_id, style_number, style_name, color, qty, unit_value)
-        values (${clientId}, ${rec.styleNumber}, ${rec.styleName || rec.styleNumber}, ${rec.color}, ${rec.qty}, ${rec.unitValue})
+        insert into items (client_id, style_number, style_name, color, size, qty, unit_value)
+        values (${clientId}, ${rec.styleNumber}, ${rec.styleName || rec.styleNumber}, ${rec.color}, ${rec.size}, ${rec.qty}, ${rec.unitValue})
         returning *`;
       await tx`
         insert into stock_moves (client_id, kind, item_id, qty_delta, label)
@@ -145,7 +148,7 @@ export async function createItem(clientId: number, rec: ItemInput) {
     });
   } catch (error) {
     if (isUniqueViolation(error)) {
-      throw new PortalError(`${rec.styleNumber} in ${rec.color} is already listed. Edit that line or receive stock into it.`, 409);
+      throw new PortalError(`${[rec.styleNumber, rec.color, rec.size].filter(Boolean).join(" ")} is already listed. Edit that line or receive stock into it.`, 409);
     }
     throw error;
   }
@@ -161,9 +164,9 @@ export async function importItems(clientId: number, rows: ItemInput[]) {
   await sql.begin(async (tx) => {
     for (const rec of rows) {
       const [row] = await tx`
-        insert into items (client_id, style_number, style_name, color, qty, unit_value)
-        values (${clientId}, ${rec.styleNumber}, ${rec.styleName || rec.styleNumber}, ${rec.color}, ${rec.qty}, ${rec.unitValue})
-        on conflict (client_id, (lower(style_number)), (lower(color))) do update set
+        insert into items (client_id, style_number, style_name, color, size, qty, unit_value)
+        values (${clientId}, ${rec.styleNumber}, ${rec.styleName || rec.styleNumber}, ${rec.color}, ${rec.size}, ${rec.qty}, ${rec.unitValue})
+        on conflict (client_id, (lower(style_number)), (lower(color)), (lower(size))) do update set
           style_name = case when ${rec.styleName} <> '' then ${rec.styleName} else items.style_name end,
           qty = excluded.qty,
           unit_value = excluded.unit_value,
@@ -188,7 +191,7 @@ export async function updateItem(clientId: number, id: number, rec: ItemInput) {
       if (!before) throw new PortalError("That line no longer exists.", 404);
       const [after] = await tx`
         update items set style_number = ${rec.styleNumber}, style_name = ${rec.styleName}, color = ${rec.color},
-          qty = ${rec.qty}, unit_value = ${rec.unitValue}, updated_at = now()
+          size = ${rec.size}, qty = ${rec.qty}, unit_value = ${rec.unitValue}, updated_at = now()
         where id = ${id} returning *`;
       const delta = rec.qty - num(before.qty);
       if (delta !== 0) {
@@ -199,7 +202,7 @@ export async function updateItem(clientId: number, id: number, rec: ItemInput) {
     });
   } catch (error) {
     if (isUniqueViolation(error)) {
-      throw new PortalError(`${rec.styleNumber} in ${rec.color} is already another line.`, 409);
+      throw new PortalError(`${[rec.styleNumber, rec.color, rec.size].filter(Boolean).join(" ")} is already another line.`, 409);
     }
     throw error;
   }
@@ -252,6 +255,7 @@ export type LineInput = {
   styleNumber?: string;
   styleName?: string;
   color?: string;
+  size?: string;
   rawText?: string;
 };
 
@@ -275,12 +279,13 @@ async function writeLines(tx: Tx, clientId: number, orderId: number, lines: Line
     if (line.itemId != null && !item) throw new PortalError("One of those styles no longer exists. Reload and try again.", 404);
     if (!item || line.qty === 0) unmatched++;
     await tx`
-      insert into order_lines (order_id, item_id, style_number, style_name, color, qty, unit_value, raw_text)
+      insert into order_lines (order_id, item_id, style_number, style_name, color, size, qty, unit_value, raw_text)
       values (
         ${orderId}, ${item ? item.id : null},
         ${item ? item.style_number : line.styleNumber || ""},
         ${item ? item.style_name : line.styleName || ""},
         ${item ? item.color : line.color || ""},
+        ${item ? item.size : line.size || ""},
         ${line.qty}, ${item ? item.unit_value : 0}, ${line.rawText || ""})`;
   }
   return unmatched;
@@ -391,10 +396,10 @@ export async function cancelOrder(clientId: number, id: number) {
     }
     if (order.status === "fulfilled") {
       const lines = await tx`
-        select l.item_id, sum(l.qty)::int as q, i.style_number, i.color
+        select l.item_id, sum(l.qty)::int as q, i.style_number, i.color, i.size
         from order_lines l join items i on i.id = l.item_id
         where l.order_id = ${id} and l.qty > 0
-        group by l.item_id, i.style_number, i.color`;
+        group by l.item_id, i.style_number, i.color, i.size`;
       for (const l of lines) {
         await tx`update items set qty = qty + ${l.q}, updated_at = now() where id = ${l.item_id}`;
         await tx`
@@ -408,11 +413,12 @@ export async function cancelOrder(clientId: number, id: number) {
 
 export async function findItemsForMatching(clientId: number) {
   const sql = await db();
-  const rows = await sql`select id, style_number, style_name, color from items where client_id = ${clientId}`;
+  const rows = await sql`select id, style_number, style_name, color, size from items where client_id = ${clientId}`;
   return rows.map((r) => ({
     id: num(r.id),
     styleNumber: str(r.style_number),
     styleName: str(r.style_name),
     color: str(r.color),
+    size: str(r.size),
   }));
 }

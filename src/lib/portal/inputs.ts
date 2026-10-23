@@ -6,6 +6,7 @@ export function toItemInput(body: Record<string, unknown>): ItemInput {
     styleNumber: text(body.styleNumber, 80),
     styleName: text(body.styleName, 200),
     color: text(body.color, 80),
+    size: text(body.size, 40),
     qty: int(body.qty),
     unitValue: money(body.unitValue),
   };
@@ -31,6 +32,7 @@ export function toOrderInput(body: Record<string, unknown>): OrderInput {
         styleNumber: text(line.styleNumber, 80),
         styleName: text(line.styleName, 200),
         color: text(line.color, 80),
+        size: text(line.size, 40),
         rawText: text(line.rawText, 500),
       };
     }),

@@ -71,13 +71,17 @@ create table if not exists items (
   style_number text not null,
   style_name text not null default '',
   color text not null,
+  size text not null default '',
   qty integer not null default 0,
   unit_value numeric(12, 2) not null default 0,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
-create unique index if not exists items_client_style_color_key
-  on items (client_id, lower(style_number), lower(color));
+-- Pre-existing databases created before "size" was tracked.
+alter table items add column if not exists size text not null default '';
+drop index if exists items_client_style_color_key;
+create unique index if not exists items_client_style_color_size_key
+  on items (client_id, lower(style_number), lower(color), lower(size));
 
 create table if not exists orders (
   id serial primary key,
@@ -109,10 +113,12 @@ create table if not exists order_lines (
   style_number text not null default '',
   style_name text not null default '',
   color text not null default '',
+  size text not null default '',
   qty integer not null default 0,
   unit_value numeric(12, 2) not null default 0,
   raw_text text not null default ''
 );
+alter table order_lines add column if not exists size text not null default '';
 create index if not exists order_lines_order_idx on order_lines (order_id);
 
 create table if not exists stock_moves (

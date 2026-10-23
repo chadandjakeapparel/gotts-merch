@@ -41,8 +41,8 @@ function fmtDate(value: string | null, withTime = false) {
   });
 }
 
-const itemLabel = (i: Pick<Item, "styleNumber" | "styleName" | "color">) =>
-  [i.styleNumber, i.styleName, i.color].filter(Boolean).join(" · ");
+const itemLabel = (i: Pick<Item, "styleNumber" | "styleName" | "color" | "size">) =>
+  [i.styleNumber, i.styleName, i.color, i.size].filter(Boolean).join(" · ");
 
 function stockLevel(i: Item): "in" | "low" | "out" {
   if (i.qty <= 0) return "out";
@@ -240,7 +240,7 @@ export function PortalApp({
 
 // ---------- inventory ----------
 
-type SortKey = "styleNumber" | "styleName" | "color" | "qty" | "committed" | "available" | "unitValue" | "total";
+type SortKey = "styleNumber" | "styleName" | "color" | "size" | "qty" | "committed" | "available" | "unitValue" | "total";
 
 function InventoryTab({ items, admin, setModal }: { items: Item[]; admin: boolean; setModal: (m: Modal) => void }) {
   const [query, setQuery] = useState("");
@@ -254,7 +254,7 @@ function InventoryTab({ items, admin, setModal }: { items: Item[]; admin: boolea
     const value = (i: Item, k: SortKey): string | number =>
       k === "available" ? i.qty - i.committed : k === "total" ? i.qty * i.unitValue : i[k];
     return items
-      .filter((i) => !q || `${i.styleNumber} ${i.styleName} ${i.color}`.toLowerCase().includes(q))
+      .filter((i) => !q || `${i.styleNumber} ${i.styleName} ${i.color} ${i.size}`.toLowerCase().includes(q))
       .filter((i) => !color || i.color === color)
       .filter((i) => !level || stockLevel(i) === level)
       .sort((a, b) => {
@@ -263,7 +263,7 @@ function InventoryTab({ items, admin, setModal }: { items: Item[]; admin: boolea
         const c = typeof av === "number" && typeof bv === "number"
           ? av - bv
           : String(av).localeCompare(String(bv), undefined, { numeric: true, sensitivity: "base" });
-        return c * sort.dir || a.color.localeCompare(b.color);
+        return c * sort.dir || a.color.localeCompare(b.color) || a.size.localeCompare(b.size);
       });
   }, [items, query, color, level, sort]);
 
@@ -314,6 +314,7 @@ function InventoryTab({ items, admin, setModal }: { items: Item[]; admin: boolea
                 {header("styleNumber", "Style #")}
                 {header("styleName", "Style name")}
                 {header("color", "Color")}
+                {header("size", "Size")}
                 {header("qty", "On hand", true)}
                 {header("committed", "On open orders", true)}
                 {header("available", "Available", true)}
@@ -331,6 +332,7 @@ function InventoryTab({ items, admin, setModal }: { items: Item[]; admin: boolea
                     <td><span className="portal-tag">{i.styleNumber}</span></td>
                     <td>{i.styleName}</td>
                     <td><span className="portal-color"><span className="portal-swatch" style={{ background: swatch(i.color) }} />{i.color}</span></td>
+                    <td>{i.size}</td>
                     <td className="r num">
                       <strong>{count.format(i.qty)}</strong>
                       {lvl !== "in" ? <span className={`portal-pill ${lvl}`}>{lvl === "out" ? "Out" : "Low"}</span> : null}
@@ -348,7 +350,7 @@ function InventoryTab({ items, admin, setModal }: { items: Item[]; admin: boolea
             </tbody>
             <tfoot>
               <tr>
-                <td colSpan={3}>{rows.length === items.length ? `${rows.length} lines` : `Showing ${rows.length} of ${items.length} lines`}</td>
+                <td colSpan={4}>{rows.length === items.length ? `${rows.length} lines` : `Showing ${rows.length} of ${items.length} lines`}</td>
                 <td className="r num">{count.format(shownUnits)}</td>
                 <td colSpan={3} />
                 <td className="r num">{currency.format(shownValue)}</td>
@@ -479,14 +481,14 @@ function OrdersTab({
               <div className="portal-table-wrap">
                 <table className="portal-table compact">
                   <thead>
-                    <tr><th>Style #</th><th>Style name</th><th>Color</th><th className="r">Qty</th><th className="r">Value</th></tr>
+                    <tr><th>Style #</th><th>Style name</th><th>Color</th><th>Size</th><th className="r">Qty</th><th className="r">Value</th></tr>
                   </thead>
                   <tbody>
                     {o.lines.map((l) =>
                       l.itemId == null ? (
                         <tr className="unmatched" key={l.id}>
-                          <td colSpan={3}>
-                            <span className="portal-pill low">Not matched</span> {l.rawText || [l.styleNumber, l.color].filter(Boolean).join(" ")}
+                          <td colSpan={4}>
+                            <span className="portal-pill low">Not matched</span> {l.rawText || [l.styleNumber, l.color, l.size].filter(Boolean).join(" ")}
                           </td>
                           <td className="r num">{l.qty ? count.format(l.qty) : "?"}</td>
                           <td className="r">–</td>
@@ -496,15 +498,16 @@ function OrdersTab({
                           <td><span className="portal-tag">{l.styleNumber}</span></td>
                           <td>{l.styleName}</td>
                           <td><span className="portal-color"><span className="portal-swatch" style={{ background: swatch(l.color) }} />{l.color}</span></td>
+                          <td>{l.size}</td>
                           <td className="r num">{count.format(l.qty)}</td>
                           <td className="r num">{currency.format(l.qty * l.unitValue)}</td>
                         </tr>
                       ),
                     )}
-                    {!o.lines.length ? <tr><td className="portal-muted" colSpan={5}>No items were read from this order.</td></tr> : null}
+                    {!o.lines.length ? <tr><td className="portal-muted" colSpan={6}>No items were read from this order.</td></tr> : null}
                   </tbody>
                   <tfoot>
-                    <tr><td colSpan={3}>Total</td><td className="r num">{count.format(orderUnits(o))}</td><td className="r num">{currency.format(orderValue(o))}</td></tr>
+                    <tr><td colSpan={4}>Total</td><td className="r num">{count.format(orderUnits(o))}</td><td className="r num">{currency.format(orderValue(o))}</td></tr>
                   </tfoot>
                 </table>
               </div>
@@ -705,6 +708,7 @@ function ItemForm({ item, close, setModal, mutate }: ModalProps & { item: Item |
     styleNumber: item?.styleNumber || "",
     styleName: item?.styleName || "",
     color: item?.color || "",
+    size: item?.size || "",
     qty: String(item?.qty ?? 0),
     unitValue: String(item?.unitValue ?? 0),
   });
@@ -716,7 +720,7 @@ function ItemForm({ item, close, setModal, mutate }: ModalProps & { item: Item |
     if (!form.styleNumber.trim() || !form.color.trim()) return setError("Style # and color are required.");
     void submit(
       () => (item ? call("PATCH", `/api/portal/items/${item.id}`, form) : call("POST", "/api/portal/items", form)),
-      item ? "Saved." : `Added ${form.styleNumber} ${form.color}.`,
+      item ? "Saved." : `Added ${[form.styleNumber, form.color, form.size].filter(Boolean).join(" ")}.`,
     );
   }
 
@@ -730,11 +734,12 @@ function ItemForm({ item, close, setModal, mutate }: ModalProps & { item: Item |
             <button className="portal-btn primary" disabled={busy} type="submit">{item ? "Save" : "Add style"}</button>
           </>
         }
-        title={item ? `Edit ${item.styleNumber} · ${item.color}` : "Add a style / color"}
+        title={item ? `Edit ${[item.styleNumber, item.color, item.size].filter(Boolean).join(" · ")}` : "Add a style / color"}
       >
         <div className="portal-row">
           <label className="portal-field">Style #<input autoFocus onChange={set("styleNumber")} required value={form.styleNumber} /></label>
           <label className="portal-field">Color<input onChange={set("color")} required value={form.color} /></label>
+          <label className="portal-field">Size<input onChange={set("size")} value={form.size} /></label>
         </div>
         <label className="portal-field">Style name<input onChange={set("styleName")} value={form.styleName} /></label>
         <div className="portal-row">
@@ -744,7 +749,7 @@ function ItemForm({ item, close, setModal, mutate }: ModalProps & { item: Item |
         <p className="portal-hint">
           {item
             ? "Changing the quantity here is logged as a count adjustment. To ship goods, fulfill an order instead."
-            : "Each color of a style is its own line, so stock is counted per color."}
+            : "Each color and size of a style is its own line, so stock is counted separately. Leave size blank if it doesn't apply."}
         </p>
         {error ? <p className="portal-msg err" role="alert">{error}</p> : null}
       </ModalFrame>
@@ -1014,8 +1019,8 @@ function ImportForm({ items, close, mutate }: ModalProps) {
     setProblems(result.errors);
     setRows(result.errors.length ? null : result.rows);
   };
-  const existing = useMemo(() => new Set(items.map((i) => `${i.styleNumber.toLowerCase()}|${i.color.toLowerCase()}`)), [items]);
-  const updates = rows ? rows.filter((r) => existing.has(`${r.styleNumber.toLowerCase()}|${r.color.toLowerCase()}`)).length : 0;
+  const existing = useMemo(() => new Set(items.map((i) => `${i.styleNumber.toLowerCase()}|${i.color.toLowerCase()}|${i.size.toLowerCase()}`)), [items]);
+  const updates = rows ? rows.filter((r) => existing.has(`${r.styleNumber.toLowerCase()}|${r.color.toLowerCase()}|${r.size.toLowerCase()}`)).length : 0;
 
   return (
     <form
@@ -1035,14 +1040,14 @@ function ImportForm({ items, close, mutate }: ModalProps) {
         title="Import from a spreadsheet"
       >
         <p className="portal-hint">
-          Paste rows copied from Excel or Google Sheets, or choose a CSV file. Columns in this order: <strong>Style #, Style name, Color, Quantity, Unit value</strong>.
-          A header row is fine. A style # and color that already exist get their quantity and value replaced.
+          Paste rows copied from Excel or Google Sheets, or choose a CSV file. Columns in this order: <strong>Style #, Style name, Color, Quantity, Unit value</strong>, with an optional <strong>Size</strong> column after that.
+          A header row is fine. A style #, color, and size that already exist get their quantity and value replaced.
         </p>
         <textarea
           aria-label="Rows to import"
           className="portal-mono"
           onChange={(e) => { setTextValue(e.target.value); setRows(null); setProblems([]); }}
-          placeholder={"Style #\tStyle name\tColor\tQuantity\tUnit value"}
+          placeholder={"Style #\tStyle name\tColor\tQuantity\tUnit value\tSize"}
           rows={8}
           value={textValue}
         />

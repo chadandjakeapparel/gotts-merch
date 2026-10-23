@@ -5,6 +5,7 @@ export type Item = {
   styleNumber: string;
   styleName: string;
   color: string;
+  size: string;
   qty: number;
   unitValue: number;
   /** Units on open (not yet fulfilled) orders. */
@@ -18,6 +19,7 @@ export type OrderLine = {
   styleNumber: string;
   styleName: string;
   color: string;
+  size: string;
   qty: number;
   unitValue: number;
   rawText: string;
