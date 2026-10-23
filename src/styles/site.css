@@ -1553,3 +1553,40 @@ fieldset {
   font-size: 0.85rem;
   font-weight: 600;
 }
+
+/* Client login link */
+
+.gm-client-login {
+  position: fixed;
+  right: calc(18px + env(safe-area-inset-right, 0px));
+  bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  z-index: 60;
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  padding: 7px 13px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(11, 37, 69, 0.18);
+  border-radius: 999px;
+  backdrop-filter: blur(6px);
+  color: var(--gm-navy);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  opacity: 0.72;
+  transition:
+    opacity 200ms ease,
+    border-color 200ms ease;
+}
+
+.gm-client-login:hover,
+.gm-client-login:focus-visible {
+  border-color: var(--gm-navy);
+  opacity: 1;
+}
+
+@media print {
+  .gm-client-login {
+    display: none;
+  }
+}
