@@ -55,6 +55,7 @@ function toLead(r: Row, activities: LeadActivity[]): Lead {
     notes: str(r.notes),
     lostReason: str(r.lost_reason),
     clientId: r.client_id == null ? null : num(r.client_id),
+    openJobCount: num(r.open_job_count),
     createdAt: iso(r.created_at) || "",
     updatedAt: iso(r.updated_at) || "",
     activities,
@@ -64,7 +65,16 @@ function toLead(r: Row, activities: LeadActivity[]): Lead {
 export async function listLeads(): Promise<Lead[]> {
   const sql = await db();
   const [leads, activities] = await Promise.all([
-    sql`select * from leads order by updated_at desc`,
+    sql`
+      select l.*, coalesce(j.open_job_count, 0) as open_job_count
+      from leads l
+      left join (
+        select client_id, count(*)::int as open_job_count
+        from jobs
+        where status not in ('completed', 'cancelled')
+        group by client_id
+      ) j on j.client_id = l.client_id
+      order by l.updated_at desc`,
     sql`select * from lead_activities order by created_at desc`,
   ]);
   const byLead = new Map<number, LeadActivity[]>();

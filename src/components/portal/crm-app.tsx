@@ -157,6 +157,9 @@ export function CrmApp({
                     <button className="portal-card" key={l.id} onClick={() => setSelectedId(l.id)} type="button">
                       <h4>{leadTitle(l)}</h4>
                       {l.companyName && l.contactName ? <span className="portal-muted small">{l.contactName}</span> : null}
+                      {l.openJobCount ? (
+                        <span className="portal-pill ok">{l.openJobCount} open job{l.openJobCount === 1 ? "" : "s"}</span>
+                      ) : null}
                       <div className="portal-card-foot">
                         <span className="portal-muted">{l.owner || "Unassigned"}</span>
                         {l.estimatedValue ? <span>{currency.format(l.estimatedValue)}</span> : null}
@@ -332,6 +335,7 @@ function LeadModal({
       {lead?.clientId ? (
         <p className="portal-hint">
           Won — <Link className="portal-link" href={`/portal?client=${lead.clientId}`}>open their inventory</Link> to start tracking orders.
+          {lead.openJobCount ? ` They have ${lead.openJobCount} open job${lead.openJobCount === 1 ? "" : "s"} (Jobs & proofs tab).` : ""}
         </p>
       ) : null}
       <label className="portal-field">Notes<textarea onChange={set("notes")} rows={3} value={form.notes} /></label>

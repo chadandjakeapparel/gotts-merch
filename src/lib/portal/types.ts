@@ -134,6 +134,8 @@ export type Lead = {
   notes: string;
   lostReason: string;
   clientId: number | null;
+  /** Jobs not yet completed or cancelled for this lead's client, once won. */
+  openJobCount: number;
   createdAt: string;
   updatedAt: string;
   activities: LeadActivity[];
