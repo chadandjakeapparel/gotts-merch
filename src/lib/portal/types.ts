@@ -68,10 +68,47 @@ export type ClientSummary = {
   id: number;
   name: string;
   webhookKey: string;
+  /** The key in the no-login /jobs/[key] link this client uses to see their jobs. */
+  jobsKey: string;
   itemCount: number;
   units: number;
   openOrders: number;
   userCount: number;
+};
+
+export type JobStatus = "quote" | "in_production" | "proof_sent" | "approved" | "completed" | "cancelled";
+
+export type JobFile = {
+  id: number;
+  kind: "proof" | "estimate" | "other";
+  filename: string;
+  url: string;
+  uploadedBy: string;
+  createdAt: string;
+};
+
+export type Job = {
+  id: number;
+  clientId: number;
+  title: string;
+  status: JobStatus;
+  contactName: string;
+  contactEmail: string;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+  files: JobFile[];
+};
+
+export type Customer = {
+  id: number;
+  name: string;
+  company: string;
+  email: string;
+  phone: string;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type LeadStatus = "new" | "contacted" | "qualified" | "proposal" | "won" | "lost";

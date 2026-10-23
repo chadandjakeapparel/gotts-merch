@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { PortalApp } from "@/components/portal/portal-app";
 import { PortalHeader } from "@/components/portal/portal-header";
-import { clientName, listClients } from "@/lib/portal/accounts";
+import { clientJobsKey, clientName, listClients } from "@/lib/portal/accounts";
 import { getState } from "@/lib/portal/data";
+import { listJobs } from "@/lib/portal/jobs";
 import { requireUser, toViewer } from "@/lib/portal/session";
-import type { ClientSummary, PortalState } from "@/lib/portal/types";
+import type { ClientSummary, Job, PortalState } from "@/lib/portal/types";
 
 export const dynamic = "force-dynamic";
 
@@ -39,9 +40,11 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
   }
 
   let state: PortalState = { items: [], orders: [], moves: [], lowStockThreshold: 6 };
+  let jobs: Job[] = [];
+  let jobsKey = "";
   let loadError = "";
   try {
-    state = await getState(clientId);
+    [state, jobs, jobsKey] = await Promise.all([getState(clientId), listJobs(clientId), clientJobsKey(clientId)]);
   } catch (error) {
     console.error("[portal]", error);
     loadError = "The inventory couldn't be loaded. Refresh the page to try again.";
@@ -52,7 +55,9 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
       clientId={clientId}
       clientName={name}
       clients={clients}
+      initialJobs={jobs}
       initialState={state}
+      jobsKey={jobsKey}
       key={clientId}
       loadError={loadError}
       viewer={viewer}

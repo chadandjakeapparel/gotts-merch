@@ -171,6 +171,18 @@ export function AdminApp({
                 ) : (
                   <button className="portal-link small" onClick={() => setConfirming(`rotate-${c.id}`)} type="button">Replace this link</button>
                 )}
+                <CopyField label="Jobs & proofs link (no login needed)" value={origin ? `${origin}/jobs/${c.jobsKey}` : ""} />
+                {confirming === `rotate-jobs-${c.id}` ? (
+                  <p className="portal-msg warn">
+                    The current link stops working right away, so send the client the new one.{" "}
+                    <button className="portal-link" onClick={() => void run(async () => { await api("PATCH", `/api/portal/admin/clients/${c.id}`, { action: "rotateJobsKey" }); setConfirming(null); })} type="button">
+                      Make a new link
+                    </button>{" "}
+                    · <button className="portal-link" onClick={() => setConfirming(null)} type="button">Keep current link</button>
+                  </p>
+                ) : (
+                  <button className="portal-link small" onClick={() => setConfirming(`rotate-jobs-${c.id}`)} type="button">Replace this link</button>
+                )}
               </li>
             ))}
           </ul>

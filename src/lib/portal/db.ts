@@ -52,6 +52,8 @@ create table if not exists clients (
 );
 -- Pre-existing databases created before the threshold was configurable.
 alter table clients add column if not exists low_stock_threshold integer not null default 6;
+-- The no-login link each client uses to view their jobs, proofs and estimates.
+alter table clients add column if not exists jobs_key text;
 
 create table if not exists users (
   id serial primary key,
@@ -176,6 +178,43 @@ create table if not exists login_lockouts (
   locked_until timestamptz,
   updated_at timestamptz not null default now()
 );
+
+create table if not exists customers (
+  id serial primary key,
+  name text not null default '',
+  company text not null default '',
+  email text not null default '',
+  phone text not null default '',
+  notes text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create unique index if not exists customers_email_key on customers (lower(email)) where email <> '';
+
+create table if not exists jobs (
+  id serial primary key,
+  client_id integer not null references clients(id) on delete cascade,
+  title text not null default '',
+  status text not null default 'quote'
+    check (status in ('quote', 'in_production', 'proof_sent', 'approved', 'completed', 'cancelled')),
+  contact_name text not null default '',
+  contact_email text not null default '',
+  notes text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists jobs_client_idx on jobs (client_id, created_at desc);
+
+create table if not exists job_files (
+  id serial primary key,
+  job_id integer not null references jobs(id) on delete cascade,
+  kind text not null default 'other' check (kind in ('proof', 'estimate', 'other')),
+  filename text not null default '',
+  url text not null default '',
+  uploaded_by text not null default '',
+  created_at timestamptz not null default now()
+);
+create index if not exists job_files_job_idx on job_files (job_id, created_at desc);
 `;
 
 /** Creates the tables on first use, so a fresh database needs no setup step. */

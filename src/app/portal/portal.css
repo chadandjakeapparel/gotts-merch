@@ -333,6 +333,18 @@
 .portal-kind { display: inline-block; padding: 2px 8px; border-radius: 3px; background: var(--p-sunk); color: var(--p-muted); font-size: 12px; font-weight: 800; white-space: nowrap; }
 .portal-kind.received, .portal-kind.restored { background: var(--p-ok-soft); color: var(--p-ok); }
 .portal-kind.fulfilled { background: var(--p-accent-soft); color: var(--p-accent-2); }
+.portal-kind.in_production { background: var(--p-accent-soft); color: var(--p-accent-2); }
+.portal-kind.proof_sent { background: var(--p-warn-soft); color: var(--p-warn); }
+.portal-kind.approved, .portal-kind.completed { background: var(--p-ok-soft); color: var(--p-ok); }
+.portal-kind.cancelled { background: var(--p-crit-soft); color: var(--p-crit); }
+
+.portal-job-files { display: flex; flex-direction: column; gap: 6px; }
+.portal-job-files li { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--p-line); }
+.portal-job-files li:last-child { border-bottom: 0; }
+.portal-job-files a { font-weight: 700; }
+.portal-job-files .portal-x { margin-left: auto; height: 28px; width: 28px; padding: 0; }
+.portal-jobs-public { display: flex; flex-direction: column; gap: 16px; }
+.portal-job-detail { display: flex; flex-direction: column; gap: 12px; padding: 16px; }
 
 /* ---------- modal ---------- */
 .portal-scrim {

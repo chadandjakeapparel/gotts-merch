@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import type { Lead, LeadActivity, LeadStatus } from "@/lib/portal/types";
+import type { Customer, Lead, LeadActivity, LeadStatus } from "@/lib/portal/types";
 import { api } from "./api";
+import { parseCustomerSheet, type CustomerRow } from "./customer-sheet";
 
 const currency = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 const count = new Intl.NumberFormat("en-US");
@@ -74,17 +75,21 @@ function ModalFrame({ title, children, footer, close }: { title: string; childre
 
 export function CrmApp({
   initialLeads,
+  initialCustomers,
   staffNames,
   loadError,
 }: {
   initialLeads: Lead[];
+  initialCustomers: Customer[];
   staffNames: string[];
   loadError: string;
 }) {
   const [leads, setLeads] = useState(initialLeads);
+  const [customers, setCustomers] = useState(initialCustomers);
   const [error, setError] = useState(loadError);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [adding, setAdding] = useState(false);
+  const [importingCustomers, setImportingCustomers] = useState(false);
 
   const reload = async () => {
     try {
@@ -94,6 +99,11 @@ export function CrmApp({
     } catch (err) {
       setError(err instanceof Error ? err.message : "The board couldn't be refreshed.");
     }
+  };
+
+  const reloadCustomers = async () => {
+    const res = await api<{ customers: Customer[] }>("GET", "/api/portal/customers");
+    setCustomers(res.customers);
   };
 
   const byStage = useMemo(() => {
@@ -162,9 +172,42 @@ export function CrmApp({
         })}
       </div>
 
-      {adding ? <LeadModal close={() => setAdding(false)} key="new" lead={null} onSaved={reload} staffNames={staffNames} /> : null}
+      <section className="portal-panel">
+        <div className="portal-panel-head">
+          <h2>Customer list</h2>
+          <button className="portal-btn" onClick={() => setImportingCustomers(true)} type="button">Import customers</button>
+        </div>
+        {customers.length ? (
+          <div className="portal-table-wrap">
+            <table className="portal-table compact">
+              <thead><tr><th>Name</th><th>Company</th><th>Email</th><th>Phone</th></tr></thead>
+              <tbody>
+                {customers.map((c) => (
+                  <tr key={c.id}>
+                    <td>{c.name}</td>
+                    <td>{c.company}</td>
+                    <td>{c.email}</td>
+                    <td>{c.phone}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="portal-empty">
+            <p className="portal-muted">Import your customer list (name, company, email, phone) to reference it here and when working a lead.</p>
+          </div>
+        )}
+      </section>
+
+      {adding ? (
+        <LeadModal close={() => setAdding(false)} customers={customers} key="new" lead={null} onSaved={reload} staffNames={staffNames} />
+      ) : null}
       {selected ? (
-        <LeadModal close={() => setSelectedId(null)} key={selected.id} lead={selected} onSaved={reload} staffNames={staffNames} />
+        <LeadModal close={() => setSelectedId(null)} customers={customers} key={selected.id} lead={selected} onSaved={reload} staffNames={staffNames} />
+      ) : null}
+      {importingCustomers ? (
+        <CustomerImportForm close={() => setImportingCustomers(false)} onSaved={reloadCustomers} />
       ) : null}
     </div>
   );
@@ -175,11 +218,13 @@ function LeadModal({
   close,
   onSaved,
   staffNames,
+  customers,
 }: {
   lead: Lead | null;
   close: () => void;
   onSaved: () => Promise<void>;
   staffNames: string[];
+  customers: Customer[];
 }) {
   const [form, setForm] = useState({
     companyName: lead?.companyName || "",
@@ -243,9 +288,21 @@ function LeadModal({
       title={lead ? leadTitle(lead) : "New lead"}
     >
       <div className="portal-row">
-        <label className="portal-field">Company<input autoFocus onChange={set("companyName")} value={form.companyName} /></label>
-        <label className="portal-field">Contact name<input onChange={set("contactName")} value={form.contactName} /></label>
+        <label className="portal-field">
+          Company
+          <input autoFocus list="crm-customer-companies" onChange={set("companyName")} value={form.companyName} />
+        </label>
+        <label className="portal-field">
+          Contact name
+          <input list="crm-customer-names" onChange={set("contactName")} value={form.contactName} />
+        </label>
       </div>
+      <datalist id="crm-customer-companies">
+        {[...new Set(customers.map((c) => c.company).filter(Boolean))].map((c) => <option key={c} value={c} />)}
+      </datalist>
+      <datalist id="crm-customer-names">
+        {[...new Set(customers.map((c) => c.name).filter(Boolean))].map((n) => <option key={n} value={n} />)}
+      </datalist>
       <div className="portal-row">
         <label className="portal-field">Email<input onChange={set("email")} type="email" value={form.email} /></label>
         <label className="portal-field">Phone<input onChange={set("phone")} type="tel" value={form.phone} /></label>
@@ -326,5 +383,71 @@ function ActivityFeed({ lead, onAdded }: { lead: Lead; onAdded: () => Promise<vo
       </form>
       {error ? <p className="portal-msg err" role="alert">{error}</p> : null}
     </div>
+  );
+}
+
+function CustomerImportForm({ close, onSaved }: { close: () => void; onSaved: () => Promise<void> }) {
+  const [textValue, setTextValue] = useState("");
+  const [rows, setRows] = useState<CustomerRow[] | null>(null);
+  const [problems, setProblems] = useState<string[]>([]);
+  const { busy, error, submit } = useSubmit(async () => {
+    await onSaved();
+    close();
+  });
+
+  const check = (value: string) => {
+    const result = parseCustomerSheet(value);
+    setProblems(result.errors);
+    setRows(result.errors.length ? null : result.rows);
+  };
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (rows?.length) void submit(() => api("POST", "/api/portal/customers", { rows }));
+      }}
+    >
+      <ModalFrame
+        close={close}
+        footer={
+          <>
+            <button className="portal-btn" onClick={close} type="button">Cancel</button>
+            <button className="portal-btn" onClick={() => check(textValue)} type="button">Check rows</button>
+            <button className="portal-btn primary" disabled={busy || !rows?.length} type="submit">Import</button>
+          </>
+        }
+        title="Import customer list"
+      >
+        <p className="portal-hint">
+          Paste rows copied from a spreadsheet, or choose a CSV file. Columns in this order:{" "}
+          <strong>Name, Company, Email, Phone, Notes</strong>. A header row is fine. A row with an email already on
+          file updates that customer instead of duplicating it.
+        </p>
+        <textarea
+          aria-label="Rows to import"
+          className="portal-mono"
+          onChange={(e) => { setTextValue(e.target.value); setRows(null); setProblems([]); }}
+          placeholder={"Name\tCompany\tEmail\tPhone\tNotes"}
+          rows={8}
+          value={textValue}
+        />
+        <input
+          accept=".csv,.tsv,.txt,text/csv"
+          aria-label="Choose a CSV file"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            void file.text().then((value) => { setTextValue(value); check(value); });
+          }}
+          type="file"
+        />
+        {problems.length ? (
+          <p className="portal-msg err" role="alert">{problems.slice(0, 4).join(" ")}{problems.length > 4 ? ` (${problems.length - 4} more)` : ""}</p>
+        ) : null}
+        {rows ? <p className="portal-msg ok">{rows.length} rows ready to import.</p> : null}
+        {error ? <p className="portal-msg err" role="alert">{error}</p> : null}
+      </ModalFrame>
+    </form>
   );
 }

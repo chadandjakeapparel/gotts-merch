@@ -7,7 +7,17 @@ import type { ClientSummary, PortalUser } from "./types";
 const iso = (v: unknown) => (v instanceof Date ? v.toISOString() : v ? String(v) : null);
 const newWebhookKey = () => randomBytes(18).toString("base64url");
 
+/** Backfills jobs_key for clients created before the no-login jobs page existed. */
+async function ensureJobsKeys() {
+  const sql = await db();
+  const rows = await sql`select id from clients where jobs_key is null or jobs_key = ''`;
+  for (const row of rows) {
+    await sql`update clients set jobs_key = ${newWebhookKey()} where id = ${row.id} and (jobs_key is null or jobs_key = '')`;
+  }
+}
+
 export async function listClients(): Promise<ClientSummary[]> {
+  await ensureJobsKeys();
   const sql = await db();
   const rows = await sql`
     select c.*,
@@ -21,6 +31,7 @@ export async function listClients(): Promise<ClientSummary[]> {
     id: r.id,
     name: r.name,
     webhookKey: r.webhook_key,
+    jobsKey: r.jobs_key || "",
     itemCount: r.item_count,
     units: r.units,
     openOrders: r.open_orders,
@@ -28,10 +39,29 @@ export async function listClients(): Promise<ClientSummary[]> {
   }));
 }
 
+export async function clientIdForJobsKey(key: string) {
+  if (!key) return null;
+  const sql = await db();
+  const [row] = await sql`select id from clients where jobs_key = ${key}`;
+  return row ? Number(row.id) : null;
+}
+
 export async function clientName(id: number) {
   const sql = await db();
   const [row] = await sql`select name from clients where id = ${id}`;
   return row ? String(row.name) : "";
+}
+
+/** The key in this one client's no-login /jobs/[key] link, generating it if missing. */
+export async function clientJobsKey(id: number) {
+  const sql = await db();
+  const [row] = await sql`select jobs_key from clients where id = ${id}`;
+  if (!row) return "";
+  if (row.jobs_key) return String(row.jobs_key);
+  const key = newWebhookKey();
+  await sql`update clients set jobs_key = ${key} where id = ${id} and (jobs_key is null or jobs_key = '')`;
+  const [fresh] = await sql`select jobs_key from clients where id = ${id}`;
+  return String(fresh?.jobs_key || key);
 }
 
 export async function clientIdForWebhookKey(key: string) {
@@ -44,7 +74,8 @@ export async function clientIdForWebhookKey(key: string) {
 export async function createClient(name: string) {
   if (!name) throw new PortalError("Give the client a name.");
   const sql = await db();
-  const [row] = await sql`insert into clients (name, webhook_key) values (${name}, ${newWebhookKey()}) returning id`;
+  const [row] = await sql`
+    insert into clients (name, webhook_key, jobs_key) values (${name}, ${newWebhookKey()}, ${newWebhookKey()}) returning id`;
   return Number(row.id);
 }
 
@@ -59,6 +90,13 @@ export async function renameClient(id: number, name: string) {
 export async function rotateWebhookKey(id: number) {
   const sql = await db();
   const rows = await sql`update clients set webhook_key = ${newWebhookKey()} where id = ${id} returning id`;
+  if (!rows.length) throw new PortalError("That client no longer exists.", 404);
+}
+
+/** Issues a new no-login jobs link; the old one stops working. */
+export async function rotateJobsKey(id: number) {
+  const sql = await db();
+  const rows = await sql`update clients set jobs_key = ${newWebhookKey()} where id = ${id} returning id`;
   if (!rows.length) throw new PortalError("That client no longer exists.", 404);
 }
 

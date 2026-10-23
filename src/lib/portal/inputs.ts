@@ -1,6 +1,30 @@
-import type { LeadInput } from "./crm";
+import type { CustomerInput } from "./customers";
 import type { ItemInput, OrderInput } from "./data";
 import { int, money, PortalError, text } from "./http";
+import type { JobInput } from "./jobs";
+import { JOB_STATUSES } from "./jobs";
+import type { LeadInput } from "./crm";
+
+export function toJobInput(body: Record<string, unknown>): JobInput {
+  const status = text(body.status, 20);
+  return {
+    title: text(body.title, 200),
+    status: (JOB_STATUSES as string[]).includes(status) ? (status as JobInput["status"]) : "quote",
+    contactName: text(body.contactName, 200),
+    contactEmail: text(body.contactEmail, 200),
+    notes: text(body.notes, 2000),
+  };
+}
+
+export function toCustomerInput(body: Record<string, unknown>): CustomerInput {
+  return {
+    name: text(body.name, 200),
+    company: text(body.company, 200),
+    email: text(body.email, 200),
+    phone: text(body.phone, 60),
+    notes: text(body.notes, 1000),
+  };
+}
 
 export function toLeadInput(body: Record<string, unknown>): LeadInput {
   const value = money(body.estimatedValue);

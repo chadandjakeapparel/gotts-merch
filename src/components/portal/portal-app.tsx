@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import type { ClientSummary, Item, Order, OrderStatus, PortalState, StockMove, Viewer } from "@/lib/portal/types";
+import type { ClientSummary, Item, Job, JobFile, Order, OrderStatus, PortalState, StockMove, Viewer } from "@/lib/portal/types";
 import { api } from "./api";
 import { PortalHeader } from "./portal-header";
 import { parseSheet, type SheetRow } from "./sheet";
@@ -10,7 +10,7 @@ import { parseSheet, type SheetRow } from "./sheet";
 const currency = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 const count = new Intl.NumberFormat("en-US");
 
-type Tab = "inventory" | "orders" | "history";
+type Tab = "inventory" | "orders" | "history" | "jobs";
 type Modal =
   | { kind: "item"; item: Item | null }
   | { kind: "deleteItem"; item: Item }
@@ -158,6 +158,22 @@ const orderUnits = (o: Order) => o.lines.reduce((s, l) => s + l.qty, 0);
 const orderValue = (o: Order) => o.lines.reduce((s, l) => s + l.qty * l.unitValue, 0);
 const STATUS_LABEL: Record<OrderStatus, string> = { open: "Received", fulfilled: "Fulfilled", shipped: "Shipped", cancelled: "Cancelled" };
 
+type JobStatus = Job["status"];
+const JOB_STATUSES: { key: JobStatus; label: string }[] = [
+  { key: "quote", label: "Quote" },
+  { key: "in_production", label: "In production" },
+  { key: "proof_sent", label: "Proof sent" },
+  { key: "approved", label: "Approved" },
+  { key: "completed", label: "Completed" },
+  { key: "cancelled", label: "Cancelled" },
+];
+const JOB_STATUS_LABEL: Record<JobStatus, string> = Object.fromEntries(JOB_STATUSES.map((s) => [s.key, s.label])) as Record<JobStatus, string>;
+const FILE_KINDS: { key: JobFile["kind"]; label: string }[] = [
+  { key: "proof", label: "Proof" },
+  { key: "estimate", label: "Estimate" },
+  { key: "other", label: "Other" },
+];
+
 // ---------- app ----------
 
 export function PortalApp({
@@ -166,6 +182,8 @@ export function PortalApp({
   clientId,
   clientName,
   initialState,
+  initialJobs,
+  jobsKey,
   loadError,
 }: {
   viewer: Viewer;
@@ -174,6 +192,8 @@ export function PortalApp({
   clientId: number;
   clientName: string;
   initialState: PortalState;
+  initialJobs: Job[];
+  jobsKey: string;
   loadError: string;
 }) {
   const admin = viewer.role === "staff";
@@ -183,9 +203,11 @@ export function PortalApp({
     [clientId],
   );
   const [data, setData] = useState(initialState);
+  const [jobs, setJobs] = useState(initialJobs);
   const [error, setError] = useState(loadError);
   const [tab, setTab] = useState<Tab>("inventory");
   const [modal, setModal] = useState<Modal>(null);
+  const [jobModal, setJobModal] = useState<{ job: Job | null } | null>(null);
   const [toast, setToast] = useState("");
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
   useEffect(() => setUpdatedAt(new Date()), []);
@@ -198,6 +220,16 @@ export function PortalApp({
       setError("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "The inventory couldn't be refreshed.");
+    }
+  }, [call]);
+
+  const refreshJobs = useCallback(async () => {
+    try {
+      const res = await call<{ jobs: Job[] }>("GET", "/api/portal/jobs");
+      setJobs(res.jobs);
+      setError("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Jobs couldn't be refreshed.");
     }
   }, [call]);
 
@@ -228,6 +260,17 @@ export function PortalApp({
       setToast(done);
     },
     [refresh],
+  );
+
+  /** Same as mutate, but for jobs and without closing the job modal (file uploads keep it open). */
+  const mutateJobs = useCallback(
+    async (run: () => Promise<unknown>, done: string, close = false) => {
+      await run();
+      await refreshJobs();
+      if (close) setJobModal(null);
+      setToast(done);
+    },
+    [refreshJobs],
   );
 
   const threshold = data.lowStockThreshold;
@@ -292,6 +335,7 @@ export function PortalApp({
             [
               ["inventory", "Inventory", data.items.length],
               ["orders", "Orders", totals.openOrders],
+              ["jobs", "Jobs & proofs", jobs.length],
               ["history", "Stock history", null],
             ] as const
           ).map(([key, text, n]) => (
@@ -305,11 +349,15 @@ export function PortalApp({
 
         {tab === "inventory" ? <InventoryTab admin={admin} items={data.items} setModal={setModal} threshold={threshold} /> : null}
         {tab === "orders" ? <OrdersTab admin={admin} items={data.items} mutate={mutate} orders={data.orders} setModal={setModal} /> : null}
+        {tab === "jobs" ? <JobsTab admin={admin} jobs={jobs} jobsKey={jobsKey} openJob={(job) => setJobModal({ job })} /> : null}
         {tab === "history" ? <HistoryTab moves={data.moves} /> : null}
       </main>
 
       {modal ? (
         <ModalHost close={() => setModal(null)} items={data.items} modal={modal} mutate={mutate} setModal={setModal} />
+      ) : null}
+      {jobModal ? (
+        <JobModal admin={admin} clientId={clientId} close={() => setJobModal(null)} job={jobModal.job} mutate={mutateJobs} />
       ) : null}
       {toast ? <div className="portal-toast" role="status">{toast}</div> : null}
     </div>
@@ -681,6 +729,274 @@ function Steps({ order }: { order: Order }) {
         </li>
       ))}
     </ol>
+  );
+}
+
+// ---------- jobs ----------
+
+function JobsTab({
+  jobs,
+  admin,
+  jobsKey,
+  openJob,
+}: {
+  jobs: Job[];
+  admin: boolean;
+  jobsKey: string;
+  openJob: (job: Job | null) => void;
+}) {
+  const [origin, setOrigin] = useState("");
+  const [copied, setCopied] = useState(false);
+  useEffect(() => setOrigin(window.location.origin), []);
+  const publicUrl = origin && jobsKey ? `${origin}/jobs/${jobsKey}` : "";
+
+  return (
+    <section className="portal-panel">
+      <div className="portal-toolbar">
+        {admin ? (
+          <div className="portal-copy">
+            <span className="portal-eyebrow">Client&apos;s no-login link</span>
+            <div>
+              <input aria-label="Client's jobs link" onFocus={(e) => e.target.select()} readOnly value={publicUrl} />
+              <button
+                className="portal-btn small"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(publicUrl);
+                    setCopied(true);
+                    window.setTimeout(() => setCopied(false), 1500);
+                  } catch {}
+                }}
+                type="button"
+              >
+                {copied ? "Copied" : "Copy"}
+              </button>
+            </div>
+          </div>
+        ) : null}
+        {admin ? (
+          <div className="portal-toolbar-end">
+            <button className="portal-btn primary" onClick={() => openJob(null)} type="button">Add job</button>
+          </div>
+        ) : null}
+      </div>
+
+      {jobs.length ? (
+        <div className="portal-table-wrap">
+          <table className="portal-table">
+            <thead>
+              <tr><th>Title</th><th>Status</th><th>Contact</th><th className="r">Files</th><th>Updated</th><th className="r"><span className="portal-sr">Actions</span></th></tr>
+            </thead>
+            <tbody>
+              {jobs.map((j) => (
+                <tr key={j.id}>
+                  <td>{j.title}</td>
+                  <td><span className={`portal-kind ${j.status}`}>{JOB_STATUS_LABEL[j.status]}</span></td>
+                  <td>{j.contactName || j.contactEmail ? `${j.contactName}${j.contactName && j.contactEmail ? " · " : ""}${j.contactEmail}` : "–"}</td>
+                  <td className="r num">{j.files.length}</td>
+                  <td>{fmtDate(j.updatedAt)}</td>
+                  <td className="r"><button className="portal-btn small" onClick={() => openJob(j)} type="button">Open</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="portal-empty">
+          <h3>No jobs yet</h3>
+          <p className="portal-muted">
+            {admin
+              ? "Add a job to start uploading proofs and estimates for this client."
+              : "Jobs and their proofs or estimates will appear here once they're added."}
+          </p>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function JobModal({
+  job,
+  clientId,
+  admin,
+  close,
+  mutate,
+}: {
+  job: Job | null;
+  clientId: number;
+  admin: boolean;
+  close: () => void;
+  mutate: (run: () => Promise<unknown>, done: string, close?: boolean) => Promise<void>;
+}) {
+  const call = useApi();
+  const [form, setForm] = useState({
+    title: job?.title || "",
+    contactName: job?.contactName || "",
+    contactEmail: job?.contactEmail || "",
+    notes: job?.notes || "",
+  });
+  const [status, setStatus] = useState<JobStatus>(job?.status || "quote");
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  async function submit(run: () => Promise<unknown>, done: string) {
+    if (busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      await mutate(run, done, true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "That didn't work. Try again.");
+      setBusy(false);
+    }
+  }
+  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setForm({ ...form, [k]: e.target.value });
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && close();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [close]);
+
+  function save(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.title.trim()) return setError("Give the job a title.");
+    void submit(
+      () => (job ? call("PATCH", `/api/portal/jobs/${job.id}`, { ...form, status }) : call("POST", "/api/portal/jobs", { ...form, status })),
+      job ? "Saved." : `Added ${form.title}.`,
+    );
+  }
+
+  return (
+    <div className="portal-scrim" onMouseDown={(e) => e.target === e.currentTarget && close()}>
+    <div aria-modal="true" className="portal-modal" role="dialog">
+    <form onSubmit={save}>
+      <ModalFrame
+        footer={
+          <>
+            {job && admin ? (
+              confirmingDelete ? (
+                <span className="portal-row-actions push-left">
+                  <span className="portal-muted small">Delete this job and its files?</span>
+                  <button
+                    className="portal-btn small danger"
+                    disabled={busy}
+                    onClick={() => void submit(() => call("DELETE", `/api/portal/jobs/${job.id}`), "Job deleted.")}
+                    type="button"
+                  >
+                    Delete
+                  </button>
+                  <button className="portal-btn small" onClick={() => setConfirmingDelete(false)} type="button">Cancel</button>
+                </span>
+              ) : (
+                <button className="portal-btn danger push-left" onClick={() => setConfirmingDelete(true)} type="button">Delete</button>
+              )
+            ) : null}
+            <button className="portal-btn" onClick={close} type="button">Cancel</button>
+            {admin ? <button className="portal-btn primary" disabled={busy} type="submit">{job ? "Save" : "Add job"}</button> : null}
+          </>
+        }
+        title={job ? job.title : "New job"}
+      >
+        <label className="portal-field">Title<input autoFocus disabled={!admin} onChange={set("title")} required value={form.title} /></label>
+        <div className="portal-row">
+          <label className="portal-field">Contact name<input disabled={!admin} onChange={set("contactName")} value={form.contactName} /></label>
+          <label className="portal-field">Contact email<input disabled={!admin} onChange={set("contactEmail")} type="email" value={form.contactEmail} /></label>
+        </div>
+        <label className="portal-field">
+          Status
+          <select disabled={!admin} onChange={(e) => setStatus(e.target.value as JobStatus)} value={status}>
+            {JOB_STATUSES.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
+          </select>
+        </label>
+        <label className="portal-field">Notes<textarea disabled={!admin} onChange={set("notes")} rows={3} value={form.notes} /></label>
+        {error ? <p className="portal-msg err" role="alert">{error}</p> : null}
+        {job ? <JobFiles admin={admin} clientId={clientId} job={job} mutate={mutate} /> : null}
+      </ModalFrame>
+    </form>
+    </div>
+    </div>
+  );
+}
+
+function JobFiles({
+  job,
+  clientId,
+  admin,
+  mutate,
+}: {
+  job: Job;
+  clientId: number;
+  admin: boolean;
+  mutate: (run: () => Promise<unknown>, done: string, close?: boolean) => Promise<void>;
+}) {
+  const [kind, setKind] = useState<JobFile["kind"]>("proof");
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+
+  async function upload(file: File) {
+    setUploading(true);
+    setUploadError("");
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("kind", kind);
+      const response = await fetch(`/api/portal/jobs/${job.id}/files?client=${clientId}`, { method: "POST", body: formData });
+      const data = (await response.json().catch(() => ({ ok: false }))) as { ok?: boolean; error?: string };
+      if (!response.ok || !data.ok) throw new Error(data.error || "Upload failed.");
+      await mutate(() => Promise.resolve(), "File added.");
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Upload failed.");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  return (
+    <div className="portal-activity-section">
+      <span className="portal-eyebrow">Files</span>
+      {job.files.length ? (
+        <ul className="portal-job-files">
+          {job.files.map((f) => (
+            <li key={f.id}>
+              <a href={f.url} rel="noreferrer" target="_blank">{f.filename}</a>
+              <span className="portal-kind">{FILE_KINDS.find((k) => k.key === f.kind)?.label}</span>
+              <span className="portal-muted small">{fmtDate(f.createdAt)}</span>
+              {admin ? (
+                <button
+                  className="portal-x"
+                  aria-label={`Remove ${f.filename}`}
+                  onClick={() => void mutate(() => fetch(`/api/portal/jobs/${job.id}/files/${f.id}?client=${clientId}`, { method: "DELETE" }), "File removed.")}
+                  type="button"
+                >
+                  ×
+                </button>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="portal-muted small">No files uploaded yet.</p>
+      )}
+      {admin ? (
+        <div className="portal-row">
+          <select aria-label="File type" onChange={(e) => setKind(e.target.value as JobFile["kind"])} value={kind}>
+            {FILE_KINDS.map((k) => <option key={k.key} value={k.key}>{k.label}</option>)}
+          </select>
+          <input
+            aria-label="Upload a file"
+            disabled={uploading}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) void upload(file);
+              e.target.value = "";
+            }}
+            type="file"
+          />
+        </div>
+      ) : null}
+      {uploadError ? <p className="portal-msg err" role="alert">{uploadError}</p> : null}
+    </div>
   );
 }
 
