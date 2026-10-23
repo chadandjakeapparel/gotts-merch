@@ -424,6 +424,7 @@
   padding: 16px;
   border-bottom: 1px solid var(--p-line);
 }
+.portal-login-add-hint { padding: 0 16px 16px; }
 @media (max-width: 760px) {
   .portal-login-add { grid-template-columns: minmax(0, 1fr); }
 }

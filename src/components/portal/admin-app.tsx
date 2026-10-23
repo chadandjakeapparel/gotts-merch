@@ -207,11 +207,15 @@ export function AdminApp({
           <label className="portal-field">Access
             <select onChange={(e) => setLogin({ ...login, clientId: e.target.value })} value={login.clientId}>
               {clients.map((c) => <option key={c.id} value={c.id}>{c.name} (view only)</option>)}
-              <option value="staff">Staff: all clients, can edit</option>
+              <option value="staff">Staff: full admin access</option>
             </select>
           </label>
           <button className="portal-btn primary" disabled={busy} type="submit">Create login</button>
         </form>
+        <p className="portal-hint portal-login-add-hint">
+          &quot;Staff&quot; logins all have the same full access — inventory, orders, CRM, and this page. The
+          only difference is the account owner (marked below) can&apos;t be removed by another staff login.
+        </p>
 
         <div className="portal-table-wrap">
           <table className="portal-table">

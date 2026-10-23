@@ -62,8 +62,26 @@ export async function rotateWebhookKey(id: number) {
   if (!rows.length) throw new PortalError("That client no longer exists.", 404);
 }
 
+/**
+ * Makes sure exactly one staff login is flagged as the protected owner,
+ * preferring whichever account's email matches PORTAL_ADMIN_EMAIL (the one
+ * used to bootstrap the first login) over a guess at "the oldest row" --
+ * precise and safe to call on every load, since it no-ops once an owner
+ * is already set.
+ */
+async function ensureOwner() {
+  const sql = await db();
+  const [{ has_owner }] = await sql`select exists(select 1 from users where is_owner) as has_owner`;
+  if (has_owner) return;
+  const adminEmail = process.env.PORTAL_ADMIN_EMAIL?.trim().toLowerCase();
+  const byEmail = adminEmail ? await sql`select id from users where role = 'staff' and lower(email) = ${adminEmail}` : [];
+  const [target] = byEmail.length ? byEmail : await sql`select id from users where role = 'staff' order by created_at asc limit 1`;
+  if (target) await sql`update users set is_owner = true where id = ${target.id}`;
+}
+
 export async function listUsers(): Promise<PortalUser[]> {
   const sql = await db();
+  await ensureOwner();
   const rows = await sql`select * from users order by is_owner desc, role desc, lower(email)`;
   return rows.map((r) => ({
     id: r.id,
@@ -111,6 +129,7 @@ export async function resetUserPassword(id: number) {
 
 export async function deleteUser(id: number, actingUserId: number) {
   if (id === actingUserId) throw new PortalError("You can't remove your own login.");
+  await ensureOwner();
   const sql = await db();
   await sql.begin(async (tx) => {
     const [row] = await tx`select role, is_owner from users where id = ${id} for update`;
