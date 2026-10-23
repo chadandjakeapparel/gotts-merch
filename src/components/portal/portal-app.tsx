@@ -44,6 +44,34 @@ function fmtDate(value: string | null, withTime = false) {
 const itemLabel = (i: Pick<Item, "styleNumber" | "styleName" | "color" | "size">) =>
   [i.styleNumber, i.styleName, i.color, i.size].filter(Boolean).join(" · ");
 
+/** Garment sizes in wearing order, smallest to largest; aliases map to the same rank. */
+const SIZE_ORDER = ["XXS", "XS", "SM", "MD", "LG", "XL", "2XL", "3XL", "4XL", "5XL", "6XL"];
+const SIZE_ALIASES: Record<string, string> = {
+  XXSMALL: "XXS", "2XS": "XXS",
+  XSMALL: "XS",
+  SMALL: "SM", S: "SM",
+  MEDIUM: "MD", M: "MD",
+  LARGE: "LG", L: "LG",
+  XLARGE: "XL",
+  XXL: "2XL", "2X": "2XL", XXLARGE: "2XL",
+  XXXL: "3XL", "3X": "3XL", XXXLARGE: "3XL",
+  XXXXL: "4XL", "4X": "4XL",
+  XXXXXL: "5XL", "5X": "5XL",
+  XXXXXXL: "6XL", "6X": "6XL",
+};
+/** Known sizes first in wearing order, then numeric sizes in numeric order, then anything else, blank last. */
+function sizeRank(raw: string): number {
+  const s = raw.trim().toUpperCase().replace(/[\s_-]+/g, "");
+  if (!s) return Infinity;
+  const i = SIZE_ORDER.indexOf(SIZE_ALIASES[s] || s);
+  if (i >= 0) return i;
+  if (/^\d+(\.\d+)?$/.test(s)) return SIZE_ORDER.length + Number(s) / 1000;
+  return SIZE_ORDER.length + 1000;
+}
+function compareSizes(a: string, b: string): number {
+  return sizeRank(a) - sizeRank(b) || a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
+}
+
 function stockLevel(i: Item): "in" | "low" | "out" {
   if (i.qty <= 0) return "out";
   if (i.qty <= LOW_STOCK) return "low";
@@ -260,10 +288,12 @@ function InventoryTab({ items, admin, setModal }: { items: Item[]; admin: boolea
       .sort((a, b) => {
         const av = value(a, sort.key);
         const bv = value(b, sort.key);
-        const c = typeof av === "number" && typeof bv === "number"
-          ? av - bv
-          : String(av).localeCompare(String(bv), undefined, { numeric: true, sensitivity: "base" });
-        return c * sort.dir || a.color.localeCompare(b.color) || a.size.localeCompare(b.size);
+        const c = sort.key === "size"
+          ? compareSizes(a.size, b.size)
+          : typeof av === "number" && typeof bv === "number"
+            ? av - bv
+            : String(av).localeCompare(String(bv), undefined, { numeric: true, sensitivity: "base" });
+        return c * sort.dir || a.color.localeCompare(b.color) || compareSizes(a.size, b.size);
       });
   }, [items, query, color, level, sort]);
 
@@ -784,7 +814,16 @@ const blankLine = (): DraftLine => ({ key: ++lineKey, itemId: "", qty: "" });
 
 /** Rows of style + quantity, used by orders and receipts. */
 function LineEditor({ items, lines, setLines, mode }: { items: Item[]; lines: DraftLine[]; setLines: (l: DraftLine[]) => void; mode: "order" | "receive" }) {
-  const sorted = useMemo(() => [...items].sort((a, b) => itemLabel(a).localeCompare(itemLabel(b), undefined, { numeric: true })), [items]);
+  const sorted = useMemo(
+    () =>
+      [...items].sort(
+        (a, b) =>
+          a.styleNumber.localeCompare(b.styleNumber, undefined, { numeric: true, sensitivity: "base" }) ||
+          a.color.localeCompare(b.color, undefined, { numeric: true, sensitivity: "base" }) ||
+          compareSizes(a.size, b.size),
+      ),
+    [items],
+  );
   const byId = useMemo(() => new Map(items.map((i) => [String(i.id), i])), [items]);
   const used = new Map<string, number>();
   for (const l of lines) {
