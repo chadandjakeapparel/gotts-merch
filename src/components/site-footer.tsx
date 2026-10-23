@@ -26,6 +26,7 @@ export function SiteFooter({ content }: { content: SiteContent }) {
           <Link href="/#why-us">Why Us</Link>
           <Link href="/#about">About Us</Link>
           <Link href="/#process">How It Works</Link>
+          <Link href="/#faq">FAQ</Link>
           <Link href="/#quote">Get a Quote</Link>
         </nav>
       </div>

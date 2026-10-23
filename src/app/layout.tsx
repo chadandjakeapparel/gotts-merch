@@ -43,14 +43,38 @@ export const viewport: Viewport = {
   colorScheme: "light",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const content = await getSiteContent();
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://gottsmerch.com";
+
+  // Organization structured data — gives AI answer engines and search
+  // crawlers a direct, unambiguous read on who this business is and what
+  // it does, rather than relying on them to infer it from page copy.
+  const organizationJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: content.brandName,
+    url: siteUrl,
+    description: content.metaDescription,
+    logo: content.logoUrl || `${siteUrl}/icon.svg`,
+    email: content.inquiryEmail,
+    knowsAbout: content.productCategories.map((category) => category.title),
+    areaServed: content.venueTypes,
+  };
+
   return (
     <html className={`${sora.variable} ${inter.variable}`} lang="en">
-      <body>{children}</body>
+      <body>
+        {children}
+        <script
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+          type="application/ld+json"
+        />
+      </body>
     </html>
   );
 }

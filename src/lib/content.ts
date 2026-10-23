@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { list, put } from "@vercel/blob";
 import {
   defaultContent,
@@ -41,7 +42,9 @@ function normalizeArray<T extends Record<string, unknown>>(saved: unknown, blank
   });
 }
 
-export async function getSiteContent(): Promise<SiteContent> {
+// Memoized per-request — layout, page, and metadata each call this for the
+// same render, and this avoids hitting Blob storage more than once per request.
+export const getSiteContent = cache(async (): Promise<SiteContent> => {
   if (!process.env.BLOB_READ_WRITE_TOKEN) return defaultContent;
 
   try {
@@ -81,7 +84,7 @@ export async function getSiteContent(): Promise<SiteContent> {
   } catch {
     return defaultContent;
   }
-}
+});
 
 export async function saveSiteContent(content: SiteContent): Promise<void> {
   await put(CONTENT_PATHNAME, JSON.stringify(content, null, 2), {
