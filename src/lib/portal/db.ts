@@ -62,11 +62,18 @@ create table if not exists users (
   client_id integer references clients(id) on delete cascade,
   session_version integer not null default 1,
   must_change_password boolean not null default false,
+  is_owner boolean not null default false,
   created_at timestamptz not null default now(),
   last_login_at timestamptz,
   check (role = 'staff' or client_id is not null)
 );
 create unique index if not exists users_email_key on users (lower(email));
+-- Pre-existing databases created before the owner flag existed: the
+-- earliest staff login becomes the protected owner, once, if none is set.
+alter table users add column if not exists is_owner boolean not null default false;
+update users set is_owner = true
+where id = (select id from users where role = 'staff' order by created_at asc limit 1)
+  and not exists (select 1 from users where is_owner);
 
 create table if not exists items (
   id serial primary key,

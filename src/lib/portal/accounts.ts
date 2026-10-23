@@ -64,7 +64,7 @@ export async function rotateWebhookKey(id: number) {
 
 export async function listUsers(): Promise<PortalUser[]> {
   const sql = await db();
-  const rows = await sql`select * from users order by role desc, lower(email)`;
+  const rows = await sql`select * from users order by is_owner desc, role desc, lower(email)`;
   return rows.map((r) => ({
     id: r.id,
     email: r.email,
@@ -72,6 +72,7 @@ export async function listUsers(): Promise<PortalUser[]> {
     role: r.role,
     clientId: r.client_id,
     mustChangePassword: r.must_change_password,
+    isOwner: Boolean(r.is_owner),
     lastLoginAt: iso(r.last_login_at),
     createdAt: iso(r.created_at) || "",
   }));
@@ -112,8 +113,9 @@ export async function deleteUser(id: number, actingUserId: number) {
   if (id === actingUserId) throw new PortalError("You can't remove your own login.");
   const sql = await db();
   await sql.begin(async (tx) => {
-    const [row] = await tx`select role from users where id = ${id} for update`;
+    const [row] = await tx`select role, is_owner from users where id = ${id} for update`;
     if (!row) return;
+    if (row.is_owner) throw new PortalError("The account owner can't be removed.");
     if (row.role === "staff") {
       const [{ n }] = await tx`select count(*)::int as n from users where role = 'staff'`;
       if (n <= 1) throw new PortalError("Keep at least one staff login.");

@@ -109,6 +109,8 @@ export type PortalUser = {
   role: "staff" | "client";
   clientId: number | null;
   mustChangePassword: boolean;
+  /** The account owner; protected from removal, even by other staff logins. */
+  isOwner: boolean;
   lastLoginAt: string | null;
   createdAt: string;
 };

@@ -221,7 +221,7 @@ export function AdminApp({
             <tbody>
               {users.map((u) => (
                 <tr key={u.id}>
-                  <td>{u.email}{u.mustChangePassword ? <span className="portal-pill low">Temporary password</span> : null}</td>
+                  <td>{u.email}{u.isOwner ? <span className="portal-pill ok">Owner</span> : null}{u.mustChangePassword ? <span className="portal-pill low">Temporary password</span> : null}</td>
                   <td>{u.name}</td>
                   <td>{u.role === "staff" ? <strong>Staff</strong> : clientNames.get(u.clientId ?? 0) || "Unknown client"}</td>
                   <td>{fmtDate(u.lastLoginAt)}</td>
@@ -245,7 +245,7 @@ export function AdminApp({
                         >
                           Reset password
                         </button> : null}
-                        {u.id !== currentUserId ? (
+                        {u.id !== currentUserId && !u.isOwner ? (
                           <button className="portal-btn small danger" onClick={() => setConfirming(`delete-${u.id}`)} type="button">Remove</button>
                         ) : null}
                       </span>
