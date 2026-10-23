@@ -34,6 +34,11 @@ export type BrandPartner = {
   logoUrl: string;
 };
 
+export type FaqItem = {
+  question: string;
+  answer: string;
+};
+
 export type SiteContent = {
   brandName: string;
   // Leave blank to use the default recreated wordmark/G mark.
@@ -83,6 +88,9 @@ export type SiteContent = {
   processEyebrow: string;
   processTitle: string;
   processSteps: ProcessStep[];
+  faqEyebrow: string;
+  faqTitle: string;
+  faqItems: FaqItem[];
   quoteEyebrow: string;
   quoteTitle: string;
   quoteBody: string;
@@ -309,6 +317,40 @@ export const defaultContent: SiteContent = {
       title: "Production & delivery",
       description:
         "Order to a single address or coordinate delivery across multiple locations.",
+    },
+  ],
+  faqEyebrow: "Common questions",
+  faqTitle: "Frequently asked questions.",
+  faqItems: [
+    {
+      question: "What does Gotts Merch do?",
+      answer:
+        "Apparel, printed paper goods, drinkware, and retail merch — sourced and produced for hospitality, and nothing else. Commercial-grade materials, fast turns on seasonal menus, and one team that understands what a busy shift does to a product.",
+    },
+    {
+      question: "What types of hospitality businesses do you work with?",
+      answer:
+        "We work with restaurants & bars, hotels & resorts, cafés & coffee shops, catering & events, country clubs, and ghost kitchens.",
+    },
+    {
+      question: "What products can I order?",
+      answer:
+        "Front-of-house apparel, menus, print & tabletop, drinkware & to-go, and pens & retail merch — see the full breakdown above.",
+    },
+    {
+      question: "Do you offer on-site merch production for events?",
+      answer:
+        "Yes — our on-site production stations turn branded merch into part of the event. Guests and staff watch their gear get made in real time, then walk away with it that same day. Stations include live heat press, hat bar, embroidery, UV DTF for hard goods, and laser engraving.",
+    },
+    {
+      question: "How does the ordering process work?",
+      answer:
+        "Tell us about your venue, get product and material recommendations, approve a proof, then we handle production and delivery.",
+    },
+    {
+      question: "How do I get a quote?",
+      answer:
+        "Share your venue and the products you're picturing — from a single apron order to a full multi-location rollout. We'll follow up with pricing and material recommendations.",
     },
   ],
   quoteEyebrow: "Start a quote",

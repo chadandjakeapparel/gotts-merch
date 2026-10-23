@@ -864,6 +864,18 @@ export default function AdminPage() {
         </section>
 
         <section className="gm-admin-section">
+          <h2>FAQs</h2>
+          <p className="gm-admin-hint">
+            Questions and answers have their own workspace, built for adding as many as you
+            need — currently {content.faqItems.length}{" "}
+            {content.faqItems.length === 1 ? "entry" : "entries"}.
+          </p>
+          <Link className="gm-btn gm-btn--primary" href="/admin/faqs">
+            Open FAQs editor →
+          </Link>
+        </section>
+
+        <section className="gm-admin-section">
           <h2>Quote request section</h2>
           <label>
             <span>Eyebrow</span>

@@ -14,49 +14,13 @@ const categoryIcons = {
   retail: PenIcon,
 } as const;
 
-function joinWithAnd(items: string[]): string {
-  if (items.length <= 1) return items.join("");
-  if (items.length === 2) return `${items[0]} and ${items[1]}`;
-  return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
-}
-
 export default async function HomePage() {
   const content = await getSiteContent();
-
-  // Built from the same content admins already edit, so these answers never
-  // drift from the rest of the page — and the full text, not just a
-  // collapsed teaser, is what AI answer engines and search crawlers see.
-  const faqItems = [
-    {
-      question: `What does ${content.brandName} do?`,
-      answer: content.heroLead,
-    },
-    {
-      question: "What types of hospitality businesses do you work with?",
-      answer: `We work with ${joinWithAnd(content.venueTypes.map((type) => type.toLowerCase()))}.`,
-    },
-    {
-      question: "What products can I order?",
-      answer: `${joinWithAnd(content.productCategories.map((category) => category.title.toLowerCase()))} — see the full breakdown above.`,
-    },
-    {
-      question: "Do you offer on-site merch production for events?",
-      answer: `${content.activationsLead} Stations include ${joinWithAnd(content.activationsStations.map((station) => station.title.toLowerCase()))}.`,
-    },
-    {
-      question: "How does the ordering process work?",
-      answer: joinWithAnd(content.processSteps.map((step) => step.title.toLowerCase())),
-    },
-    {
-      question: "How do I get a quote?",
-      answer: content.quoteBody,
-    },
-  ];
 
   const faqJsonLd = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
-    mainEntity: faqItems.map((item) => ({
+    mainEntity: content.faqItems.map((item) => ({
       "@type": "Question",
       name: item.question,
       acceptedAnswer: { "@type": "Answer", text: item.answer },
@@ -274,12 +238,12 @@ export default async function HomePage() {
         <section className="gm-faq" id="faq">
           <div className="gm-container">
             <div className="gm-section-heading">
-              <p className="gm-eyebrow">Common questions</p>
-              <h2>Frequently asked questions.</h2>
+              <p className="gm-eyebrow">{content.faqEyebrow}</p>
+              <h2>{content.faqTitle}</h2>
             </div>
             <div className="gm-faq__list">
-              {faqItems.map((item) => (
-                <details className="gm-faq__item" key={item.question}>
+              {content.faqItems.map((item, index) => (
+                <details className="gm-faq__item" key={index}>
                   <summary>{item.question}</summary>
                   <p>{item.answer}</p>
                 </details>
