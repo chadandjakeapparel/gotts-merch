@@ -27,11 +27,13 @@ export async function generateMetadata(): Promise<Metadata> {
       description: content.metaDescription,
       siteName: content.brandName,
       type: "website",
+      images: content.ogImageUrl ? [content.ogImageUrl] : undefined,
     },
     twitter: {
-      card: "summary",
+      card: content.ogImageUrl ? "summary_large_image" : "summary",
       title: content.metaTitle,
       description: content.metaDescription,
+      images: content.ogImageUrl ? [content.ogImageUrl] : undefined,
     },
   };
 }

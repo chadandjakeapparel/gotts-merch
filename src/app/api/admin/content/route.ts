@@ -26,6 +26,7 @@ function isValidContent(value: unknown): value is SiteContent {
     "shopUrl",
     "metaTitle",
     "metaDescription",
+    "ogImageUrl",
     "heroEyebrow",
     "heroLead",
     "productsEyebrow",

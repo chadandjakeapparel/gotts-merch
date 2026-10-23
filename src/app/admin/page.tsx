@@ -32,6 +32,8 @@ export default function AdminPage() {
   const [logoError, setLogoError] = useState("");
   const [faviconStatus, setFaviconStatus] = useState<PhotoStatus>("idle");
   const [faviconError, setFaviconError] = useState("");
+  const [ogImageStatus, setOgImageStatus] = useState<PhotoStatus>("idle");
+  const [ogImageError, setOgImageError] = useState("");
 
   async function loadContent() {
     const response = await fetch("/api/admin/content");
@@ -185,7 +187,10 @@ export default function AdminPage() {
     });
   }
 
-  async function uploadFile(file: File, folder: "team" | "brand" | "favicon"): Promise<string> {
+  async function uploadFile(
+    file: File,
+    folder: "team" | "brand" | "favicon" | "og",
+  ): Promise<string> {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("folder", folder);
@@ -239,6 +244,19 @@ export default function AdminPage() {
     } catch (error) {
       setFaviconStatus("error");
       setFaviconError(error instanceof Error ? error.message : "Upload failed");
+    }
+  }
+
+  async function handleOgImageUpload(file: File) {
+    setOgImageStatus("uploading");
+    setOgImageError("");
+    try {
+      const url = await uploadFile(file, "og");
+      update("ogImageUrl", url);
+      setOgImageStatus("idle");
+    } catch (error) {
+      setOgImageStatus("error");
+      setOgImageError(error instanceof Error ? error.message : "Upload failed");
     }
   }
 
@@ -400,6 +418,47 @@ export default function AdminPage() {
               value={content.metaDescription}
             />
           </label>
+          <div className="gm-admin-photo">
+            {content.ogImageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- admin-only preview thumbnail
+              <img alt="" className="gm-admin-photo__preview" src={content.ogImageUrl} />
+            ) : null}
+            <div>
+              <label>
+                <span>
+                  Preview image (OG image) — JPG, PNG, or WEBP, max 5MB, 1200×630 works best
+                </span>
+                <input
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) handleOgImageUpload(file);
+                    event.target.value = "";
+                  }}
+                  type="file"
+                />
+              </label>
+              <p className="gm-admin-hint">
+                The image shown alongside the preview title and description. Leave it empty
+                and the sharing platform will fall back to its own default.
+              </p>
+              {ogImageStatus === "uploading" ? (
+                <p className="gm-admin-hint">Uploading…</p>
+              ) : null}
+              {ogImageStatus === "error" ? (
+                <p className="gm-admin-error">{ogImageError}</p>
+              ) : null}
+              {content.ogImageUrl ? (
+                <button
+                  className="gm-form-restart"
+                  onClick={() => update("ogImageUrl", "")}
+                  type="button"
+                >
+                  Remove image
+                </button>
+              ) : null}
+            </div>
+          </div>
         </section>
 
         <section className="gm-admin-section">

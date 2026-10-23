@@ -47,6 +47,9 @@ export type SiteContent = {
   // Slack, social media) — not the same as the on-page hero text.
   metaTitle: string;
   metaDescription: string;
+  // Leave blank to use the default — the link preview then falls back to
+  // whatever the sharing platform (texts, Slack, social media) shows on its own.
+  ogImageUrl: string;
   heroEyebrow: string;
   heroLead: string;
   productsEyebrow: string;
@@ -99,6 +102,7 @@ export const defaultContent: SiteContent = {
   metaTitle: "Gotts Merch — Promotional Products for Hospitality",
   metaDescription:
     "We've Gotts you covered. Apparel, print, drinkware, and retail merch made for restaurants, hotels, bars, and cafés.",
+  ogImageUrl: "",
   heroEyebrow: "Promotional products for restaurants, bars & hotels",
   heroLead:
     "Apparel, printed paper goods, drinkware, and retail merch — sourced and produced for hospitality, and nothing else. Commercial-grade materials, fast turns on seasonal menus, and one team that understands what a busy shift does to a product.",
