@@ -78,6 +78,53 @@ function stockLevel(i: Item, threshold: number): "in" | "low" | "out" {
   return "in";
 }
 
+// ---------- spreadsheet export ----------
+
+function downloadFile(filename: string, content: string, mime: string) {
+  const url = URL.createObjectURL(new Blob([content], { type: mime }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function toCsv(rows: string[][]): string {
+  const cell = (v: string) => (/[",\r\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
+  return rows.map((r) => r.map(cell).join(",")).join("\r\n");
+}
+
+/** A table Excel opens natively; saved with a .xls extension, as requested. */
+function toXlsHtml(headers: string[], rows: string[][]): string {
+  const cell = (v: string) => v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const row = (cells: string[], tag: "th" | "td") => `<tr>${cells.map((c) => `<${tag}>${cell(c)}</${tag}>`).join("")}</tr>`;
+  return `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="utf-8" />
+<!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Inventory</x:Name>
+<x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->
+</head><body><table>${row(headers, "th")}${rows.map((r) => row(r, "td")).join("")}</table></body></html>`;
+}
+
+function exportInventory(items: Item[], format: "csv" | "xls") {
+  const headers = ["Style #", "Style name", "Color", "Size", "On hand", "On open orders", "Available", "Unit value", "Total value"];
+  const rows = items.map((i) => [
+    i.styleNumber,
+    i.styleName,
+    i.color,
+    i.size,
+    String(i.qty),
+    String(i.committed),
+    String(i.qty - i.committed),
+    i.unitValue.toFixed(2),
+    (i.qty * i.unitValue).toFixed(2),
+  ]);
+  const stamp = new Date().toISOString().slice(0, 10);
+  if (format === "csv") downloadFile(`inventory-${stamp}.csv`, toCsv([headers, ...rows]), "text/csv;charset=utf-8;");
+  else downloadFile(`inventory-${stamp}.xls`, toXlsHtml(headers, rows), "application/vnd.ms-excel");
+}
+
 const SWATCHES: Record<string, string> = {
   black: "#1b1b1b", white: "#ffffff", navy: "#1f2a4d", red: "#c0392b", maroon: "#6d1f2a", burgundy: "#6b1f33",
   royal: "#2a4fbf", blue: "#2f6bd8", "light blue": "#9cc3ea", "sky blue": "#8ec5f0", "carolina blue": "#7bafd4",
@@ -341,13 +388,17 @@ function InventoryTab({
           <option value="low">Low</option>
           <option value="out">Out of stock</option>
         </select>
-        {admin ? (
-          <div className="portal-toolbar-end">
-            <button className="portal-btn" onClick={() => setModal({ kind: "import" })} type="button">Import</button>
-            <button className="portal-btn" onClick={() => setModal({ kind: "item", item: null })} type="button">Add style</button>
-            <button className="portal-btn primary" disabled={!items.length} onClick={() => setModal({ kind: "receive" })} type="button">Receive stock</button>
-          </div>
-        ) : null}
+        <div className="portal-toolbar-end">
+          <button className="portal-btn" disabled={!rows.length} onClick={() => exportInventory(rows, "csv")} type="button">Export CSV</button>
+          <button className="portal-btn" disabled={!rows.length} onClick={() => exportInventory(rows, "xls")} type="button">Export Excel</button>
+          {admin ? (
+            <>
+              <button className="portal-btn" onClick={() => setModal({ kind: "import" })} type="button">Import</button>
+              <button className="portal-btn" onClick={() => setModal({ kind: "item", item: null })} type="button">Add style</button>
+              <button className="portal-btn primary" disabled={!items.length} onClick={() => setModal({ kind: "receive" })} type="button">Receive stock</button>
+            </>
+          ) : null}
+        </div>
       </div>
 
       {rows.length ? (
