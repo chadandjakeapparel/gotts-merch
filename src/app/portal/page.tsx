@@ -38,7 +38,7 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
     name = await clientName(clientId);
   }
 
-  let state: PortalState = { items: [], orders: [], moves: [] };
+  let state: PortalState = { items: [], orders: [], moves: [], lowStockThreshold: 6 };
   let loadError = "";
   try {
     state = await getState(clientId);

@@ -7,7 +7,6 @@ import { api } from "./api";
 import { PortalHeader } from "./portal-header";
 import { parseSheet, type SheetRow } from "./sheet";
 
-const LOW_STOCK = 12;
 const currency = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 const count = new Intl.NumberFormat("en-US");
 
@@ -20,6 +19,7 @@ type Modal =
   | { kind: "order"; order: Order | null }
   | { kind: "ship"; order: Order }
   | { kind: "cancel"; order: Order }
+  | { kind: "lowStock"; threshold: number }
   | null;
 
 // ---------- helpers ----------
@@ -72,9 +72,9 @@ function compareSizes(a: string, b: string): number {
   return sizeRank(a) - sizeRank(b) || a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
 }
 
-function stockLevel(i: Item): "in" | "low" | "out" {
+function stockLevel(i: Item, threshold: number): "in" | "low" | "out" {
   if (i.qty <= 0) return "out";
-  if (i.qty <= LOW_STOCK) return "low";
+  if (i.qty <= threshold) return "low";
   return "in";
 }
 
@@ -183,14 +183,15 @@ export function PortalApp({
     [refresh],
   );
 
+  const threshold = data.lowStockThreshold;
   const totals = useMemo(() => {
     const units = data.items.reduce((s, i) => s + i.qty, 0);
     const value = data.items.reduce((s, i) => s + i.qty * i.unitValue, 0);
-    const low = data.items.filter((i) => stockLevel(i) !== "in").length;
+    const low = data.items.filter((i) => stockLevel(i, threshold) !== "in").length;
     const open = data.orders.filter((o) => o.status === "open");
     const review = open.filter((o) => o.needsReview).length;
     return { units, value, low, openOrders: open.length, openUnits: open.reduce((s, o) => s + orderUnits(o), 0), review };
-  }, [data]);
+  }, [data, threshold]);
 
   return (
     <ApiContext.Provider value={call}>
@@ -232,7 +233,10 @@ export function PortalApp({
           <div>
             <span className="portal-eyebrow">Low or out of stock</span>
             <strong className={totals.low ? "warn" : ""}>{count.format(totals.low)}</strong>
-            <span className="portal-muted small">{LOW_STOCK} units or fewer</span>
+            <span className="portal-muted small">
+              {count.format(threshold)} units or fewer{" "}
+              <button className="portal-link small" onClick={() => setModal({ kind: "lowStock", threshold })} type="button">Edit</button>
+            </span>
           </div>
         </section>
 
@@ -252,7 +256,7 @@ export function PortalApp({
           ))}
         </nav>
 
-        {tab === "inventory" ? <InventoryTab admin={admin} items={data.items} setModal={setModal} /> : null}
+        {tab === "inventory" ? <InventoryTab admin={admin} items={data.items} setModal={setModal} threshold={threshold} /> : null}
         {tab === "orders" ? <OrdersTab admin={admin} items={data.items} mutate={mutate} orders={data.orders} setModal={setModal} /> : null}
         {tab === "history" ? <HistoryTab moves={data.moves} /> : null}
       </main>
@@ -270,7 +274,17 @@ export function PortalApp({
 
 type SortKey = "styleNumber" | "styleName" | "color" | "size" | "qty" | "committed" | "available" | "unitValue" | "total";
 
-function InventoryTab({ items, admin, setModal }: { items: Item[]; admin: boolean; setModal: (m: Modal) => void }) {
+function InventoryTab({
+  items,
+  admin,
+  setModal,
+  threshold,
+}: {
+  items: Item[];
+  admin: boolean;
+  setModal: (m: Modal) => void;
+  threshold: number;
+}) {
   const [query, setQuery] = useState("");
   const [color, setColor] = useState("");
   const [level, setLevel] = useState("");
@@ -284,7 +298,7 @@ function InventoryTab({ items, admin, setModal }: { items: Item[]; admin: boolea
     return items
       .filter((i) => !q || `${i.styleNumber} ${i.styleName} ${i.color} ${i.size}`.toLowerCase().includes(q))
       .filter((i) => !color || i.color === color)
-      .filter((i) => !level || stockLevel(i) === level)
+      .filter((i) => !level || stockLevel(i, threshold) === level)
       .sort((a, b) => {
         const av = value(a, sort.key);
         const bv = value(b, sort.key);
@@ -295,7 +309,7 @@ function InventoryTab({ items, admin, setModal }: { items: Item[]; admin: boolea
             : String(av).localeCompare(String(bv), undefined, { numeric: true, sensitivity: "base" });
         return c * sort.dir || a.color.localeCompare(b.color) || compareSizes(a.size, b.size);
       });
-  }, [items, query, color, level, sort]);
+  }, [items, query, color, level, sort, threshold]);
 
   const header = (key: SortKey, text: string, right = false) => (
     <th aria-sort={sort.key === key ? (sort.dir > 0 ? "ascending" : "descending") : "none"} className={right ? "r" : ""}>
@@ -355,7 +369,7 @@ function InventoryTab({ items, admin, setModal }: { items: Item[]; admin: boolea
             </thead>
             <tbody>
               {rows.map((i) => {
-                const lvl = stockLevel(i);
+                const lvl = stockLevel(i, threshold);
                 const available = i.qty - i.committed;
                 return (
                   <tr key={i.id}>
@@ -696,6 +710,7 @@ function ModalHost(props: ModalProps) {
     case "order": body = <OrderForm {...props} order={modal.order} />; break;
     case "ship": body = <ShipForm {...props} order={modal.order} />; break;
     case "cancel": body = <CancelOrder {...props} order={modal.order} />; break;
+    case "lowStock": body = <LowStockForm {...props} threshold={modal.threshold} />; break;
   }
   return (
     <div className="portal-scrim" onMouseDown={(e) => e.target === e.currentTarget && close()}>
@@ -805,6 +820,43 @@ function DeleteItem({ item, setModal, mutate }: ModalProps & { item: Item }) {
       <p>{itemLabel(item)}, with {count.format(item.qty)} units on hand, will be removed from inventory. Past orders and stock history stay as they are.</p>
       {error ? <p className="portal-msg err" role="alert">{error}</p> : null}
     </ModalFrame>
+  );
+}
+
+function LowStockForm({ threshold, close, mutate }: ModalProps & { threshold: number }) {
+  const call = useApi();
+  const [value, setValue] = useState(String(threshold));
+  const { busy, error, setError, submit } = useSubmit(mutate);
+
+  function save(e: React.FormEvent) {
+    e.preventDefault();
+    const n = parseInt(value, 10);
+    if (!Number.isInteger(n) || n < 0) return setError("Enter a whole number of 0 or more.");
+    void submit(
+      () => call("PATCH", "/api/portal/settings", { lowStockThreshold: n }),
+      `Low stock alert set to ${n} units or fewer.`,
+    );
+  }
+
+  return (
+    <form onSubmit={save}>
+      <ModalFrame
+        footer={
+          <>
+            <button className="portal-btn" onClick={close} type="button">Cancel</button>
+            <button className="portal-btn primary" disabled={busy} type="submit">Save</button>
+          </>
+        }
+        title="Low stock alert"
+      >
+        <label className="portal-field">
+          Flag a style as low stock at or below
+          <input autoFocus min={0} onChange={(e) => setValue(e.target.value)} required step={1} type="number" value={value} />
+        </label>
+        <p className="portal-hint">Styles at or below this many units on hand are marked Low. Zero is Out of stock.</p>
+        {error ? <p className="portal-msg err" role="alert">{error}</p> : null}
+      </ModalFrame>
+    </form>
   );
 }
 

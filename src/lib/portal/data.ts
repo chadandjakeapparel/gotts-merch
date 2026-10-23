@@ -80,7 +80,7 @@ const label = (r: { style_number?: unknown; color?: unknown; size?: unknown }) =
 
 export async function getState(clientId: number): Promise<PortalState> {
   const sql = await db();
-  const [items, orders, lines, moves] = await Promise.all([
+  const [items, orders, lines, moves, client] = await Promise.all([
     sql`
       select i.*, coalesce(c.committed, 0) as committed
       from items i
@@ -98,6 +98,7 @@ export async function getState(clientId: number): Promise<PortalState> {
       where l.order_id in (select id from orders where client_id = ${clientId} order by created_at desc limit 300)
       order by l.id`,
     sql`select * from stock_moves where client_id = ${clientId} order by created_at desc, id desc limit 300`,
+    sql`select low_stock_threshold from clients where id = ${clientId}`,
   ]);
   const byOrder = new Map<number, OrderLine[]>();
   for (const r of lines) {
@@ -109,7 +110,15 @@ export async function getState(clientId: number): Promise<PortalState> {
     items: items.map(toItem),
     orders: orders.map((r) => toOrder(r, byOrder.get(num(r.id)) || [])),
     moves: moves.map(toMove),
+    lowStockThreshold: client[0] ? num(client[0].low_stock_threshold) : 6,
   };
+}
+
+export async function setLowStockThreshold(clientId: number, threshold: number) {
+  if (!Number.isInteger(threshold) || threshold < 0) throw new PortalError("Enter a whole number of 0 or more.");
+  const sql = await db();
+  const rows = await sql`update clients set low_stock_threshold = ${threshold} where id = ${clientId} returning id`;
+  if (!rows.length) throw new PortalError("That client no longer exists.", 404);
 }
 
 // ---------- items ----------

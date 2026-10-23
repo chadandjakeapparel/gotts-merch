@@ -60,6 +60,8 @@ export type PortalState = {
   items: Item[];
   orders: Order[];
   moves: StockMove[];
+  /** Flag a style as low stock at or below this many units on hand. */
+  lowStockThreshold: number;
 };
 
 export type ClientSummary = {

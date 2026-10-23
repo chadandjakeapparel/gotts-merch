@@ -47,8 +47,11 @@ create table if not exists clients (
   id serial primary key,
   name text not null,
   webhook_key text not null unique,
+  low_stock_threshold integer not null default 6,
   created_at timestamptz not null default now()
 );
+-- Pre-existing databases created before the threshold was configurable.
+alter table clients add column if not exists low_stock_threshold integer not null default 6;
 
 create table if not exists users (
   id serial primary key,
