@@ -166,6 +166,13 @@ create table if not exists lead_activities (
   created_at timestamptz not null default now()
 );
 create index if not exists lead_activities_lead_idx on lead_activities (lead_id, created_at desc);
+
+create table if not exists login_lockouts (
+  id text primary key,
+  failed_attempts integer not null default 0,
+  locked_until timestamptz,
+  updated_at timestamptz not null default now()
+);
 `;
 
 /** Creates the tables on first use, so a fresh database needs no setup step. */
