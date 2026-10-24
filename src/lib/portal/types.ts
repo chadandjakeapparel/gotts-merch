@@ -102,6 +102,31 @@ export type Lead = {
   activities: LeadActivity[];
 };
 
+export type CustomerKind = "company" | "individual";
+
+export type SalesRep = {
+  id: number;
+  name: string;
+};
+
+export type Customer = {
+  id: number;
+  kind: CustomerKind;
+  companyName: string;
+  firstName: string;
+  lastName: string;
+  billingAddress: string;
+  shippingAddress: string;
+  emails: string[];
+  phone: string;
+  pointOfContact: string;
+  salesRepId: number | null;
+  subscribed: boolean;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type PortalUser = {
   id: number;
   email: string;

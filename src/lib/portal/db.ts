@@ -176,6 +176,41 @@ create table if not exists login_lockouts (
   locked_until timestamptz,
   updated_at timestamptz not null default now()
 );
+
+create table if not exists sales_reps (
+  id serial primary key,
+  name text not null,
+  created_at timestamptz not null default now()
+);
+create unique index if not exists sales_reps_name_key on sales_reps (lower(name));
+insert into sales_reps (name) values ('Steven Gottsegen'), ('Jake Gottsegen'), ('House Account')
+  on conflict do nothing;
+
+create table if not exists customers (
+  id serial primary key,
+  kind text not null default 'company' check (kind in ('company', 'individual')),
+  company_name text not null default '',
+  first_name text not null default '',
+  last_name text not null default '',
+  billing_address text not null default '',
+  shipping_address text not null default '',
+  phone text not null default '',
+  point_of_contact text not null default '',
+  sales_rep_id integer references sales_reps(id) on delete set null,
+  subscribed boolean not null default false,
+  notes text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists customers_sales_rep_idx on customers (sales_rep_id);
+
+create table if not exists customer_emails (
+  id serial primary key,
+  customer_id integer not null references customers(id) on delete cascade,
+  email text not null default '',
+  created_at timestamptz not null default now()
+);
+create index if not exists customer_emails_customer_idx on customer_emails (customer_id);
 `;
 
 /** Creates the tables on first use, so a fresh database needs no setup step. */

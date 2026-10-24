@@ -292,6 +292,19 @@
 .portal-pill.out { background: var(--p-crit-soft); color: var(--p-crit); }
 .portal-pill.ok { background: var(--p-ok-soft); color: var(--p-ok); }
 .portal-row-actions { display: inline-flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+.portal-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: -4px 0 12px; }
+.portal-inline { display: flex; gap: 6px; }
+.portal-inline input { flex: 1 1 auto; }
+.portal-pill-remove {
+  margin-left: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+}
 
 .portal-empty { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 40px 20px; text-align: center; }
 .portal-empty p { max-width: 56ch; }
