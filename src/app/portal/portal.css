@@ -295,6 +295,23 @@
 .portal-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: -4px 0 12px; }
 .portal-inline { display: flex; gap: 6px; }
 .portal-inline input { flex: 1 1 auto; }
+.portal-address {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0 0 12px;
+  padding: 12px;
+  border: 1px solid var(--p-line);
+  border-radius: 6px;
+}
+.portal-address legend {
+  padding: 0 4px;
+  color: var(--p-muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
 .portal-pill-remove {
   margin-left: 4px;
   padding: 0;

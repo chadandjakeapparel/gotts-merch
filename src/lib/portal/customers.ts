@@ -1,11 +1,23 @@
 import { db } from "./db";
 import { PortalError } from "./http";
-import type { Customer, CustomerKind, SalesRep } from "./types";
+import type { Address, Customer, CustomerKind, SalesRep } from "./types";
 
 type Row = Record<string, unknown>;
 
 const iso = (v: unknown) => (v instanceof Date ? v.toISOString() : v ? String(v) : null);
 const str = (v: unknown) => (v == null ? "" : String(v));
+
+function toAddress(r: Row, prefix: "billing" | "shipping"): Address {
+  return {
+    name: str(r[`${prefix}_name`]),
+    line1: str(r[`${prefix}_line1`]),
+    line2: str(r[`${prefix}_line2`]),
+    city: str(r[`${prefix}_city`]),
+    state: str(r[`${prefix}_state`]),
+    zip: str(r[`${prefix}_zip`]),
+    country: str(r[`${prefix}_country`]) || "US",
+  };
+}
 
 function toCustomer(r: Row, emails: string[]): Customer {
   return {
@@ -14,8 +26,8 @@ function toCustomer(r: Row, emails: string[]): Customer {
     companyName: str(r.company_name),
     firstName: str(r.first_name),
     lastName: str(r.last_name),
-    billingAddress: str(r.billing_address),
-    shippingAddress: str(r.shipping_address),
+    billingAddress: toAddress(r, "billing"),
+    shippingAddress: toAddress(r, "shipping"),
     emails,
     phone: str(r.phone),
     pointOfContact: str(r.point_of_contact),
@@ -86,8 +98,8 @@ export type CustomerInput = {
   companyName: string;
   firstName: string;
   lastName: string;
-  billingAddress: string;
-  shippingAddress: string;
+  billingAddress: Address;
+  shippingAddress: Address;
   emails: string[];
   phone: string;
   pointOfContact: string;
@@ -116,16 +128,21 @@ function asFkError(error: unknown) {
 export async function createCustomer(input: CustomerInput): Promise<number> {
   requireName(input);
   const sql = await db();
+  const bill = input.billingAddress;
+  const ship = input.shippingAddress;
   try {
     return await sql.begin(async (tx) => {
       const [row] = await tx`
         insert into customers (
-          kind, company_name, first_name, last_name, billing_address, shipping_address,
+          kind, company_name, first_name, last_name,
+          billing_name, billing_line1, billing_line2, billing_city, billing_state, billing_zip, billing_country,
+          shipping_name, shipping_line1, shipping_line2, shipping_city, shipping_state, shipping_zip, shipping_country,
           phone, point_of_contact, sales_rep_id, subscribed, notes
         ) values (
-          ${input.kind}, ${input.companyName}, ${input.firstName}, ${input.lastName}, ${input.billingAddress},
-          ${input.shippingAddress}, ${input.phone}, ${input.pointOfContact}, ${input.salesRepId}, ${input.subscribed},
-          ${input.notes}
+          ${input.kind}, ${input.companyName}, ${input.firstName}, ${input.lastName},
+          ${bill.name}, ${bill.line1}, ${bill.line2}, ${bill.city}, ${bill.state}, ${bill.zip}, ${bill.country},
+          ${ship.name}, ${ship.line1}, ${ship.line2}, ${ship.city}, ${ship.state}, ${ship.zip}, ${ship.country},
+          ${input.phone}, ${input.pointOfContact}, ${input.salesRepId}, ${input.subscribed}, ${input.notes}
         ) returning id`;
       const id = Number(row.id);
       for (const email of uniqueEmails(input.emails)) {
@@ -141,14 +158,21 @@ export async function createCustomer(input: CustomerInput): Promise<number> {
 export async function updateCustomer(id: number, input: CustomerInput) {
   requireName(input);
   const sql = await db();
+  const bill = input.billingAddress;
+  const ship = input.shippingAddress;
   try {
     await sql.begin(async (tx) => {
       const rows = await tx`
         update customers set
           kind = ${input.kind}, company_name = ${input.companyName}, first_name = ${input.firstName},
-          last_name = ${input.lastName}, billing_address = ${input.billingAddress},
-          shipping_address = ${input.shippingAddress}, phone = ${input.phone},
-          point_of_contact = ${input.pointOfContact}, sales_rep_id = ${input.salesRepId},
+          last_name = ${input.lastName},
+          billing_name = ${bill.name}, billing_line1 = ${bill.line1}, billing_line2 = ${bill.line2},
+          billing_city = ${bill.city}, billing_state = ${bill.state}, billing_zip = ${bill.zip},
+          billing_country = ${bill.country},
+          shipping_name = ${ship.name}, shipping_line1 = ${ship.line1}, shipping_line2 = ${ship.line2},
+          shipping_city = ${ship.city}, shipping_state = ${ship.state}, shipping_zip = ${ship.zip},
+          shipping_country = ${ship.country},
+          phone = ${input.phone}, point_of_contact = ${input.pointOfContact}, sales_rep_id = ${input.salesRepId},
           subscribed = ${input.subscribed}, notes = ${input.notes}, updated_at = now()
         where id = ${id} returning id`;
       if (!rows.length) throw new PortalError("That customer no longer exists.", 404);
@@ -182,6 +206,8 @@ export async function importCustomers(rows: CustomerInput[]) {
   try {
     await sql.begin(async (tx) => {
       for (const rec of rows) {
+        const bill = rec.billingAddress;
+        const ship = rec.shippingAddress;
         const emails = uniqueEmails(rec.emails);
         const primaryEmail = emails[0]?.toLowerCase();
         const match = primaryEmail
@@ -193,21 +219,29 @@ export async function importCustomers(rows: CustomerInput[]) {
           await tx`
             update customers set
               kind = ${rec.kind}, company_name = ${rec.companyName}, first_name = ${rec.firstName},
-              last_name = ${rec.lastName}, billing_address = ${rec.billingAddress},
-              shipping_address = ${rec.shippingAddress}, phone = ${rec.phone},
-              point_of_contact = ${rec.pointOfContact}, sales_rep_id = ${rec.salesRepId},
+              last_name = ${rec.lastName},
+              billing_name = ${bill.name}, billing_line1 = ${bill.line1}, billing_line2 = ${bill.line2},
+              billing_city = ${bill.city}, billing_state = ${bill.state}, billing_zip = ${bill.zip},
+              billing_country = ${bill.country},
+              shipping_name = ${ship.name}, shipping_line1 = ${ship.line1}, shipping_line2 = ${ship.line2},
+              shipping_city = ${ship.city}, shipping_state = ${ship.state}, shipping_zip = ${ship.zip},
+              shipping_country = ${ship.country},
+              phone = ${rec.phone}, point_of_contact = ${rec.pointOfContact}, sales_rep_id = ${rec.salesRepId},
               subscribed = ${rec.subscribed}, notes = ${rec.notes}, updated_at = now()
             where id = ${id}`;
           updated++;
         } else {
           const [row] = await tx`
             insert into customers (
-              kind, company_name, first_name, last_name, billing_address, shipping_address,
+              kind, company_name, first_name, last_name,
+              billing_name, billing_line1, billing_line2, billing_city, billing_state, billing_zip, billing_country,
+              shipping_name, shipping_line1, shipping_line2, shipping_city, shipping_state, shipping_zip, shipping_country,
               phone, point_of_contact, sales_rep_id, subscribed, notes
             ) values (
-              ${rec.kind}, ${rec.companyName}, ${rec.firstName}, ${rec.lastName}, ${rec.billingAddress},
-              ${rec.shippingAddress}, ${rec.phone}, ${rec.pointOfContact}, ${rec.salesRepId}, ${rec.subscribed},
-              ${rec.notes}
+              ${rec.kind}, ${rec.companyName}, ${rec.firstName}, ${rec.lastName},
+              ${bill.name}, ${bill.line1}, ${bill.line2}, ${bill.city}, ${bill.state}, ${bill.zip}, ${bill.country},
+              ${ship.name}, ${ship.line1}, ${ship.line2}, ${ship.city}, ${ship.state}, ${ship.zip}, ${ship.country},
+              ${rec.phone}, ${rec.pointOfContact}, ${rec.salesRepId}, ${rec.subscribed}, ${rec.notes}
             ) returning id`;
           id = Number(row.id);
           created++;

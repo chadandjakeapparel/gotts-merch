@@ -109,14 +109,24 @@ export type SalesRep = {
   name: string;
 };
 
+export type Address = {
+  name: string;
+  line1: string;
+  line2: string;
+  city: string;
+  state: string;
+  zip: string;
+  country: string;
+};
+
 export type Customer = {
   id: number;
   kind: CustomerKind;
   companyName: string;
   firstName: string;
   lastName: string;
-  billingAddress: string;
-  shippingAddress: string;
+  billingAddress: Address;
+  shippingAddress: Address;
   emails: string[];
   phone: string;
   pointOfContact: string;

@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import type { Customer, CustomerKind, SalesRep } from "@/lib/portal/types";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { Address, Customer, CustomerKind, SalesRep } from "@/lib/portal/types";
 import { api } from "./api";
 import { CUSTOMER_TEMPLATE_EXAMPLE_ROWS, CUSTOMER_TEMPLATE_HEADERS, parseCustomerSheet } from "./customers-sheet";
 
@@ -78,6 +78,48 @@ const customerTitle = (c: Pick<Customer, "kind" | "companyName" | "firstName" | 
   c.kind === "company"
     ? c.companyName || "Unnamed company"
     : [c.firstName, c.lastName].filter(Boolean).join(" ") || "Unnamed customer";
+
+const emptyAddress = (): Address => ({ name: "", line1: "", line2: "", city: "", state: "", zip: "", country: "US" });
+
+/** An address block whose ZIP, once it looks complete, fills in the city and state for you. */
+function AddressFields({ legend, value, onChange }: { legend: string; value: Address; onChange: (next: Address) => void }) {
+  const set = (k: keyof Address) => (e: React.ChangeEvent<HTMLInputElement>) => onChange({ ...value, [k]: e.target.value });
+  const lastLookup = useRef("");
+  const [zipStatus, setZipStatus] = useState<"idle" | "looking" | "miss">("idle");
+
+  async function lookupZip() {
+    const zip = value.zip.trim();
+    if (!/^\d{5}$/.test(zip) || zip === lastLookup.current) return;
+    lastLookup.current = zip;
+    setZipStatus("looking");
+    try {
+      const res = await api<{ city: string; state: string }>("GET", `/api/portal/zip-lookup?zip=${zip}`);
+      onChange({ ...value, zip, city: res.city || value.city, state: res.state || value.state });
+      setZipStatus("idle");
+    } catch {
+      setZipStatus("miss");
+    }
+  }
+
+  return (
+    <fieldset className="portal-address">
+      <legend>{legend}</legend>
+      <label className="portal-field">Name<input onChange={set("name")} value={value.name} /></label>
+      <label className="portal-field">Address line 1<input onChange={set("line1")} value={value.line1} /></label>
+      <label className="portal-field">Address line 2<input onChange={set("line2")} value={value.line2} /></label>
+      <div className="portal-row">
+        <label className="portal-field">
+          Zip code
+          <input inputMode="numeric" onBlur={lookupZip} onChange={set("zip")} value={value.zip} />
+        </label>
+        <label className="portal-field">City<input onChange={set("city")} value={value.city} /></label>
+        <label className="portal-field">State<input onChange={set("state")} value={value.state} /></label>
+      </div>
+      {zipStatus === "miss" ? <p className="portal-hint">Couldn&apos;t look up that ZIP code -- enter the city and state yourself.</p> : null}
+      <label className="portal-field">Country<input onChange={set("country")} value={value.country} /></label>
+    </fieldset>
+  );
+}
 
 export function CustomersApp({
   initialCustomers,
@@ -228,12 +270,12 @@ function CustomerModal({
     companyName: customer?.companyName || "",
     firstName: customer?.firstName || "",
     lastName: customer?.lastName || "",
-    billingAddress: customer?.billingAddress || "",
-    shippingAddress: customer?.shippingAddress || "",
     phone: customer?.phone || "",
     pointOfContact: customer?.pointOfContact || "",
     notes: customer?.notes || "",
   });
+  const [billing, setBilling] = useState<Address>(customer?.billingAddress || emptyAddress());
+  const [shipping, setShipping] = useState<Address>(customer?.shippingAddress || emptyAddress());
   const [salesRepId, setSalesRepId] = useState(customer?.salesRepId != null ? String(customer.salesRepId) : "");
   const [subscribed, setSubscribed] = useState(customer?.subscribed || false);
   const [emails, setEmails] = useState<string[]>(customer?.emails || []);
@@ -262,6 +304,8 @@ function CustomerModal({
     const body = {
       kind,
       ...form,
+      billingAddress: billing,
+      shippingAddress: shipping,
       emails,
       salesRepId: salesRepId || null,
       subscribed,
@@ -320,10 +364,8 @@ function CustomerModal({
         </div>
       )}
 
-      <div className="portal-row">
-        <label className="portal-field">Primary billing address<textarea onChange={set("billingAddress")} rows={2} value={form.billingAddress} /></label>
-        <label className="portal-field">Primary shipping address<textarea onChange={set("shippingAddress")} rows={2} value={form.shippingAddress} /></label>
-      </div>
+      <AddressFields legend="Primary billing address" onChange={setBilling} value={billing} />
+      <AddressFields legend="Primary shipping address" onChange={setShipping} value={shipping} />
 
       <label className="portal-field">
         Email address
@@ -519,17 +561,18 @@ function ImportCustomersForm({
       >
         <p className="portal-hint">
           Paste rows copied from Excel or Google Sheets, or choose a CSV file. Columns in this order: <strong>Type,
-          Company name, First name, Last name, Billing address, Shipping address, Email, Phone, Point of contact,
-          Sales rep, Subscribed, Notes</strong>. A header row is fine, and columns can be in any order if it has one.
-          Separate multiple emails with a semicolon. A sales rep name must match an existing one (see &quot;Manage
-          sales reps&quot;) or that row is left unassigned. A row whose email matches an existing customer updates
-          them instead of adding a duplicate. Need the format? <button className="portal-link" onClick={downloadCustomerTemplate} type="button">Download the template</button>.
+          Company name, First name, Last name, Billing name/Address 1/Address 2/City/State/Zip/Country, Shipping
+          name/Address 1/Address 2/City/State/Zip/Country, Email, Phone, Point of contact, Sales rep, Subscribed,
+          Notes</strong>. A header row is fine, and columns can be in any order if it has one. Separate multiple
+          emails with a semicolon. A sales rep name must match an existing one (see &quot;Manage sales reps&quot;)
+          or that row is left unassigned. A row whose email matches an existing customer updates them instead of
+          adding a duplicate. Need the format? <button className="portal-link" onClick={downloadCustomerTemplate} type="button">Download the template</button>.
         </p>
         <textarea
           aria-label="Rows to import"
           className="portal-mono"
           onChange={(e) => { setTextValue(e.target.value); setRows(null); setProblems([]); }}
-          placeholder={"Type\tCompany name\tFirst name\tLast name\tBilling address\tShipping address\tEmail\tPhone\tPoint of contact\tSales rep\tSubscribed\tNotes"}
+          placeholder={CUSTOMER_TEMPLATE_HEADERS.join("\t")}
           rows={8}
           value={textValue}
         />

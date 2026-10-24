@@ -1,6 +1,7 @@
 import type { LeadInput } from "./crm";
 import type { CustomerInput } from "./customers";
 import type { ItemInput, OrderInput } from "./data";
+import type { Address } from "./types";
 import { int, money, PortalError, text } from "./http";
 
 export function toLeadInput(body: Record<string, unknown>): LeadInput {
@@ -17,6 +18,19 @@ export function toLeadInput(body: Record<string, unknown>): LeadInput {
   };
 }
 
+function toAddress(value: unknown): Address {
+  const a = (value && typeof value === "object" ? value : {}) as Record<string, unknown>;
+  return {
+    name: text(a.name, 200),
+    line1: text(a.line1, 200),
+    line2: text(a.line2, 200),
+    city: text(a.city, 120),
+    state: text(a.state, 60),
+    zip: text(a.zip, 20),
+    country: text(a.country, 60) || "US",
+  };
+}
+
 export function toCustomerInput(body: Record<string, unknown>): CustomerInput {
   const emails = Array.isArray(body.emails) ? body.emails : [];
   const salesRepId = body.salesRepId == null || body.salesRepId === "" ? null : int(body.salesRepId);
@@ -25,8 +39,8 @@ export function toCustomerInput(body: Record<string, unknown>): CustomerInput {
     companyName: text(body.companyName, 200),
     firstName: text(body.firstName, 120),
     lastName: text(body.lastName, 120),
-    billingAddress: text(body.billingAddress, 500),
-    shippingAddress: text(body.shippingAddress, 500),
+    billingAddress: toAddress(body.billingAddress),
+    shippingAddress: toAddress(body.shippingAddress),
     emails: emails.map((e) => text(e, 200)).filter(Boolean),
     phone: text(body.phone, 60),
     pointOfContact: text(body.pointOfContact, 200),

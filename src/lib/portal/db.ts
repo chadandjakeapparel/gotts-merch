@@ -204,6 +204,28 @@ create table if not exists customers (
 );
 create index if not exists customers_sales_rep_idx on customers (sales_rep_id);
 
+-- Pre-existing databases created before addresses were split into fields.
+-- The old free-text billing_address/shipping_address columns are kept (not
+-- dropped) so no data is lost, and their text is copied into the new line 1
+-- once -- this only ever fires for a row whose line1 is still blank, so it
+-- is a no-op after the first run.
+alter table customers add column if not exists billing_name text not null default '';
+alter table customers add column if not exists billing_line1 text not null default '';
+alter table customers add column if not exists billing_line2 text not null default '';
+alter table customers add column if not exists billing_city text not null default '';
+alter table customers add column if not exists billing_state text not null default '';
+alter table customers add column if not exists billing_zip text not null default '';
+alter table customers add column if not exists billing_country text not null default 'US';
+alter table customers add column if not exists shipping_name text not null default '';
+alter table customers add column if not exists shipping_line1 text not null default '';
+alter table customers add column if not exists shipping_line2 text not null default '';
+alter table customers add column if not exists shipping_city text not null default '';
+alter table customers add column if not exists shipping_state text not null default '';
+alter table customers add column if not exists shipping_zip text not null default '';
+alter table customers add column if not exists shipping_country text not null default 'US';
+update customers set billing_line1 = billing_address where billing_line1 = '' and billing_address <> '';
+update customers set shipping_line1 = shipping_address where shipping_line1 = '' and shipping_address <> '';
+
 create table if not exists customer_emails (
   id serial primary key,
   customer_id integer not null references customers(id) on delete cascade,
