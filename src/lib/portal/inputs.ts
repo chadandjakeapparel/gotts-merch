@@ -18,7 +18,7 @@ export function toLeadInput(body: Record<string, unknown>): LeadInput {
   };
 }
 
-function toAddress(value: unknown): Address {
+export function toAddressInput(value: unknown): Address {
   const a = (value && typeof value === "object" ? value : {}) as Record<string, unknown>;
   return {
     name: text(a.name, 200),
@@ -39,8 +39,8 @@ export function toCustomerInput(body: Record<string, unknown>): CustomerInput {
     companyName: text(body.companyName, 200),
     firstName: text(body.firstName, 120),
     lastName: text(body.lastName, 120),
-    billingAddress: toAddress(body.billingAddress),
-    shippingAddress: toAddress(body.shippingAddress),
+    billingAddress: toAddressInput(body.billingAddress),
+    shippingAddress: toAddressInput(body.shippingAddress),
     emails: emails.map((e) => text(e, 200)).filter(Boolean),
     phone: text(body.phone, 60),
     pointOfContact: text(body.pointOfContact, 200),

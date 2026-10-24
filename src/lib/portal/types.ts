@@ -119,6 +119,11 @@ export type Address = {
   country: string;
 };
 
+export type ShippingAddress = Address & {
+  id: number;
+  isPrimary: boolean;
+};
+
 export type Customer = {
   id: number;
   kind: CustomerKind;
@@ -126,7 +131,9 @@ export type Customer = {
   firstName: string;
   lastName: string;
   billingAddress: Address;
+  /** The primary shipping address; also the first entry in shippingAddresses. */
   shippingAddress: Address;
+  shippingAddresses: ShippingAddress[];
   emails: string[];
   phone: string;
   pointOfContact: string;

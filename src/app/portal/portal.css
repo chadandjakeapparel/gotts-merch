@@ -312,6 +312,18 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
+.portal-address-list { display: flex; flex-direction: column; gap: 8px; margin: 0 0 8px; padding: 0; list-style: none; }
+.portal-address-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--p-line);
+  border-radius: 6px;
+}
+.portal-address-summary { font-size: 14px; }
 .portal-pill-remove {
   margin-left: 4px;
   padding: 0;

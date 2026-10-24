@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { Address, Customer, CustomerKind, SalesRep } from "@/lib/portal/types";
+import type { Address, Customer, CustomerKind, SalesRep, ShippingAddress } from "@/lib/portal/types";
 import { api } from "./api";
 import { CUSTOMER_TEMPLATE_EXAMPLE_ROWS, CUSTOMER_TEMPLATE_HEADERS, parseCustomerSheet } from "./customers-sheet";
 
@@ -118,6 +118,149 @@ function AddressFields({ legend, value, onChange }: { legend: string; value: Add
       {zipStatus === "miss" ? <p className="portal-hint">Couldn&apos;t look up that ZIP code -- enter the city and state yourself.</p> : null}
       <label className="portal-field">Country<input onChange={set("country")} value={value.country} /></label>
     </fieldset>
+  );
+}
+
+const addressSummary = (a: Address) =>
+  [a.name, a.line1, a.line2, [a.city, [a.state, a.zip].filter(Boolean).join(" ")].filter(Boolean).join(", ")]
+    .filter(Boolean)
+    .join(" · ") || "Blank address";
+
+/**
+ * The "other" shipping addresses for an existing customer: a saved list
+ * plus add/edit/remove and "Make primary", which swaps it with whichever
+ * address the top Primary shipping address fields currently hold.
+ */
+function OtherShippingAddresses({ customerId, onPrimaryChange }: { customerId: number; onPrimaryChange: (next: Address) => void }) {
+  const [others, setOthers] = useState<ShippingAddress[] | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [newAddress, setNewAddress] = useState<Address>(emptyAddress());
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editValue, setEditValue] = useState<Address>(emptyAddress());
+  const [confirmingId, setConfirmingId] = useState<number | null>(null);
+  const { busy, error, submit } = useSubmit(async () => {});
+
+  async function refresh() {
+    const res = await api<{ addresses: ShippingAddress[] }>("GET", `/api/portal/customers/${customerId}/shipping-addresses`);
+    const primary = res.addresses.find((a) => a.isPrimary);
+    if (primary) onPrimaryChange({ ...primary });
+    setOthers(res.addresses.filter((a) => !a.isPrimary));
+  }
+
+  useEffect(() => {
+    void refresh();
+    // Only on mount: later refreshes are triggered by this component's own actions.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div className="portal-field">
+      <span>Other shipping addresses</span>
+      {others === null ? (
+        <p className="portal-muted small">Loading…</p>
+      ) : (
+        <>
+          {others.length ? (
+            <ul className="portal-address-list">
+              {others.map((a) =>
+                editingId === a.id ? (
+                  <li key={a.id}>
+                    <AddressFields legend="Edit shipping address" onChange={setEditValue} value={editValue} />
+                    <span className="portal-row-actions">
+                      <button
+                        className="portal-btn small primary"
+                        disabled={busy}
+                        onClick={() =>
+                          void submit(async () => {
+                            await api("PATCH", `/api/portal/customers/${customerId}/shipping-addresses/${a.id}`, editValue);
+                            setEditingId(null);
+                            await refresh();
+                          })
+                        }
+                        type="button"
+                      >
+                        Save
+                      </button>
+                      <button className="portal-btn small" onClick={() => setEditingId(null)} type="button">Cancel</button>
+                    </span>
+                  </li>
+                ) : (
+                  <li key={a.id}>
+                    <span className="portal-address-summary">{addressSummary(a)}</span>
+                    {confirmingId === a.id ? (
+                      <span className="portal-row-actions">
+                        <span className="portal-muted small">Remove?</span>
+                        <button
+                          className="portal-btn small danger"
+                          disabled={busy}
+                          onClick={() =>
+                            void submit(async () => {
+                              await api("DELETE", `/api/portal/customers/${customerId}/shipping-addresses/${a.id}`);
+                              setConfirmingId(null);
+                              await refresh();
+                            })
+                          }
+                          type="button"
+                        >
+                          Remove
+                        </button>
+                        <button className="portal-btn small" onClick={() => setConfirmingId(null)} type="button">Cancel</button>
+                      </span>
+                    ) : (
+                      <span className="portal-row-actions">
+                        <button
+                          className="portal-btn small"
+                          disabled={busy}
+                          onClick={() =>
+                            void submit(async () => {
+                              await api("POST", `/api/portal/customers/${customerId}/shipping-addresses/${a.id}/primary`);
+                              await refresh();
+                            })
+                          }
+                          type="button"
+                        >
+                          Make primary
+                        </button>
+                        <button className="portal-btn small" onClick={() => { setEditingId(a.id); setEditValue(a); }} type="button">Edit</button>
+                        <button className="portal-btn small danger" onClick={() => setConfirmingId(a.id)} type="button">Remove</button>
+                      </span>
+                    )}
+                  </li>
+                ),
+              )}
+            </ul>
+          ) : (
+            <p className="portal-muted small">No other shipping addresses yet.</p>
+          )}
+          {adding ? (
+            <>
+              <AddressFields legend="New shipping address" onChange={setNewAddress} value={newAddress} />
+              <span className="portal-row-actions">
+                <button
+                  className="portal-btn small primary"
+                  disabled={busy}
+                  onClick={() =>
+                    void submit(async () => {
+                      await api("POST", `/api/portal/customers/${customerId}/shipping-addresses`, newAddress);
+                      setAdding(false);
+                      setNewAddress(emptyAddress());
+                      await refresh();
+                    })
+                  }
+                  type="button"
+                >
+                  Add address
+                </button>
+                <button className="portal-btn small" onClick={() => setAdding(false)} type="button">Cancel</button>
+              </span>
+            </>
+          ) : (
+            <button className="portal-btn small" onClick={() => setAdding(true)} type="button">Add another shipping address</button>
+          )}
+        </>
+      )}
+      {error ? <p className="portal-msg err" role="alert">{error}</p> : null}
+    </div>
   );
 }
 
@@ -366,6 +509,7 @@ function CustomerModal({
 
       <AddressFields legend="Primary billing address" onChange={setBilling} value={billing} />
       <AddressFields legend="Primary shipping address" onChange={setShipping} value={shipping} />
+      {customer ? <OtherShippingAddresses customerId={customer.id} onPrimaryChange={setShipping} /> : null}
 
       <label className="portal-field">
         Email address

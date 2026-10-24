@@ -226,6 +226,33 @@ alter table customers add column if not exists shipping_country text not null de
 update customers set billing_line1 = billing_address where billing_line1 = '' and billing_address <> '';
 update customers set shipping_line1 = shipping_address where shipping_line1 = '' and shipping_address <> '';
 
+-- A customer can have several shipping addresses; exactly one is primary.
+create table if not exists customer_shipping_addresses (
+  id serial primary key,
+  customer_id integer not null references customers(id) on delete cascade,
+  name text not null default '',
+  line1 text not null default '',
+  line2 text not null default '',
+  city text not null default '',
+  state text not null default '',
+  zip text not null default '',
+  country text not null default 'US',
+  is_primary boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists customer_shipping_addresses_customer_idx on customer_shipping_addresses (customer_id);
+create unique index if not exists customer_shipping_addresses_primary_key
+  on customer_shipping_addresses (customer_id) where is_primary;
+
+-- Pre-existing customers (from before addresses could be multiple) get
+-- their old shipping_* columns copied in as their primary address; a
+-- no-op once every customer has one.
+insert into customer_shipping_addresses (customer_id, name, line1, line2, city, state, zip, country, is_primary)
+select c.id, c.shipping_name, c.shipping_line1, c.shipping_line2, c.shipping_city, c.shipping_state, c.shipping_zip, c.shipping_country, true
+from customers c
+where not exists (select 1 from customer_shipping_addresses a where a.customer_id = c.id and a.is_primary);
+
 create table if not exists customer_emails (
   id serial primary key,
   customer_id integer not null references customers(id) on delete cascade,
