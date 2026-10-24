@@ -1,7 +1,7 @@
 export type SheetRow = { styleNumber: string; styleName: string; color: string; size: string; qty: number; unitValue: number };
 
 /** Splits pasted spreadsheet rows (tab-separated) or CSV text, honouring quotes. */
-function parseDelimited(text: string) {
+export function parseDelimited(text: string) {
   const first = text.split(/\r?\n/).find((l) => l.trim()) || "";
   const delim = first.includes("\t") ? "\t" : ",";
   const out: string[][] = [];

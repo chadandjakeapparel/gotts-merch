@@ -3,6 +3,31 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Customer, CustomerKind, SalesRep } from "@/lib/portal/types";
 import { api } from "./api";
+import { CUSTOMER_TEMPLATE_EXAMPLE_ROWS, CUSTOMER_TEMPLATE_HEADERS, parseCustomerSheet } from "./customers-sheet";
+
+function downloadFile(filename: string, content: string, mime: string) {
+  const url = URL.createObjectURL(new Blob([content], { type: mime }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function toCsv(rows: string[][]): string {
+  const cell = (v: string) => (/[",\r\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
+  return rows.map((r) => r.map(cell).join(",")).join("\r\n");
+}
+
+function downloadCustomerTemplate() {
+  downloadFile(
+    "customers-template.csv",
+    toCsv([CUSTOMER_TEMPLATE_HEADERS, ...CUSTOMER_TEMPLATE_EXAMPLE_ROWS]),
+    "text/csv;charset=utf-8;",
+  );
+}
 
 function useSubmit(onDone: () => Promise<void>) {
   const [busy, setBusy] = useState(false);
@@ -69,6 +94,7 @@ export function CustomersApp({
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [adding, setAdding] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [managingReps, setManagingReps] = useState(false);
 
   const repName = useMemo(() => {
@@ -118,6 +144,8 @@ export function CustomersApp({
           <h1>Customers</h1>
         </div>
         <span className="portal-row-actions">
+          <button className="portal-btn" onClick={downloadCustomerTemplate} type="button">Download template</button>
+          <button className="portal-btn" onClick={() => setImporting(true)} type="button">Import CSV</button>
           <button className="portal-btn" onClick={() => setManagingReps(true)} type="button">Manage sales reps</button>
           <button className="portal-btn primary" onClick={() => setAdding(true)} type="button">New customer</button>
         </span>
@@ -179,6 +207,7 @@ export function CustomersApp({
         <CustomerModal close={() => setSelectedId(null)} customer={selected} key={selected.id} onSaved={reload} salesReps={salesReps} />
       ) : null}
       {managingReps ? <SalesRepsModal close={() => setManagingReps(false)} onChanged={reloadReps} salesReps={salesReps} /> : null}
+      {importing ? <ImportCustomersForm close={() => setImporting(false)} onImported={reload} salesReps={salesReps} /> : null}
     </div>
   );
 }
@@ -444,5 +473,82 @@ function SalesRepsModal({
       </form>
       {error ? <p className="portal-msg err" role="alert">{error}</p> : null}
     </ModalFrame>
+  );
+}
+
+function ImportCustomersForm({
+  salesReps,
+  close,
+  onImported,
+}: {
+  salesReps: SalesRep[];
+  close: () => void;
+  onImported: () => Promise<void>;
+}) {
+  const [textValue, setTextValue] = useState("");
+  const [rows, setRows] = useState<ReturnType<typeof parseCustomerSheet>["rows"] | null>(null);
+  const [problems, setProblems] = useState<string[]>([]);
+  const { busy, error, submit } = useSubmit(async () => {
+    await onImported();
+    close();
+  });
+
+  const check = (value: string) => {
+    const result = parseCustomerSheet(value, salesReps);
+    setProblems(result.errors);
+    setRows(result.errors.length ? null : result.rows);
+  };
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (rows?.length) void submit(() => api("POST", "/api/portal/customers", { rows }));
+      }}
+    >
+      <ModalFrame
+        close={close}
+        footer={
+          <>
+            <button className="portal-btn" onClick={close} type="button">Cancel</button>
+            <button className="portal-btn" onClick={() => check(textValue)} type="button">Check rows</button>
+            <button className="portal-btn primary" disabled={busy || !rows?.length} type="submit">Import</button>
+          </>
+        }
+        title="Import customers from a spreadsheet"
+      >
+        <p className="portal-hint">
+          Paste rows copied from Excel or Google Sheets, or choose a CSV file. Columns in this order: <strong>Type,
+          Company name, First name, Last name, Billing address, Shipping address, Email, Phone, Point of contact,
+          Sales rep, Subscribed, Notes</strong>. A header row is fine, and columns can be in any order if it has one.
+          Separate multiple emails with a semicolon. A sales rep name must match an existing one (see &quot;Manage
+          sales reps&quot;) or that row is left unassigned. A row whose email matches an existing customer updates
+          them instead of adding a duplicate. Need the format? <button className="portal-link" onClick={downloadCustomerTemplate} type="button">Download the template</button>.
+        </p>
+        <textarea
+          aria-label="Rows to import"
+          className="portal-mono"
+          onChange={(e) => { setTextValue(e.target.value); setRows(null); setProblems([]); }}
+          placeholder={"Type\tCompany name\tFirst name\tLast name\tBilling address\tShipping address\tEmail\tPhone\tPoint of contact\tSales rep\tSubscribed\tNotes"}
+          rows={8}
+          value={textValue}
+        />
+        <input
+          accept=".csv,.tsv,.txt,text/csv"
+          aria-label="Choose a CSV file"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            void file.text().then((value) => { setTextValue(value); check(value); });
+          }}
+          type="file"
+        />
+        {problems.length ? (
+          <p className="portal-msg err" role="alert">{problems.slice(0, 4).join(" ")}{problems.length > 4 ? ` (${problems.length - 4} more)` : ""}</p>
+        ) : null}
+        {rows ? <p className="portal-msg ok">{rows.length} {rows.length === 1 ? "row" : "rows"} ready to import.</p> : null}
+        {error ? <p className="portal-msg err" role="alert">{error}</p> : null}
+      </ModalFrame>
+    </form>
   );
 }

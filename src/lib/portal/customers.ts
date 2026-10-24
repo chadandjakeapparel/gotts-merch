@@ -166,3 +166,62 @@ export async function deleteCustomer(id: number) {
   const sql = await db();
   await sql`delete from customers where id = ${id}`;
 }
+
+/**
+ * Upserts many rows at once, matching an existing customer by their first
+ * email address (so re-importing an updated list doesn't create
+ * duplicates); rows with no email, or no match, become new customers.
+ */
+export async function importCustomers(rows: CustomerInput[]) {
+  if (!rows.length) throw new PortalError("There are no rows to import.");
+  if (rows.length > 2000) throw new PortalError("Import up to 2,000 rows at a time.");
+  rows.forEach(requireName);
+  const sql = await db();
+  let created = 0;
+  let updated = 0;
+  try {
+    await sql.begin(async (tx) => {
+      for (const rec of rows) {
+        const emails = uniqueEmails(rec.emails);
+        const primaryEmail = emails[0]?.toLowerCase();
+        const match = primaryEmail
+          ? await tx`select customer_id as id from customer_emails where lower(email) = ${primaryEmail} limit 1`
+          : [];
+        let id: number;
+        if (match.length) {
+          id = Number(match[0].id);
+          await tx`
+            update customers set
+              kind = ${rec.kind}, company_name = ${rec.companyName}, first_name = ${rec.firstName},
+              last_name = ${rec.lastName}, billing_address = ${rec.billingAddress},
+              shipping_address = ${rec.shippingAddress}, phone = ${rec.phone},
+              point_of_contact = ${rec.pointOfContact}, sales_rep_id = ${rec.salesRepId},
+              subscribed = ${rec.subscribed}, notes = ${rec.notes}, updated_at = now()
+            where id = ${id}`;
+          updated++;
+        } else {
+          const [row] = await tx`
+            insert into customers (
+              kind, company_name, first_name, last_name, billing_address, shipping_address,
+              phone, point_of_contact, sales_rep_id, subscribed, notes
+            ) values (
+              ${rec.kind}, ${rec.companyName}, ${rec.firstName}, ${rec.lastName}, ${rec.billingAddress},
+              ${rec.shippingAddress}, ${rec.phone}, ${rec.pointOfContact}, ${rec.salesRepId}, ${rec.subscribed},
+              ${rec.notes}
+            ) returning id`;
+          id = Number(row.id);
+          created++;
+        }
+        const have = new Set(
+          (await tx`select lower(email) as email from customer_emails where customer_id = ${id}`).map((r) => String(r.email)),
+        );
+        for (const email of emails) {
+          if (!have.has(email.toLowerCase())) await tx`insert into customer_emails (customer_id, email) values (${id}, ${email})`;
+        }
+      }
+    });
+  } catch (error) {
+    throw asFkError(error);
+  }
+  return { created, updated };
+}
