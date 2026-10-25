@@ -527,6 +527,11 @@
 .portal-job-tip strong { display: block; font-size: 13px; }
 .portal-job-tip span { display: block; margin-top: 2px; color: var(--p-accent-soft); font-size: 12px; }
 .portal-card:hover .portal-job-tip { opacity: 1; visibility: visible; transform: translate(-50%, 0); }
+.portal-card[draggable="true"] { cursor: grab; }
+.portal-card.dragging { opacity: 0.45; }
+.portal-card.dragging .portal-job-tip { display: none; }
+.portal-cards { border-radius: var(--p-radius); transition: outline-color 120ms ease; outline: 2px dashed transparent; outline-offset: -4px; }
+.portal-cards.drag-over { outline-color: var(--p-accent-2); background: var(--p-accent-soft); }
 .portal-col-empty { padding: 10px 4px; color: var(--p-muted); font-size: 13px; text-align: center; }
 
 .portal-activity-section { display: flex; flex-direction: column; gap: 10px; padding-top: 10px; border-top: 1px solid var(--p-line); }

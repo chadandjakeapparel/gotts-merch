@@ -84,6 +84,8 @@ export function JobsApp({
   const [error, setError] = useState(loadError);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [adding, setAdding] = useState(false);
+  const [draggingId, setDraggingId] = useState<number | null>(null);
+  const [dragOverStage, setDragOverStage] = useState<JobStatus | null>(null);
 
   const reload = async () => {
     try {
@@ -100,6 +102,20 @@ export function JobsApp({
     setCustomers(res.customers);
     return res.customers;
   };
+
+  /** Moves a job to a stage by drag and drop, updating right away and reverting if the save fails. */
+  async function moveJob(jobId: number, status: JobStatus) {
+    const previous = jobs;
+    const job = previous.find((j) => j.id === jobId);
+    if (!job || job.status === status) return;
+    setJobs((current) => current.map((j) => (j.id === jobId ? { ...j, status } : j)));
+    try {
+      await api("PATCH", `/api/portal/jobs/${jobId}/status`, { status });
+    } catch (err) {
+      setJobs(previous);
+      setError(err instanceof Error ? err.message : "Couldn't move that job. Try again.");
+    }
+  }
 
   const customerName = useMemo(() => {
     const m = new Map(customers.map((c) => [c.id, customerTitle(c)]));
@@ -159,10 +175,40 @@ export function JobsApp({
                 <h3>{s.label}</h3>
                 <span className="portal-count">{items.length}</span>
               </div>
-              <div className="portal-cards">
+              <div
+                className={`portal-cards${dragOverStage === s.key ? " drag-over" : ""}`}
+                onDragLeave={(e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                    setDragOverStage((current) => (current === s.key ? null : current));
+                  }
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = "move";
+                  if (dragOverStage !== s.key) setDragOverStage(s.key);
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setDragOverStage(null);
+                  const id = Number(e.dataTransfer.getData("text/plain"));
+                  if (id) void moveJob(id, s.key);
+                }}
+              >
                 {items.length ? (
                   items.map((j) => (
-                    <button className="portal-card" key={j.id} onClick={() => setSelectedId(j.id)} type="button">
+                    <button
+                      className={`portal-card${draggingId === j.id ? " dragging" : ""}`}
+                      draggable
+                      key={j.id}
+                      onClick={() => setSelectedId(j.id)}
+                      onDragEnd={() => setDraggingId(null)}
+                      onDragStart={(e) => {
+                        setDraggingId(j.id);
+                        e.dataTransfer.effectAllowed = "move";
+                        e.dataTransfer.setData("text/plain", String(j.id));
+                      }}
+                      type="button"
+                    >
                       <h4>{customerName(j.customerId) || "Unassigned customer"}</h4>
                       <div className="portal-card-foot">
                         <span className="portal-muted">{j.decorationType || "No decoration set"}</span>
