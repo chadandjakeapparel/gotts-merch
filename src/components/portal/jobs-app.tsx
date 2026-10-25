@@ -133,10 +133,10 @@ export function JobsApp({
     [jobs],
   );
 
-  const customerOptions = useMemo(() => {
-    const ids = [...new Set(jobs.map((j) => j.customerId).filter((id): id is number => id != null))];
-    return ids.map((id) => ({ id, name: customerName(id) })).sort((a, b) => a.name.localeCompare(b.name));
-  }, [jobs, customerName]);
+  const customerOptions = useMemo(
+    () => customers.map((c) => ({ id: c.id, name: customerTitle(c) })).sort((a, b) => a.name.localeCompare(b.name)),
+    [customers],
+  );
 
   const filteredJobs = useMemo(() => {
     const q = query.trim().toLowerCase();
