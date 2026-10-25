@@ -30,6 +30,7 @@ export function SiteFooter({ content }: { content: SiteContent }) {
             <Link href="/#process">How It Works</Link>
             <Link href="/#faq">FAQ</Link>
             <Link href="/#quote">Get a Quote</Link>
+            <Link href="/get-to-know-us">Get to Know Us</Link>
           </nav>
         </div>
         <div className="gm-container gm-footer__bottom">
