@@ -86,6 +86,9 @@ export function JobsApp({
   const [adding, setAdding] = useState(false);
   const [draggingId, setDraggingId] = useState<number | null>(null);
   const [dragOverStage, setDragOverStage] = useState<JobStatus | null>(null);
+  const [query, setQuery] = useState("");
+  const [customerFilter, setCustomerFilter] = useState("");
+  const [jobTypeFilter, setJobTypeFilter] = useState("");
 
   const reload = async () => {
     try {
@@ -130,11 +133,39 @@ export function JobsApp({
     [jobs],
   );
 
+  const customerOptions = useMemo(() => {
+    const ids = [...new Set(jobs.map((j) => j.customerId).filter((id): id is number => id != null))];
+    return ids.map((id) => ({ id, name: customerName(id) })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [jobs, customerName]);
+
+  const filteredJobs = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return jobs.filter((j) => {
+      if (customerFilter && String(j.customerId) !== customerFilter) return false;
+      if (jobTypeFilter && j.decorationType !== jobTypeFilter) return false;
+      if (!q) return true;
+      const haystack = [
+        j.jobName,
+        customerName(j.customerId),
+        j.contactName,
+        j.poNumbers,
+        j.decorationType,
+        j.productionFacility,
+        j.inHandDate ? fmtInHandDate(j.inHandDate) : "",
+        j.goodsOrdered ? "goods ordered" : "goods not ordered",
+        String(j.quantity),
+      ]
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(q);
+    });
+  }, [jobs, query, customerFilter, jobTypeFilter, customerName]);
+
   const byStage = useMemo(() => {
     const m = new Map<JobStatus, Job[]>(STAGES.map((s) => [s.key, [] as Job[]]));
-    for (const j of jobs) m.get(j.status)?.push(j);
+    for (const j of filteredJobs) m.get(j.status)?.push(j);
     return m;
-  }, [jobs]);
+  }, [filteredJobs]);
 
   const totals = useMemo(() => {
     const active = jobs.filter((j) => j.status !== "delivered");
@@ -165,6 +196,24 @@ export function JobsApp({
         <div><span className="portal-eyebrow">Ready to ship/pickup</span><strong>{count.format(totals.ready)}</strong></div>
         <div><span className="portal-eyebrow">Delivered</span><strong>{count.format(totals.delivered)}</strong></div>
       </section>
+
+      <div className="portal-toolbar">
+        <input
+          aria-label="Search jobs"
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search job name, customer, contact, PO #, decoration, facility…"
+          type="search"
+          value={query}
+        />
+        <select aria-label="Filter by customer" onChange={(e) => setCustomerFilter(e.target.value)} value={customerFilter}>
+          <option value="">All customers</option>
+          {customerOptions.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+        <select aria-label="Filter by job type" onChange={(e) => setJobTypeFilter(e.target.value)} value={jobTypeFilter}>
+          <option value="">All job types</option>
+          {suggestions.decorationTypes.map((d) => <option key={d} value={d}>{d}</option>)}
+        </select>
+      </div>
 
       <div className="portal-board">
         {STAGES.map((s) => {
@@ -210,6 +259,12 @@ export function JobsApp({
                       type="button"
                     >
                       <h4>{customerName(j.customerId) || "Unassigned customer"}</h4>
+                      <div className="portal-card-meta">
+                        <span className="portal-muted">{j.inHandDate ? fmtInHandDate(j.inHandDate) : "No in-hand date"}</span>
+                        <span className={`portal-pill ${j.goodsOrdered ? "ok" : "warn"}`}>
+                          Goods {j.goodsOrdered ? "ordered" : "not ordered"}
+                        </span>
+                      </div>
                       <div className="portal-card-foot">
                         <span className="portal-muted">{j.decorationType || "No decoration set"}</span>
                         {j.quantity ? <span>{count.format(j.quantity)} pcs</span> : null}
