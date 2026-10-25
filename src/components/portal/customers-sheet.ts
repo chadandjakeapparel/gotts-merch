@@ -120,6 +120,7 @@ export function parseCustomerSheet(text: string, salesReps: SalesRep[]): { rows:
       pointOfContact: cells[cols.contact] || "",
       salesRepId: repName ? repByName.get(repName.toLowerCase()) ?? null : null,
       subscribed: truthy(cells[cols.subscribed] || ""),
+      inventoryHeld: false,
       notes: cells[cols.notes] || "",
     });
   });

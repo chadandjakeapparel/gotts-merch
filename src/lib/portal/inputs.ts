@@ -46,11 +46,13 @@ export function toCustomerInput(body: Record<string, unknown>): CustomerInput {
     pointOfContact: text(body.pointOfContact, 200),
     salesRepId: salesRepId != null && Number.isFinite(salesRepId) ? salesRepId : null,
     subscribed: Boolean(body.subscribed),
+    inventoryHeld: Boolean(body.inventoryHeld),
     notes: text(body.notes, 2000),
   };
 }
 
 export function toItemInput(body: Record<string, unknown>): ItemInput {
+  const heldForCustomerId = body.heldForCustomerId == null || body.heldForCustomerId === "" ? null : int(body.heldForCustomerId);
   return {
     styleNumber: text(body.styleNumber, 80),
     styleName: text(body.styleName, 200),
@@ -58,6 +60,7 @@ export function toItemInput(body: Record<string, unknown>): ItemInput {
     size: text(body.size, 40),
     qty: int(body.qty),
     unitValue: money(body.unitValue),
+    heldForCustomerId: heldForCustomerId != null && Number.isFinite(heldForCustomerId) ? heldForCustomerId : null,
   };
 }
 

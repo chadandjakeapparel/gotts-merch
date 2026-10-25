@@ -163,6 +163,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = { open: "Received", fulfilled:
 export function PortalApp({
   viewer,
   clients,
+  heldCustomers,
   clientId,
   clientName,
   initialState,
@@ -171,6 +172,8 @@ export function PortalApp({
   viewer: Viewer;
   /** Every client, for staff to switch between; null for client logins. */
   clients: ClientSummary[] | null;
+  /** Customers flagged "inventory held", for the held-by-customer filter and item assignment. */
+  heldCustomers: { id: number; name: string }[];
   clientId: number;
   clientName: string;
   initialState: PortalState;
@@ -303,13 +306,15 @@ export function PortalApp({
           ))}
         </nav>
 
-        {tab === "inventory" ? <InventoryTab admin={admin} items={data.items} setModal={setModal} threshold={threshold} /> : null}
+        {tab === "inventory" ? (
+          <InventoryTab admin={admin} heldCustomers={heldCustomers} items={data.items} setModal={setModal} threshold={threshold} />
+        ) : null}
         {tab === "orders" ? <OrdersTab admin={admin} items={data.items} mutate={mutate} orders={data.orders} setModal={setModal} /> : null}
         {tab === "history" ? <HistoryTab moves={data.moves} /> : null}
       </main>
 
       {modal ? (
-        <ModalHost close={() => setModal(null)} items={data.items} modal={modal} mutate={mutate} setModal={setModal} />
+        <ModalHost close={() => setModal(null)} heldCustomers={heldCustomers} items={data.items} modal={modal} mutate={mutate} setModal={setModal} />
       ) : null}
       {toast ? <div className="portal-toast" role="status">{toast}</div> : null}
     </div>
@@ -324,28 +329,33 @@ type SortKey = "styleNumber" | "styleName" | "color" | "size" | "qty" | "committ
 function InventoryTab({
   items,
   admin,
+  heldCustomers,
   setModal,
   threshold,
 }: {
   items: Item[];
   admin: boolean;
+  heldCustomers: { id: number; name: string }[];
   setModal: (m: Modal) => void;
   threshold: number;
 }) {
   const [query, setQuery] = useState("");
   const [color, setColor] = useState("");
   const [level, setLevel] = useState("");
+  const [heldBy, setHeldBy] = useState("");
   const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: "styleNumber", dir: 1 });
 
   const colors = useMemo(() => [...new Set(items.map((i) => i.color))].sort((a, b) => a.localeCompare(b)), [items]);
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
+    const heldByFilter = heldBy ? Number(heldBy) : null;
     const value = (i: Item, k: SortKey): string | number =>
       k === "available" ? i.qty - i.committed : k === "total" ? i.qty * i.unitValue : i[k];
     return items
       .filter((i) => !q || `${i.styleNumber} ${i.styleName} ${i.color} ${i.size}`.toLowerCase().includes(q))
       .filter((i) => !color || i.color === color)
       .filter((i) => !level || stockLevel(i, threshold) === level)
+      .filter((i) => heldByFilter == null || i.heldForCustomerId === heldByFilter)
       .sort((a, b) => {
         const av = value(a, sort.key);
         const bv = value(b, sort.key);
@@ -356,7 +366,7 @@ function InventoryTab({
             : String(av).localeCompare(String(bv), undefined, { numeric: true, sensitivity: "base" });
         return c * sort.dir || a.color.localeCompare(b.color) || compareSizes(a.size, b.size);
       });
-  }, [items, query, color, level, sort, threshold]);
+  }, [items, query, color, level, heldBy, sort, threshold]);
 
   const header = (key: SortKey, text: string, right = false) => (
     <th aria-sort={sort.key === key ? (sort.dir > 0 ? "ascending" : "descending") : "none"} className={right ? "r" : ""}>
@@ -388,6 +398,12 @@ function InventoryTab({
           <option value="low">Low</option>
           <option value="out">Out of stock</option>
         </select>
+        {heldCustomers.length ? (
+          <select aria-label="Filter by customer holding inventory" onChange={(e) => setHeldBy(e.target.value)} value={heldBy}>
+            <option value="">All inventory</option>
+            {heldCustomers.map((c) => <option key={c.id} value={c.id}>Held by {c.name}</option>)}
+          </select>
+        ) : null}
         <div className="portal-toolbar-end">
           <button className="portal-btn" disabled={!rows.length} onClick={() => exportInventory(rows, "csv")} type="button">Export CSV</button>
           <button className="portal-btn" disabled={!rows.length} onClick={() => exportInventory(rows, "xls")} type="button">Export Excel</button>
@@ -415,6 +431,7 @@ function InventoryTab({
                 {header("available", "Available", true)}
                 {header("unitValue", "Unit value", true)}
                 {header("total", "Total value", true)}
+                {heldCustomers.length ? <th>Held for</th> : null}
                 {admin ? <th className="r"><span className="portal-sr">Actions</span></th> : null}
               </tr>
             </thead>
@@ -436,6 +453,9 @@ function InventoryTab({
                     <td className={`r num ${available < 0 ? "neg" : ""}`}>{count.format(available)}</td>
                     <td className="r num">{currency.format(i.unitValue)}</td>
                     <td className="r num">{currency.format(i.qty * i.unitValue)}</td>
+                    {heldCustomers.length ? (
+                      <td className="portal-muted">{heldCustomers.find((c) => c.id === i.heldForCustomerId)?.name || "–"}</td>
+                    ) : null}
                     {admin ? (
                       <td className="r"><button className="portal-btn small" onClick={() => setModal({ kind: "item", item: i })} type="button">Edit</button></td>
                     ) : null}
@@ -449,6 +469,7 @@ function InventoryTab({
                 <td className="r num">{count.format(shownUnits)}</td>
                 <td colSpan={3} />
                 <td className="r num">{currency.format(shownValue)}</td>
+                {heldCustomers.length ? <td /> : null}
                 {admin ? <td /> : null}
               </tr>
             </tfoot>
@@ -739,6 +760,7 @@ function HistoryTab({ moves }: { moves: StockMove[] }) {
 type ModalProps = {
   modal: NonNullable<Modal>;
   items: Item[];
+  heldCustomers: { id: number; name: string }[];
   close: () => void;
   setModal: (m: Modal) => void;
   mutate: (run: () => Promise<unknown>, done: string) => Promise<void>;
@@ -798,7 +820,7 @@ function ModalFrame({ title, children, footer }: { title: string; children: Reac
   );
 }
 
-function ItemForm({ item, close, setModal, mutate }: ModalProps & { item: Item | null }) {
+function ItemForm({ item, close, heldCustomers, setModal, mutate }: ModalProps & { item: Item | null }) {
   const call = useApi();
   const [form, setForm] = useState({
     styleNumber: item?.styleNumber || "",
@@ -807,9 +829,10 @@ function ItemForm({ item, close, setModal, mutate }: ModalProps & { item: Item |
     size: item?.size || "",
     qty: String(item?.qty ?? 0),
     unitValue: String(item?.unitValue ?? 0),
+    heldForCustomerId: item?.heldForCustomerId != null ? String(item.heldForCustomerId) : "",
   });
   const { busy, error, setError, submit } = useSubmit(mutate);
-  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, [k]: e.target.value });
+  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setForm({ ...form, [k]: e.target.value });
 
   function save(e: React.FormEvent) {
     e.preventDefault();
@@ -842,6 +865,15 @@ function ItemForm({ item, close, setModal, mutate }: ModalProps & { item: Item |
           <label className="portal-field">Quantity on hand<input min={0} onChange={set("qty")} required step={1} type="number" value={form.qty} /></label>
           <label className="portal-field">Unit value ($)<input min={0} onChange={set("unitValue")} required step={0.01} type="number" value={form.unitValue} /></label>
         </div>
+        {heldCustomers.length ? (
+          <label className="portal-field">
+            Held for customer
+            <select onChange={set("heldForCustomerId")} value={form.heldForCustomerId}>
+              <option value="">Not held for a customer</option>
+              {heldCustomers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </label>
+        ) : null}
         <p className="portal-hint">
           {item
             ? "Changing the quantity here is logged as a count adjustment. To ship goods, fulfill an order instead."

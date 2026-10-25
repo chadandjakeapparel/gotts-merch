@@ -204,6 +204,14 @@ create table if not exists customers (
 );
 create index if not exists customers_sales_rep_idx on customers (sales_rep_id);
 
+-- Pre-existing databases created before a customer could hold inventory.
+alter table customers add column if not exists inventory_held boolean not null default false;
+
+-- A line of inventory can be earmarked as held for a particular customer;
+-- only customers with inventory_held get offered for this.
+alter table items add column if not exists held_for_customer_id integer references customers(id) on delete set null;
+create index if not exists items_held_for_customer_idx on items (held_for_customer_id);
+
 -- Pre-existing databases created before addresses were split into fields.
 -- The old free-text billing_address/shipping_address columns are kept (not
 -- dropped) so no data is lost, and their text is copied into the new line 1

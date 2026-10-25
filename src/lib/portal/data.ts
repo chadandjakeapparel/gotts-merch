@@ -20,6 +20,7 @@ function toItem(r: Row): Item {
     qty: num(r.qty),
     unitValue: num(r.unit_value),
     committed: num(r.committed),
+    heldForCustomerId: r.held_for_customer_id == null ? null : num(r.held_for_customer_id),
     updatedAt: iso(r.updated_at) || "",
   };
 }
@@ -130,6 +131,7 @@ export type ItemInput = {
   size: string;
   qty: number;
   unitValue: number;
+  heldForCustomerId: number | null;
 };
 
 function checkItem(rec: ItemInput) {
@@ -142,14 +144,18 @@ function isUniqueViolation(error: unknown) {
   return (error as { code?: string })?.code === "23505";
 }
 
+function asHeldForError(error: unknown) {
+  return (error as { code?: string })?.code === "23503" ? new PortalError("Choose a valid customer.", 400) : error;
+}
+
 export async function createItem(clientId: number, rec: ItemInput) {
   checkItem(rec);
   const sql = await db();
   try {
     await sql.begin(async (tx) => {
       const [row] = await tx`
-        insert into items (client_id, style_number, style_name, color, size, qty, unit_value)
-        values (${clientId}, ${rec.styleNumber}, ${rec.styleName || rec.styleNumber}, ${rec.color}, ${rec.size}, ${rec.qty}, ${rec.unitValue})
+        insert into items (client_id, style_number, style_name, color, size, qty, unit_value, held_for_customer_id)
+        values (${clientId}, ${rec.styleNumber}, ${rec.styleName || rec.styleNumber}, ${rec.color}, ${rec.size}, ${rec.qty}, ${rec.unitValue}, ${rec.heldForCustomerId})
         returning *`;
       await tx`
         insert into stock_moves (client_id, kind, item_id, qty_delta, label)
@@ -159,7 +165,7 @@ export async function createItem(clientId: number, rec: ItemInput) {
     if (isUniqueViolation(error)) {
       throw new PortalError(`${[rec.styleNumber, rec.color, rec.size].filter(Boolean).join(" ")} is already listed. Edit that line or receive stock into it.`, 409);
     }
-    throw error;
+    throw asHeldForError(error);
   }
 }
 
@@ -170,24 +176,30 @@ export async function importItems(clientId: number, rows: ItemInput[]) {
   const sql = await db();
   let created = 0;
   let updated = 0;
-  await sql.begin(async (tx) => {
-    for (const rec of rows) {
-      const [row] = await tx`
-        insert into items (client_id, style_number, style_name, color, size, qty, unit_value)
-        values (${clientId}, ${rec.styleNumber}, ${rec.styleName || rec.styleNumber}, ${rec.color}, ${rec.size}, ${rec.qty}, ${rec.unitValue})
-        on conflict (client_id, (lower(style_number)), (lower(color)), (lower(size))) do update set
-          style_name = case when ${rec.styleName} <> '' then ${rec.styleName} else items.style_name end,
-          qty = excluded.qty,
-          unit_value = excluded.unit_value,
-          updated_at = now()
-        returning (xmax = 0) as inserted`;
-      if (row.inserted) created++;
-      else updated++;
-    }
-    await tx`
-      insert into stock_moves (client_id, kind, label, note)
-      values (${clientId}, 'imported', ${`${rows.length} ${rows.length === 1 ? "line" : "lines"}`}, ${`${created} new, ${updated} updated`})`;
-  });
+  try {
+    await sql.begin(async (tx) => {
+      for (const rec of rows) {
+        // held_for_customer_id is never touched on conflict, so re-importing a sheet
+        // doesn't clear a "held for" assignment made by hand in the meantime.
+        const [row] = await tx`
+          insert into items (client_id, style_number, style_name, color, size, qty, unit_value, held_for_customer_id)
+          values (${clientId}, ${rec.styleNumber}, ${rec.styleName || rec.styleNumber}, ${rec.color}, ${rec.size}, ${rec.qty}, ${rec.unitValue}, ${rec.heldForCustomerId})
+          on conflict (client_id, (lower(style_number)), (lower(color)), (lower(size))) do update set
+            style_name = case when ${rec.styleName} <> '' then ${rec.styleName} else items.style_name end,
+            qty = excluded.qty,
+            unit_value = excluded.unit_value,
+            updated_at = now()
+          returning (xmax = 0) as inserted`;
+        if (row.inserted) created++;
+        else updated++;
+      }
+      await tx`
+        insert into stock_moves (client_id, kind, label, note)
+        values (${clientId}, 'imported', ${`${rows.length} ${rows.length === 1 ? "line" : "lines"}`}, ${`${created} new, ${updated} updated`})`;
+    });
+  } catch (error) {
+    throw asHeldForError(error);
+  }
   return { created, updated };
 }
 
@@ -200,7 +212,8 @@ export async function updateItem(clientId: number, id: number, rec: ItemInput) {
       if (!before) throw new PortalError("That line no longer exists.", 404);
       const [after] = await tx`
         update items set style_number = ${rec.styleNumber}, style_name = ${rec.styleName}, color = ${rec.color},
-          size = ${rec.size}, qty = ${rec.qty}, unit_value = ${rec.unitValue}, updated_at = now()
+          size = ${rec.size}, qty = ${rec.qty}, unit_value = ${rec.unitValue},
+          held_for_customer_id = ${rec.heldForCustomerId}, updated_at = now()
         where id = ${id} returning *`;
       const delta = rec.qty - num(before.qty);
       if (delta !== 0) {
@@ -213,7 +226,7 @@ export async function updateItem(clientId: number, id: number, rec: ItemInput) {
     if (isUniqueViolation(error)) {
       throw new PortalError(`${[rec.styleNumber, rec.color, rec.size].filter(Boolean).join(" ")} is already another line.`, 409);
     }
-    throw error;
+    throw asHeldForError(error);
   }
 }
 

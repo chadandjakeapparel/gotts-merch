@@ -421,6 +421,7 @@ function CustomerModal({
   const [shipping, setShipping] = useState<Address>(customer?.shippingAddress || emptyAddress());
   const [salesRepId, setSalesRepId] = useState(customer?.salesRepId != null ? String(customer.salesRepId) : "");
   const [subscribed, setSubscribed] = useState(customer?.subscribed || false);
+  const [inventoryHeld, setInventoryHeld] = useState(customer?.inventoryHeld || false);
   const [emails, setEmails] = useState<string[]>(customer?.emails || []);
   const [emailDraft, setEmailDraft] = useState("");
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -452,6 +453,7 @@ function CustomerModal({
       emails,
       salesRepId: salesRepId || null,
       subscribed,
+      inventoryHeld,
     };
     void submit(() =>
       customer ? api("PATCH", `/api/portal/customers/${customer.id}`, body) : api("POST", "/api/portal/customers", body),
@@ -560,11 +562,21 @@ function CustomerModal({
             {salesReps.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
           </select>
         </label>
-        <label className="portal-check">
-          <input checked={subscribed} onChange={(e) => setSubscribed(e.target.checked)} type="checkbox" />
-          Subscribed to marketing emails
+        <label className="portal-field">
+          Inventory held?
+          <select onChange={(e) => setInventoryHeld(e.target.value === "yes")} value={inventoryHeld ? "yes" : "no"}>
+            <option value="no">No</option>
+            <option value="yes">Yes</option>
+          </select>
         </label>
       </div>
+      <label className="portal-check">
+        <input checked={subscribed} onChange={(e) => setSubscribed(e.target.checked)} type="checkbox" />
+        Subscribed to marketing emails
+      </label>
+      {inventoryHeld ? (
+        <p className="portal-hint">This customer will appear in the &quot;Held by&quot; filter and item assignment on the Inventory tab.</p>
+      ) : null}
 
       <label className="portal-field">Notes<textarea onChange={set("notes")} rows={3} value={form.notes} /></label>
       {error ? <p className="portal-msg err" role="alert">{error}</p> : null}

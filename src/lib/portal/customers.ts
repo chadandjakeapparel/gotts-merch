@@ -51,6 +51,7 @@ function toCustomer(r: Row, emails: string[], shippingAddresses: ShippingAddress
     pointOfContact: str(r.point_of_contact),
     salesRepId: r.sales_rep_id == null ? null : Number(r.sales_rep_id),
     subscribed: Boolean(r.subscribed),
+    inventoryHeld: Boolean(r.inventory_held),
     notes: str(r.notes),
     createdAt: iso(r.created_at) || "",
     updatedAt: iso(r.updated_at) || "",
@@ -119,6 +120,21 @@ export async function listCustomers(): Promise<Customer[]> {
   );
 }
 
+/** The customers flagged "inventory held", for the inventory screen's dropdowns. */
+export async function listHeldCustomers(): Promise<{ id: number; name: string }[]> {
+  const sql = await db();
+  const rows = await sql`
+    select id, kind, company_name, first_name, last_name from customers
+    where inventory_held order by lower(coalesce(company_name, ''))`;
+  return rows.map((r) => ({
+    id: Number(r.id),
+    name:
+      r.kind === "company"
+        ? str(r.company_name) || "Unnamed company"
+        : [str(r.first_name), str(r.last_name)].filter(Boolean).join(" ") || "Unnamed customer",
+  }));
+}
+
 export type CustomerInput = {
   kind: CustomerKind;
   companyName: string;
@@ -132,6 +148,7 @@ export type CustomerInput = {
   pointOfContact: string;
   salesRepId: number | null;
   subscribed: boolean;
+  inventoryHeld: boolean;
   notes: string;
 };
 
@@ -177,11 +194,11 @@ export async function createCustomer(input: CustomerInput): Promise<number> {
         insert into customers (
           kind, company_name, first_name, last_name,
           billing_name, billing_line1, billing_line2, billing_city, billing_state, billing_zip, billing_country,
-          phone, point_of_contact, sales_rep_id, subscribed, notes
+          phone, point_of_contact, sales_rep_id, subscribed, inventory_held, notes
         ) values (
           ${input.kind}, ${input.companyName}, ${input.firstName}, ${input.lastName},
           ${bill.name}, ${bill.line1}, ${bill.line2}, ${bill.city}, ${bill.state}, ${bill.zip}, ${bill.country},
-          ${input.phone}, ${input.pointOfContact}, ${input.salesRepId}, ${input.subscribed}, ${input.notes}
+          ${input.phone}, ${input.pointOfContact}, ${input.salesRepId}, ${input.subscribed}, ${input.inventoryHeld}, ${input.notes}
         ) returning id`;
       const id = Number(row.id);
       await tx`
@@ -211,7 +228,8 @@ export async function updateCustomer(id: number, input: CustomerInput) {
           billing_city = ${bill.city}, billing_state = ${bill.state}, billing_zip = ${bill.zip},
           billing_country = ${bill.country},
           phone = ${input.phone}, point_of_contact = ${input.pointOfContact}, sales_rep_id = ${input.salesRepId},
-          subscribed = ${input.subscribed}, notes = ${input.notes}, updated_at = now()
+          subscribed = ${input.subscribed}, inventory_held = ${input.inventoryHeld}, notes = ${input.notes},
+          updated_at = now()
         where id = ${id} returning id`;
       if (!rows.length) throw new PortalError("That customer no longer exists.", 404);
       await savePrimaryShippingAddress(tx, id, input.shippingAddress);
@@ -263,7 +281,8 @@ export async function importCustomers(rows: CustomerInput[]) {
               billing_city = ${bill.city}, billing_state = ${bill.state}, billing_zip = ${bill.zip},
               billing_country = ${bill.country},
               phone = ${rec.phone}, point_of_contact = ${rec.pointOfContact}, sales_rep_id = ${rec.salesRepId},
-              subscribed = ${rec.subscribed}, notes = ${rec.notes}, updated_at = now()
+              subscribed = ${rec.subscribed}, inventory_held = ${rec.inventoryHeld}, notes = ${rec.notes},
+              updated_at = now()
             where id = ${id}`;
           updated++;
         } else {
@@ -271,11 +290,11 @@ export async function importCustomers(rows: CustomerInput[]) {
             insert into customers (
               kind, company_name, first_name, last_name,
               billing_name, billing_line1, billing_line2, billing_city, billing_state, billing_zip, billing_country,
-              phone, point_of_contact, sales_rep_id, subscribed, notes
+              phone, point_of_contact, sales_rep_id, subscribed, inventory_held, notes
             ) values (
               ${rec.kind}, ${rec.companyName}, ${rec.firstName}, ${rec.lastName},
               ${bill.name}, ${bill.line1}, ${bill.line2}, ${bill.city}, ${bill.state}, ${bill.zip}, ${bill.country},
-              ${rec.phone}, ${rec.pointOfContact}, ${rec.salesRepId}, ${rec.subscribed}, ${rec.notes}
+              ${rec.phone}, ${rec.pointOfContact}, ${rec.salesRepId}, ${rec.subscribed}, ${rec.inventoryHeld}, ${rec.notes}
             ) returning id`;
           id = Number(row.id);
           created++;

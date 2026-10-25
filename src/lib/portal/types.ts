@@ -10,6 +10,8 @@ export type Item = {
   unitValue: number;
   /** Units on open (not yet fulfilled) orders. */
   committed: number;
+  /** The customer this line is being held for, if any. */
+  heldForCustomerId: number | null;
   updatedAt: string;
 };
 
@@ -139,6 +141,8 @@ export type Customer = {
   pointOfContact: string;
   salesRepId: number | null;
   subscribed: boolean;
+  /** Whether this business holds inventory on this customer's behalf. */
+  inventoryHeld: boolean;
   notes: string;
   createdAt: string;
   updatedAt: string;
