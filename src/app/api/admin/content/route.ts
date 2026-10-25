@@ -59,6 +59,9 @@ function isValidContent(value: unknown): value is SiteContent {
     "quoteBody",
     "quoteNote",
     "footerTagline",
+    "getToKnowUsEyebrow",
+    "getToKnowUsTitle",
+    "getToKnowUsLead",
   ];
   for (const key of requiredStrings) {
     if (typeof data[key] !== "string") return false;
@@ -160,6 +163,21 @@ function isValidContent(value: unknown): value is SiteContent {
         typeof item === "object" &&
         typeof (item as Record<string, unknown>).question === "string" &&
         typeof (item as Record<string, unknown>).answer === "string",
+    )
+  ) {
+    return false;
+  }
+
+  if (
+    !Array.isArray(data.documents) ||
+    !data.documents.every(
+      (item) =>
+        item &&
+        typeof item === "object" &&
+        typeof (item as Record<string, unknown>).slug === "string" &&
+        typeof (item as Record<string, unknown>).title === "string" &&
+        typeof (item as Record<string, unknown>).description === "string" &&
+        typeof (item as Record<string, unknown>).body === "string",
     )
   ) {
     return false;

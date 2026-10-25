@@ -877,6 +877,18 @@ export default function AdminPage() {
         </section>
 
         <section className="gm-admin-section">
+          <h2>Get to Know Us</h2>
+          <p className="gm-admin-hint">
+            The policies and company-info page (Privacy Policy, Terms of Service, and the rest) has its own
+            workspace, built for adding as many documents as you need — currently {content.documents.length}{" "}
+            {content.documents.length === 1 ? "document" : "documents"}.
+          </p>
+          <Link className="gm-btn gm-btn--primary" href="/admin/documents">
+            Open Get to Know Us editor →
+          </Link>
+        </section>
+
+        <section className="gm-admin-section">
           <h2>Quote request section</h2>
           <label>
             <span>Eyebrow</span>

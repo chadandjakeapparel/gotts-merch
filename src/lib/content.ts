@@ -6,6 +6,7 @@ import {
   type ActivationStation,
   type BrandPartner,
   type Differentiator,
+  type DocumentItem,
   type FaqItem,
   type ProcessStep,
   type ProductCategory,
@@ -84,6 +85,9 @@ export const getSiteContent = cache(async (): Promise<SiteContent> => {
       faqItems: Array.isArray(data.faqItems)
         ? normalizeArray<FaqItem>(data.faqItems, { question: "", answer: "" })
         : defaultContent.faqItems,
+      documents: Array.isArray(data.documents)
+        ? normalizeArray<DocumentItem>(data.documents, { slug: "", title: "", description: "", body: "" })
+        : defaultContent.documents,
     };
   } catch {
     return defaultContent;

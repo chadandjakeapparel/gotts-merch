@@ -4,7 +4,7 @@ export function DocPage({
   children,
 }: {
   title: string;
-  updated: string;
+  updated?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -13,7 +13,7 @@ export function DocPage({
         <div className="gm-section-heading">
           <p className="gm-eyebrow">Get to Know Us</p>
           <h1>{title}</h1>
-          <p className="gm-doc__updated">Last updated {updated}</p>
+          {updated ? <p className="gm-doc__updated">Last updated {updated}</p> : null}
         </div>
         <div className="gm-doc__body">{children}</div>
       </div>

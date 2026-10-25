@@ -39,6 +39,21 @@ export type FaqItem = {
   answer: string;
 };
 
+export type DocumentItem = {
+  /** The URL path segment, e.g. "privacy-policy" for /get-to-know-us/privacy-policy. */
+  slug: string;
+  title: string;
+  /** Shown on the Get to Know Us card linking to this document. */
+  description: string;
+  /**
+   * The document's text. A blank line starts a new paragraph; "## " starts
+   * a heading; a block whose every line starts with "- " becomes a bullet
+   * list; "[text](url)" becomes a link. {{brandName}} and {{inquiryEmail}}
+   * are replaced with the site's current values.
+   */
+  body: string;
+};
+
 export type SiteContent = {
   brandName: string;
   // Leave blank to use the default recreated wordmark/G mark.
@@ -97,6 +112,10 @@ export type SiteContent = {
   quoteNote: string;
   footerTagline: string;
   venueTypes: string[];
+  getToKnowUsEyebrow: string;
+  getToKnowUsTitle: string;
+  getToKnowUsLead: string;
+  documents: DocumentItem[];
 };
 
 export const defaultContent: SiteContent = {
@@ -367,5 +386,173 @@ export const defaultContent: SiteContent = {
     "Catering & events",
     "Country clubs",
     "Ghost kitchens",
+  ],
+  getToKnowUsEyebrow: "Get to Know Us",
+  getToKnowUsTitle: "Policies & company information.",
+  getToKnowUsLead:
+    "Everything about how {{brandName}} operates, protects your information and works with you — in one place.",
+  documents: [
+    {
+      slug: "privacy-policy",
+      title: "Privacy Policy",
+      description: "What information we collect and how we use it.",
+      body: `This policy explains what information {{brandName}} collects, how we use it, and the choices you have. It covers our website and our client portal.
+
+## Information we collect
+
+We collect information in a few ways:
+
+- Information you give us directly, such as your name, company, email address, phone number and shipping/billing address, when you request a quote, place an order, or use the client portal.
+- Information created while you use the client portal, such as order history, inventory records, invoices and conversations with our team.
+- Basic technical information collected automatically when you visit our website, such as your browser type and pages viewed.
+
+## How we use it
+
+We use this information to:
+
+- Prepare quotes, fulfill orders, and manage inventory on your behalf.
+- Operate and secure the client portal, including your login.
+- Respond to your questions and provide customer support.
+- Send you information about your orders, invoices or account.
+- Improve our website and services.
+
+## Sharing your information
+
+We don't sell your personal information. We share it only with service providers who help us run our business (such as payment processing, hosting, or shipping carriers), when required by law, or with your consent — for example, if you ask us to connect your account with another platform you use, such as QuickBooks.
+
+## Data security
+
+We use reasonable technical and organizational measures to protect the information we hold, including encrypted connections, access controls on the client portal, and rate-limiting against repeated login attempts. No system is perfectly secure, and we can't guarantee absolute security.
+
+## Your choices
+
+You can ask us to access, correct, or delete the personal information we hold about you by contacting us below. We'll respond to reasonable requests, though some information may need to be kept for legal, accounting or order-fulfillment reasons.
+
+## Children's privacy
+
+Our website and portal are intended for business use and are not directed to children.
+
+## Changes to this policy
+
+We may update this policy from time to time. If we make material changes, we'll update the date at the top of this page.
+
+## Contact us
+
+Questions about this policy? Email us at {{inquiryEmail}}.`,
+    },
+    {
+      slug: "terms-of-service",
+      title: "Terms of Service",
+      description: "The terms that govern using our website and services.",
+      body: `These terms govern your use of the {{brandName}} website and your relationship with us as a customer. Logging in to our client portal is also governed by our [User Agreement](/get-to-know-us/user-agreement).
+
+## Quotes and orders
+
+Quotes we provide are estimates and aren't final until we confirm your order. Prices, artwork, quantities and production timelines are subject to change until that confirmation. Payment terms will be provided with your order confirmation or invoice.
+
+## Artwork and intellectual property
+
+You're responsible for making sure any logos, artwork or designs you provide to us are ones you have the rights to use. You grant us a license to use that artwork solely to produce your order. All content on our website — including our own branding, photography and design — belongs to {{brandName}} or our licensors.
+
+## Acceptable use
+
+You agree not to use our website or services for any unlawful purpose, to misrepresent your identity, or to attempt to disrupt or gain unauthorized access to our systems.
+
+## Disclaimers
+
+Our website and services are provided "as is." We aim for accuracy but don't guarantee the website will always be available, error-free, or perfectly represent finished products (colors and materials can vary slightly from what's shown on screen).
+
+## Limitation of liability
+
+To the extent permitted by law, {{brandName}} isn't liable for indirect, incidental or consequential damages arising from your use of our website or services. Our total liability for any claim is limited to the amount you paid for the order giving rise to the claim.
+
+## Governing law
+
+These terms are governed by the laws of the state in which {{brandName}} is based, without regard to conflict-of-law rules.
+
+## Changes to these terms
+
+We may update these terms from time to time. Continued use of our website after a change means you accept the updated terms.
+
+## Contact us
+
+Questions about these terms? Email us at {{inquiryEmail}}.`,
+    },
+    {
+      slug: "user-agreement",
+      title: "User Agreement",
+      description: "The terms that govern logging in to the client portal.",
+      body: `This agreement covers logging in to and using the {{brandName}} client portal — the account where you can view inventory, orders, invoices and jobs we manage for you. It works alongside our [Terms of Service](/get-to-know-us/terms-of-service) and [Privacy Policy](/get-to-know-us/privacy-policy).
+
+## Your account
+
+We create your portal login and send you a temporary password, which you'll be asked to change on first sign-in. You're responsible for keeping your login credentials confidential and for all activity under your account. Tell us right away if you believe your account has been compromised.
+
+## What you can see and do
+
+Your account shows information tied to your company: inventory on hand, order history, and — where we enable it — jobs and invoices. We decide what's visible to each account and may change that over time.
+
+## Acceptable use
+
+Use the portal only for your own business purposes. Don't share your login with anyone outside your organization, attempt to access another company's data, or use the portal in a way that could disrupt or harm it.
+
+## Suspension and termination
+
+We may suspend or close portal access if we reasonably believe these terms have been violated, or if our business relationship ends. You can ask us to close your account at any time.
+
+## Changes to this agreement
+
+We may update this agreement from time to time. Continued use of the portal after a change means you accept the update.
+
+## Contact us
+
+Questions about your account? Email us at {{inquiryEmail}}.`,
+    },
+    {
+      slug: "ai-supplemental-terms",
+      title: "AI Supplemental Terms",
+      description: "Additional terms covering AI-assisted features.",
+      body: `These terms supplement our [Terms of Service](/get-to-know-us/terms-of-service) and [Privacy Policy](/get-to-know-us/privacy-policy) and apply when {{brandName}} uses artificial intelligence tools to help run our website, client portal, or internal operations.
+
+## How we may use AI
+
+We may use AI-assisted tools behind the scenes — for example, to help draft or organize content, answer routine questions, or support our team in managing orders, inventory and customer records. AI tools work alongside our team; they don't replace human judgment on anything that affects your order, account, or legal rights.
+
+## No fully-automated decisions
+
+We don't use AI to make final decisions about your order, pricing, or account status without a person able to review the outcome. If you believe an AI-assisted process produced an incorrect result, contact us and we'll have a person look into it.
+
+## Data used with AI tools
+
+Where we use third-party AI tools, we share only the information needed for that tool to do its job, and we don't knowingly allow our customers' data to be used to train a third party's general-purpose AI models. Our [Privacy Policy](/get-to-know-us/privacy-policy) describes how we handle your information more broadly.
+
+## Changes to these terms
+
+As we adopt new AI-assisted features, we'll update this page to reflect them.
+
+## Contact us
+
+Questions about how we use AI? Email us at {{inquiryEmail}}.`,
+    },
+    {
+      slug: "corporate-governance",
+      title: "Corporate Governance",
+      description: "How our company is organized and run.",
+      body: `{{brandName}} is a privately held company. We're in the process of publishing more detail about our company structure and policies here — check back soon.
+
+## Contact us
+
+If you need governance information sooner, email us at {{inquiryEmail}}.`,
+    },
+    {
+      slug: "press",
+      title: "Press",
+      description: "Company facts and media contact information.",
+      body: `{{brandName}} provides promotional products for restaurants, hotels, bars, and cafés.
+
+## Media inquiries
+
+For interviews, logos, product photography or other press assets, email us at {{inquiryEmail}} and we'll get back to you.`,
+    },
   ],
 };

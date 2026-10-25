@@ -1532,6 +1532,12 @@ fieldset {
   font-family: inherit;
 }
 
+.gm-admin-section textarea.gm-admin-mono {
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+
 .gm-admin-card {
   display: flex;
   flex-direction: column;
