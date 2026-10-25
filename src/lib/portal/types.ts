@@ -148,6 +148,25 @@ export type Customer = {
   updatedAt: string;
 };
 
+export type JobStatus = "pending" | "in_production" | "ready" | "delivered";
+
+export type Job = {
+  id: number;
+  customerId: number | null;
+  jobName: string;
+  contactName: string;
+  status: JobStatus;
+  /** "YYYY-MM-DD", or blank if not set. */
+  inHandDate: string;
+  goodsOrdered: boolean;
+  poNumbers: string;
+  decorationType: string;
+  quantity: number;
+  productionFacility: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type PortalUser = {
   id: number;
   email: string;

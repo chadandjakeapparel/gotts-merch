@@ -1,6 +1,7 @@
 import type { LeadInput } from "./crm";
 import type { CustomerInput } from "./customers";
 import type { ItemInput, OrderInput } from "./data";
+import type { JobInput } from "./jobs";
 import type { Address } from "./types";
 import { int, money, PortalError, text } from "./http";
 
@@ -48,6 +49,21 @@ export function toCustomerInput(body: Record<string, unknown>): CustomerInput {
     subscribed: Boolean(body.subscribed),
     inventoryHeld: Boolean(body.inventoryHeld),
     notes: text(body.notes, 2000),
+  };
+}
+
+export function toJobInput(body: Record<string, unknown>): JobInput {
+  const customerId = body.customerId == null || body.customerId === "" ? null : int(body.customerId);
+  return {
+    customerId: customerId != null && Number.isFinite(customerId) ? customerId : null,
+    jobName: text(body.jobName, 200),
+    contactName: text(body.contactName, 200),
+    inHandDate: text(body.inHandDate, 20),
+    goodsOrdered: Boolean(body.goodsOrdered),
+    poNumbers: text(body.poNumbers, 300),
+    decorationType: text(body.decorationType, 120),
+    quantity: int(body.quantity),
+    productionFacility: text(body.productionFacility, 200),
   };
 }
 

@@ -268,6 +268,25 @@ create table if not exists customer_emails (
   created_at timestamptz not null default now()
 );
 create index if not exists customer_emails_customer_idx on customer_emails (customer_id);
+
+create table if not exists jobs (
+  id serial primary key,
+  customer_id integer references customers(id) on delete set null,
+  job_name text not null default '',
+  contact_name text not null default '',
+  status text not null default 'pending'
+    check (status in ('pending', 'in_production', 'ready', 'delivered')),
+  in_hand_date date,
+  goods_ordered boolean not null default false,
+  po_numbers text not null default '',
+  decoration_type text not null default '',
+  quantity integer not null default 0,
+  production_facility text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists jobs_status_idx on jobs (status);
+create index if not exists jobs_customer_idx on jobs (customer_id);
 `;
 
 /** Creates the tables on first use, so a fresh database needs no setup step. */

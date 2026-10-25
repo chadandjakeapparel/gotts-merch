@@ -490,6 +490,7 @@
 .portal-col-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .portal-cards { display: flex; flex-direction: column; gap: 8px; min-height: 40px; }
 .portal-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -502,6 +503,30 @@
 }
 .portal-card:hover { border-color: var(--p-accent-2); }
 .portal-card-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; font-variant-numeric: tabular-nums; }
+
+/* ---------- job board ---------- */
+.portal-col.delivered { background: var(--p-ok-soft); }
+.portal-job-tip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  z-index: 20;
+  min-width: 160px;
+  padding: 8px 12px;
+  color: var(--p-surface);
+  white-space: normal;
+  background: var(--p-ink);
+  border-radius: 6px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 150ms ease, transform 150ms ease;
+  transform: translate(-50%, 4px);
+  pointer-events: none;
+  box-shadow: 0 6px 16px rgba(16, 33, 58, 0.25);
+}
+.portal-job-tip strong { display: block; font-size: 13px; }
+.portal-job-tip span { display: block; margin-top: 2px; color: var(--p-accent-soft); font-size: 12px; }
+.portal-card:hover .portal-job-tip { opacity: 1; visibility: visible; transform: translate(-50%, 0); }
 .portal-col-empty { padding: 10px 4px; color: var(--p-muted); font-size: 13px; text-align: center; }
 
 .portal-activity-section { display: flex; flex-direction: column; gap: 10px; padding-top: 10px; border-top: 1px solid var(--p-line); }

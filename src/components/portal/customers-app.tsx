@@ -74,7 +74,7 @@ function ModalFrame({
   );
 }
 
-const customerTitle = (c: Pick<Customer, "kind" | "companyName" | "firstName" | "lastName">) =>
+export const customerTitle = (c: Pick<Customer, "kind" | "companyName" | "firstName" | "lastName">) =>
   c.kind === "company"
     ? c.companyName || "Unnamed company"
     : [c.firstName, c.lastName].filter(Boolean).join(" ") || "Unnamed customer";
@@ -397,7 +397,7 @@ export function CustomersApp({
   );
 }
 
-function CustomerModal({
+export function CustomerModal({
   customer,
   close,
   onSaved,
