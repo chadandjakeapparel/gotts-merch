@@ -28,6 +28,8 @@ export default function AdminPage() {
   const [saveError, setSaveError] = useState("");
   const [photoStatus, setPhotoStatus] = useState<Record<number, PhotoStatus>>({});
   const [photoError, setPhotoError] = useState<Record<number, string>>({});
+  const [categoryPhotoStatus, setCategoryPhotoStatus] = useState<Record<number, PhotoStatus>>({});
+  const [categoryPhotoError, setCategoryPhotoError] = useState<Record<number, string>>({});
   const [logoStatus, setLogoStatus] = useState<PhotoStatus>("idle");
   const [logoError, setLogoError] = useState("");
   const [faviconStatus, setFaviconStatus] = useState<PhotoStatus>("idle");
@@ -130,7 +132,7 @@ export default function AdminPage() {
     setContent((current) => (current ? { ...current, [key]: value } : current));
   }
 
-  function updateCategory(index: number, field: "title" | "description", value: string) {
+  function updateCategory(index: number, field: "title" | "description" | "imageUrl", value: string) {
     setContent((current) => {
       if (!current) return current;
       const next = [...current.productCategories];
@@ -190,7 +192,7 @@ export default function AdminPage() {
 
   async function uploadFile(
     file: File,
-    folder: "team" | "brand" | "favicon" | "og",
+    folder: "team" | "brand" | "favicon" | "og" | "category",
   ): Promise<string> {
     const formData = new FormData();
     formData.append("file", file);
@@ -216,6 +218,22 @@ export default function AdminPage() {
     } catch (error) {
       setPhotoStatus((current) => ({ ...current, [index]: "error" }));
       setPhotoError((current) => ({
+        ...current,
+        [index]: error instanceof Error ? error.message : "Upload failed",
+      }));
+    }
+  }
+
+  async function handleCategoryPhotoUpload(index: number, file: File) {
+    setCategoryPhotoStatus((current) => ({ ...current, [index]: "uploading" }));
+    setCategoryPhotoError((current) => ({ ...current, [index]: "" }));
+    try {
+      const url = await uploadFile(file, "category");
+      updateCategory(index, "imageUrl", url);
+      setCategoryPhotoStatus((current) => ({ ...current, [index]: "idle" }));
+    } catch (error) {
+      setCategoryPhotoStatus((current) => ({ ...current, [index]: "error" }));
+      setCategoryPhotoError((current) => ({
         ...current,
         [index]: error instanceof Error ? error.message : "Upload failed",
       }));
@@ -535,6 +553,45 @@ export default function AdminPage() {
                   value={itemsToText(category.items)}
                 />
               </label>
+              <div className="gm-admin-photo">
+                {category.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- admin-only preview thumbnail
+                  <img alt="" className="gm-admin-photo__preview" src={category.imageUrl} />
+                ) : null}
+                <div>
+                  <label>
+                    <span>Homepage tile photo (JPG, PNG, or WEBP — max 5MB)</span>
+                    <input
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
+                        if (file) handleCategoryPhotoUpload(index, file);
+                        event.target.value = "";
+                      }}
+                      type="file"
+                    />
+                  </label>
+                  <p className="gm-admin-hint">
+                    Shown behind the title on the homepage hero&rsquo;s top tiles. Leave blank to keep the
+                    plain colored tile with its icon.
+                  </p>
+                  {categoryPhotoStatus[index] === "uploading" ? (
+                    <p className="gm-admin-hint">Uploading…</p>
+                  ) : null}
+                  {categoryPhotoStatus[index] === "error" ? (
+                    <p className="gm-admin-error">{categoryPhotoError[index]}</p>
+                  ) : null}
+                  {category.imageUrl ? (
+                    <button
+                      className="gm-form-restart"
+                      onClick={() => updateCategory(index, "imageUrl", "")}
+                      type="button"
+                    >
+                      Remove photo
+                    </button>
+                  ) : null}
+                </div>
+              </div>
             </div>
           ))}
         </section>

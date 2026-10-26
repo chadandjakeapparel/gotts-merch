@@ -66,8 +66,16 @@ export default async function HomePage() {
               {content.productCategories.map((category) => {
                 const Icon = categoryIcons[category.key as keyof typeof categoryIcons];
                 return (
-                  <div className="gm-hero__card" key={category.key}>
-                    <Icon />
+                  <div
+                    className={`gm-hero__card${category.imageUrl ? " gm-hero__card--photo" : ""}`}
+                    key={category.key}
+                  >
+                    {category.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- homepage hero tile photo
+                      <img alt="" src={category.imageUrl} />
+                    ) : (
+                      <Icon />
+                    )}
                     <span>{category.title}</span>
                   </div>
                 );

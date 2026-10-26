@@ -497,14 +497,38 @@ fieldset {
 }
 
 .gm-hero__card {
+  position: relative;
   display: flex;
   min-height: 148px;
   flex-direction: column;
   justify-content: space-between;
+  overflow: hidden;
   padding: 20px;
   color: var(--gm-white);
   background: var(--gm-navy);
   border-radius: 16px;
+}
+
+.gm-hero__card--photo img {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.gm-hero__card--photo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(180deg, rgba(10, 20, 40, 0) 45%, rgba(10, 20, 40, 0.78) 100%);
+}
+
+.gm-hero__card--photo span {
+  position: relative;
+  z-index: 2;
 }
 
 .gm-hero__card:nth-child(2) {

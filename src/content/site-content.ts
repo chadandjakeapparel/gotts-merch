@@ -3,6 +3,9 @@ export type ProductCategory = {
   title: string;
   description: string;
   items: string[];
+  // Shown behind the title on the homepage hero's top category tiles. Leave
+  // blank to keep the plain colored tile with its icon.
+  imageUrl: string;
 };
 
 export type Differentiator = {
@@ -142,6 +145,7 @@ export const defaultContent: SiteContent = {
       description:
         "Branded gear built to survive a shift — and a commercial laundry cycle.",
       items: ["Polos", "Aprons", "Chef coats", "Rain jackets"],
+      imageUrl: "",
     },
     {
       key: "print",
@@ -156,6 +160,7 @@ export const defaultContent: SiteContent = {
         "Matchboxes",
         "Stickers",
       ],
+      imageUrl: "",
     },
     {
       key: "drinkware",
@@ -169,6 +174,7 @@ export const defaultContent: SiteContent = {
         "Stirrers",
         "To-go bags",
       ],
+      imageUrl: "",
     },
     {
       key: "retail",
@@ -176,6 +182,7 @@ export const defaultContent: SiteContent = {
       description:
         "Everyday branded basics, plus a retail line guests can buy on their way out.",
       items: ["Pens", "Tees & hats", "Tote bags", "Register-ready merch"],
+      imageUrl: "",
     },
   ],
   activationsEyebrow: "Live, on-site merch production",
