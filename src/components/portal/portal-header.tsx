@@ -17,8 +17,12 @@ export function PortalHeader({
     window.location.assign("/portal/login");
   }
 
+  // Staff land on CRM when they open the portal fresh (bare /portal), so the
+  // Inventory nav link needs its own marker to still reach inventory.
+  const inventoryHref = viewer.role === "staff" ? "/portal?view=inventory" : "/portal";
+
   const links: [typeof current, string, string][] = [
-    ["inventory", "/portal", "Inventory"],
+    ["inventory", inventoryHref, "Inventory"],
     ...(viewer.role === "staff"
       ? ([
           ["crm", "/portal/crm", "CRM"],

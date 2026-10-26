@@ -6,6 +6,6 @@ export const dynamic = "force-dynamic";
 
 export default async function PortalLoginPage() {
   const user = await getUser().catch(() => null);
-  if (user) redirect("/portal");
+  if (user) redirect(user.role === "staff" ? "/portal/crm" : "/portal");
   return <LoginForm />;
 }

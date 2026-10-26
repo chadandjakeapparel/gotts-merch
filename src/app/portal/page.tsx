@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { PortalApp } from "@/components/portal/portal-app";
 import { PortalHeader } from "@/components/portal/portal-header";
@@ -9,8 +10,17 @@ import type { ClientSummary, PortalState } from "@/lib/portal/types";
 
 export const dynamic = "force-dynamic";
 
-export default async function PortalPage({ searchParams }: { searchParams: Promise<{ client?: string }> }) {
+export default async function PortalPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ client?: string; view?: string }>;
+}) {
   const user = await requireUser();
+  const { client: requestedClientParam, view } = await searchParams;
+  // Staff land on CRM when they open the portal fresh. This page is still reachable
+  // for inventory via the nav's own Inventory link (?view=inventory) or the "Open
+  // inventory" links elsewhere that pass ?client=.
+  if (user.role === "staff" && !requestedClientParam && view !== "inventory") redirect("/portal/crm");
   const viewer = toViewer(user);
 
   let clients: ClientSummary[] | null = null;
@@ -24,7 +34,7 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
     } catch (error) {
       console.error("[portal]", error);
     }
-    const requested = Number((await searchParams).client);
+    const requested = Number(requestedClientParam);
     clientId = clients.find((c) => c.id === requested)?.id ?? clients[0]?.id ?? 0;
     name = clients.find((c) => c.id === clientId)?.name ?? "";
     if (!clientId) {
