@@ -287,6 +287,17 @@ create table if not exists jobs (
 );
 create index if not exists jobs_status_idx on jobs (status);
 create index if not exists jobs_customer_idx on jobs (customer_id);
+
+-- The public /custom-designer tool: no login, found again later by its code.
+create table if not exists custom_designs (
+  id serial primary key,
+  code text not null unique,
+  product text not null default 'black-tee'
+    check (product in ('black-tee', 'white-hoodie', 'grey-crewneck')),
+  layers jsonb not null default '[]',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
 `;
 
 /** Creates the tables on first use, so a fresh database needs no setup step. */

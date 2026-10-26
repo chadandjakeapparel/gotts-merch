@@ -24,6 +24,7 @@ export function SiteFooter({ content }: { content: SiteContent }) {
           <nav aria-label="Footer navigation" className="gm-footer__nav">
             <Link href="/#products">Products</Link>
             <Link href="/brands">Brands</Link>
+            <Link href="/custom-designer">Custom Designer</Link>
             <Link href="/#merch-activations">On-Site Activations</Link>
             <Link href="/#why-us">Why Us</Link>
             <Link href="/#about">About Us</Link>
