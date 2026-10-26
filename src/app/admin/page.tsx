@@ -944,42 +944,6 @@ export default function AdminPage() {
             Open Get to Know Us editor →
           </Link>
         </section>
-
-        <section className="gm-admin-section">
-          <h2>Quote request section</h2>
-          <label>
-            <span>Eyebrow</span>
-            <input
-              onChange={(event) => update("quoteEyebrow", event.target.value)}
-              type="text"
-              value={content.quoteEyebrow}
-            />
-          </label>
-          <label>
-            <span>Title</span>
-            <input
-              onChange={(event) => update("quoteTitle", event.target.value)}
-              type="text"
-              value={content.quoteTitle}
-            />
-          </label>
-          <label>
-            <span>Body</span>
-            <textarea
-              onChange={(event) => update("quoteBody", event.target.value)}
-              rows={3}
-              value={content.quoteBody}
-            />
-          </label>
-          <label>
-            <span>Note (shown in italic below the body)</span>
-            <textarea
-              onChange={(event) => update("quoteNote", event.target.value)}
-              rows={2}
-              value={content.quoteNote}
-            />
-          </label>
-        </section>
       </div>
 
       <div className="gm-admin-savebar">

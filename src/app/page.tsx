@@ -4,6 +4,7 @@ import { Nav } from "@/components/nav";
 import { SiteFooter } from "@/components/site-footer";
 import { TeamAvatar } from "@/components/team-avatar";
 import { getSiteContent } from "@/lib/content";
+import { getQuoteSection } from "@/lib/portal/quote-section";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,7 @@ const categoryIcons = {
 
 export default async function HomePage() {
   const content = await getSiteContent();
+  const quoteSection = await getQuoteSection();
 
   const faqJsonLd = {
     "@context": "https://schema.org",
@@ -263,12 +265,17 @@ export default async function HomePage() {
         <section className="gm-quote" id="quote">
           <div className="gm-container gm-quote__grid">
             <div className="gm-quote__intro">
-              <p className="gm-eyebrow">{content.quoteEyebrow}</p>
-              <h2>{content.quoteTitle}</h2>
-              <p>{content.quoteBody}</p>
-              <p className="gm-quote__note">{content.quoteNote}</p>
+              <p className="gm-eyebrow">{quoteSection.eyebrow}</p>
+              <h2>{quoteSection.title}</h2>
+              <p>{quoteSection.body}</p>
+              <p className="gm-quote__note">{quoteSection.note}</p>
             </div>
-            <InquiryForm inquiryEmail={content.inquiryEmail} />
+            <InquiryForm
+              inquiryEmail={content.inquiryEmail}
+              productOptions={quoteSection.productOptions}
+              quantities={quoteSection.quantities}
+              venueTypes={quoteSection.venueTypes}
+            />
           </div>
         </section>
       </main>

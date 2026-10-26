@@ -334,6 +334,36 @@ alter table custom_designs add column if not exists product_id integer reference
 update custom_designs c set product_id = dp.id
 from design_products dp
 where c.product_id is null and dp.placeholder = c.product;
+
+-- The Get a Quote section at the bottom of the homepage -- its copy, and
+-- every dropdown/checkbox option list on the quote form -- managed from
+-- /portal/quote. Single row (id is always 1).
+create table if not exists quote_section (
+  id integer primary key default 1,
+  eyebrow text not null default '',
+  title text not null default '',
+  body text not null default '',
+  note text not null default '',
+  venue_types jsonb not null default '[]',
+  quantities jsonb not null default '[]',
+  product_options jsonb not null default '[]',
+  updated_at timestamptz not null default now(),
+  constraint quote_section_single_row check (id = 1)
+);
+
+-- Seeds the row once with the copy and option lists already live on the
+-- site, so moving this into the portal doesn't change anything on first deploy.
+insert into quote_section (id, eyebrow, title, body, note, venue_types, quantities, product_options)
+select
+  1,
+  'Start a quote',
+  'Tell us what you need on the line.',
+  'Share your venue and the products you''re picturing — from a single apron order to a full multi-location rollout. We''ll follow up with pricing and material recommendations.',
+  'Replace this space with an approved customer quote once one is available.',
+  '["Restaurant","Bar / nightlife","Hotel / resort","Café / coffee shop","Catering","Country club / private club","Other"]'::jsonb,
+  '["Under 50","50–200","200–500","500+"]'::jsonb,
+  '["Apparel (polos, aprons, chef coats, rain jackets)","Menus, print & tabletop (menu jackets, coasters, napkins, matchboxes, stickers)","Drinkware & to-go (cups, sleeves, stirrers, to-go bags)","Pens & retail merchandise","Not sure yet"]'::jsonb
+where not exists (select 1 from quote_section);
 `;
 
 /** Creates the tables on first use, so a fresh database needs no setup step. */

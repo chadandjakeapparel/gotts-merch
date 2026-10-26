@@ -4,15 +4,17 @@ import { FormEvent, useState } from "react";
 
 type Status = "idle" | "submitting" | "success" | "error";
 
-const productOptions = [
-  "Apparel (polos, aprons, chef coats, rain jackets)",
-  "Menus, print & tabletop (menu jackets, coasters, napkins, matchboxes, stickers)",
-  "Drinkware & to-go (cups, sleeves, stirrers, to-go bags)",
-  "Pens & retail merchandise",
-  "Not sure yet",
-];
-
-export function InquiryForm({ inquiryEmail }: { inquiryEmail: string }) {
+export function InquiryForm({
+  inquiryEmail,
+  venueTypes,
+  quantities,
+  productOptions,
+}: {
+  inquiryEmail: string;
+  venueTypes: string[];
+  quantities: string[];
+  productOptions: string[];
+}) {
   const [status, setStatus] = useState<Status>("idle");
   const [mailto, setMailto] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
@@ -144,13 +146,9 @@ export function InquiryForm({ inquiryEmail }: { inquiryEmail: string }) {
             <option disabled value="">
               Select one
             </option>
-            <option>Restaurant</option>
-            <option>Bar / nightlife</option>
-            <option>Hotel / resort</option>
-            <option>Café / coffee shop</option>
-            <option>Catering</option>
-            <option>Country club / private club</option>
-            <option>Other</option>
+            {venueTypes.map((type) => (
+              <option key={type}>{type}</option>
+            ))}
           </select>
         </label>
         <label>
@@ -159,10 +157,9 @@ export function InquiryForm({ inquiryEmail }: { inquiryEmail: string }) {
             <option disabled value="">
               Select one
             </option>
-            <option>Under 50</option>
-            <option>50–200</option>
-            <option>200–500</option>
-            <option>500+</option>
+            {quantities.map((q) => (
+              <option key={q}>{q}</option>
+            ))}
           </select>
         </label>
       </div>

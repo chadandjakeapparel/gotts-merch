@@ -109,10 +109,6 @@ export type SiteContent = {
   faqEyebrow: string;
   faqTitle: string;
   faqItems: FaqItem[];
-  quoteEyebrow: string;
-  quoteTitle: string;
-  quoteBody: string;
-  quoteNote: string;
   footerTagline: string;
   venueTypes: string[];
   getToKnowUsEyebrow: string;
@@ -379,12 +375,6 @@ export const defaultContent: SiteContent = {
         "Share your venue and the products you're picturing — from a single apron order to a full multi-location rollout. We'll follow up with pricing and material recommendations.",
     },
   ],
-  quoteEyebrow: "Start a quote",
-  quoteTitle: "Tell us what you need on the line.",
-  quoteBody:
-    "Share your venue and the products you're picturing — from a single apron order to a full multi-location rollout. We'll follow up with pricing and material recommendations.",
-  quoteNote:
-    "Replace this space with an approved customer quote once one is available.",
   footerTagline: "Promotional products for restaurants, hotels, bars, and cafés.",
   venueTypes: [
     "Restaurants & bars",
