@@ -458,6 +458,50 @@
 .portal-clients li:last-child { border-bottom: 0; }
 .portal-client-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .portal-clients .portal-link.small { align-self: flex-start; font-size: 13px; }
+
+/* ---------- designer products ---------- */
+.portal-designer-products { display: flex; flex-direction: column; }
+.portal-designer-product { display: flex; flex-direction: column; gap: 12px; padding: 16px; border-bottom: 1px solid var(--p-line); }
+.portal-designer-product:last-child { border-bottom: 0; }
+.portal-designer-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.portal-reorder { display: flex; gap: 6px; }
+.portal-reorder button {
+  display: flex;
+  width: 26px;
+  height: 26px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--p-line);
+  border-radius: 4px;
+  background: var(--p-surface);
+  color: var(--p-ink);
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+}
+.portal-reorder button:hover:not(:disabled) { border-color: var(--p-accent-2); color: var(--p-accent-2); }
+.portal-reorder button:disabled { cursor: not-allowed; opacity: 0.35; }
+
+.portal-designer-grid { display: grid; grid-template-columns: 170px 1fr; gap: 16px; }
+.portal-designer-preview {
+  position: relative;
+  aspect-ratio: 400 / 480;
+  overflow: hidden;
+  background: var(--p-sunk);
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.portal-designer-preview img { width: 100%; height: 100%; object-fit: contain; }
+.portal-designer-print-box { position: absolute; border: 2px dashed var(--p-accent-2); border-radius: 3px; pointer-events: none; }
+.portal-designer-fields { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+
+@media (max-width: 640px) {
+  .portal-designer-grid { grid-template-columns: 1fr; }
+}
 .portal-login-add {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr)) auto;

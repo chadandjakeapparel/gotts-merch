@@ -1656,7 +1656,6 @@ fieldset {
 
 .gm-admin-section input,
 .gm-admin-section textarea,
-.gm-admin-section select,
 .gm-admin-login input {
   width: 100%;
   padding: 10px 12px;
@@ -1740,63 +1739,6 @@ fieldset {
 .gm-admin-reorder button:disabled {
   cursor: not-allowed;
   opacity: 0.35;
-}
-
-.designer-admin-grid {
-  display: grid;
-  grid-template-columns: 180px 1fr;
-  gap: 20px;
-}
-
-.designer-admin-preview {
-  position: relative;
-  aspect-ratio: 400 / 480;
-  overflow: hidden;
-  background: var(--gm-slate);
-  border: 1px solid var(--gm-line);
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.designer-admin-preview img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
-.designer-admin-print-box {
-  position: absolute;
-  border: 2px dashed var(--gm-blue);
-  border-radius: 4px;
-  pointer-events: none;
-}
-
-.designer-admin-fields {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.gm-admin-print-inputs {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-}
-
-.gm-admin-check {
-  display: flex !important;
-  flex-direction: row !important;
-  align-items: center;
-  gap: 8px;
-}
-
-.gm-admin-check input { width: auto; }
-
-@media (max-width: 640px) {
-  .designer-admin-grid { grid-template-columns: 1fr; }
-  .gm-admin-print-inputs { grid-template-columns: repeat(2, 1fr); }
 }
 
 .gm-admin-photo {
