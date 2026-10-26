@@ -85,6 +85,8 @@ export function CrmApp({
   const [error, setError] = useState(loadError);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [adding, setAdding] = useState(false);
+  const [draggingId, setDraggingId] = useState<number | null>(null);
+  const [dragOverStage, setDragOverStage] = useState<LeadStatus | null>(null);
 
   const reload = async () => {
     try {
@@ -95,6 +97,21 @@ export function CrmApp({
       setError(err instanceof Error ? err.message : "The board couldn't be refreshed.");
     }
   };
+
+  /** Moves a lead to a stage by drag and drop, then reloads so a move into Won picks up the new client link. */
+  async function moveLead(leadId: number, status: LeadStatus) {
+    const previous = leads;
+    const lead = previous.find((l) => l.id === leadId);
+    if (!lead || lead.status === status) return;
+    setLeads((current) => current.map((l) => (l.id === leadId ? { ...l, status } : l)));
+    try {
+      await api("PATCH", `/api/portal/crm/leads/${leadId}/status`, { status });
+      await reload();
+    } catch (err) {
+      setLeads(previous);
+      setError(err instanceof Error ? err.message : "Couldn't move that lead. Try again.");
+    }
+  }
 
   const byStage = useMemo(() => {
     const m = new Map<LeadStatus, Lead[]>(STAGES.map((s) => [s.key, [] as Lead[]]));
@@ -141,10 +158,40 @@ export function CrmApp({
                 <h3>{s.label}</h3>
                 <span className="portal-count">{items.length}</span>
               </div>
-              <div className="portal-cards">
+              <div
+                className={`portal-cards${dragOverStage === s.key ? " drag-over" : ""}`}
+                onDragLeave={(e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                    setDragOverStage((current) => (current === s.key ? null : current));
+                  }
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = "move";
+                  if (dragOverStage !== s.key) setDragOverStage(s.key);
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setDragOverStage(null);
+                  const id = Number(e.dataTransfer.getData("text/plain"));
+                  if (id) void moveLead(id, s.key);
+                }}
+              >
                 {items.length ? (
                   items.map((l) => (
-                    <button className="portal-card" key={l.id} onClick={() => setSelectedId(l.id)} type="button">
+                    <button
+                      className={`portal-card${draggingId === l.id ? " dragging" : ""}`}
+                      draggable
+                      key={l.id}
+                      onClick={() => setSelectedId(l.id)}
+                      onDragEnd={() => setDraggingId(null)}
+                      onDragStart={(e) => {
+                        setDraggingId(l.id);
+                        e.dataTransfer.effectAllowed = "move";
+                        e.dataTransfer.setData("text/plain", String(l.id));
+                      }}
+                      type="button"
+                    >
                       <h4>{leadTitle(l)}</h4>
                       {l.companyName && l.contactName ? <span className="portal-muted small">{l.contactName}</span> : null}
                       <div className="portal-card-foot">
