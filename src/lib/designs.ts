@@ -128,6 +128,46 @@ function toDesign(r: Row): CustomDesign {
   };
 }
 
+export type DesignSummary = {
+  code: string;
+  product: DesignProductOption | null;
+  /** Every text layer's content, joined -- lets staff recognize a design without opening it. */
+  textSummary: string;
+  imageCount: number;
+  layerCount: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+function toDesignSummary(r: Row): DesignSummary {
+  const layers = sanitizeLayers(r.layers);
+  const texts = layers.filter((l): l is TextLayer => l.kind === "text").map((l) => l.content).filter(Boolean);
+  return {
+    code: String(r.code),
+    product: toProductFromJoin(r),
+    textSummary: texts.join(" / ").slice(0, 160),
+    imageCount: layers.filter((l) => l.kind === "image").length,
+    layerCount: layers.length,
+    createdAt: iso(r.created_at) || "",
+    updatedAt: iso(r.updated_at) || "",
+  };
+}
+
+/** For staff, in the portal: every saved design, most recently updated first. */
+export async function listAllDesigns(limit = 1000): Promise<DesignSummary[]> {
+  const sql = await db();
+  const rows = await sql`
+    select
+      cd.code, cd.layers, cd.created_at, cd.updated_at,
+      dp.id as product_id, dp.label as product_label, dp.image_url as product_image_url,
+      dp.placeholder as product_placeholder, dp.print_left, dp.print_top, dp.print_width, dp.print_height
+    from custom_designs cd
+    left join design_products dp on dp.id = cd.product_id
+    order by cd.updated_at desc
+    limit ${limit}`;
+  return rows.map(toDesignSummary);
+}
+
 export async function createDesign(productId: unknown, layers: unknown): Promise<string> {
   const sql = await db();
   const pid = sanitizeProductId(productId);

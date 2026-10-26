@@ -9,7 +9,7 @@ export function PortalHeader({
   children,
 }: {
   viewer: Viewer;
-  current: "inventory" | "admin" | "crm" | "jobs" | "customers" | "designer-products" | "account";
+  current: "inventory" | "admin" | "crm" | "jobs" | "customers" | "designer-products" | "designs" | "account";
   children?: React.ReactNode;
 }) {
   async function signOut() {
@@ -25,6 +25,7 @@ export function PortalHeader({
           ["jobs", "/portal/jobs", "Job Board"],
           ["customers", "/portal/customers", "Customers"],
           ["designer-products", "/portal/designer-products", "Designer Products"],
+          ["designs", "/portal/designs", "Saved Designs"],
           ["admin", "/portal/admin", "Clients & logins"],
         ] as [typeof current, string, string][])
       : []),
