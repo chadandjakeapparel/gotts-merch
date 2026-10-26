@@ -13,14 +13,14 @@ export async function GET(request: Request, { params }: Params) {
 
 export async function PATCH(request: Request, { params }: Params) {
   const { code } = await params;
-  let body: { product?: unknown; layers?: unknown };
+  let body: { productId?: unknown; layers?: unknown };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ ok: false, error: "Invalid request" }, { status: 400 });
   }
   try {
-    await updateDesign(code, body.product, body.layers);
+    await updateDesign(code, body.productId, body.layers);
     return NextResponse.json({ ok: true });
   } catch (error) {
     if (error instanceof PortalError) {

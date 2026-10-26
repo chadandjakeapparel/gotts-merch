@@ -1,10 +1,21 @@
-export type DesignProduct = "black-tee" | "white-hoodie" | "grey-crewneck";
+/** A built-in SVG stand-in, used while a product has no uploaded photo yet. */
+export type GarmentPlaceholder = "black-tee" | "white-hoodie" | "grey-crewneck";
 
-export const PRODUCTS: { key: DesignProduct; label: string; base: string }[] = [
-  { key: "black-tee", label: "Classic Tee", base: "#1b1b1b" },
-  { key: "white-hoodie", label: "Hooded Sweatshirt", base: "#f5f5f3" },
-  { key: "grey-crewneck", label: "Crewneck Sweatshirt", base: "#9aa0a8" },
-];
+export type PrintArea = {
+  /** All percentages (0-100) of the product image's own box. */
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+};
+
+export type DesignProductOption = {
+  id: number;
+  label: string;
+  imageUrl: string;
+  placeholder: GarmentPlaceholder | null;
+  printArea: PrintArea;
+};
 
 export const FONTS: { family: string; google: string; label: string }[] = [
   { family: "Anton", google: "Anton", label: "Anton (bold)" },
@@ -50,7 +61,8 @@ export type DesignLayer = {
 
 export type CustomDesign = {
   code: string;
-  product: DesignProduct;
+  /** Null if the product was deleted, or never set. */
+  product: DesignProductOption | null;
   layers: DesignLayer[];
   createdAt: string;
   updatedAt: string;

@@ -288,6 +288,34 @@ create table if not exists jobs (
 create index if not exists jobs_status_idx on jobs (status);
 create index if not exists jobs_customer_idx on jobs (customer_id);
 
+-- Products offered in /custom-designer, managed from /admin/designer-products.
+-- A blank image_url falls back to the built-in SVG named by "placeholder", so
+-- the 3 starting products keep working until real photos are uploaded.
+create table if not exists design_products (
+  id serial primary key,
+  label text not null default '',
+  image_url text not null default '',
+  placeholder text,
+  print_left integer not null default 37,
+  print_top integer not null default 28,
+  print_width integer not null default 26,
+  print_height integer not null default 38,
+  active boolean not null default true,
+  sort_order integer not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists design_products_active_idx on design_products (active, sort_order);
+
+-- Seeds the 3 original placeholder products once, the first time this table is empty.
+insert into design_products (label, image_url, placeholder, print_left, print_top, print_width, print_height, sort_order)
+select * from (values
+  ('Classic Tee', '', 'black-tee', 37, 28, 26, 40, 1),
+  ('Hooded Sweatshirt', '', 'white-hoodie', 37, 30, 26, 36, 2),
+  ('Crewneck Sweatshirt', '', 'grey-crewneck', 37, 28, 26, 40, 3)
+) as seed(label, image_url, placeholder, print_left, print_top, print_width, print_height, sort_order)
+where not exists (select 1 from design_products);
+
 -- The public /custom-designer tool: no login, found again later by its code.
 create table if not exists custom_designs (
   id serial primary key,
@@ -298,6 +326,14 @@ create table if not exists custom_designs (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- Pre-existing designs saved before products moved into their own table: the
+-- old "product" text column is kept (not dropped) and a matching product_id
+-- is filled in once, by matching it to that product's placeholder key.
+alter table custom_designs add column if not exists product_id integer references design_products(id) on delete set null;
+update custom_designs c set product_id = dp.id
+from design_products dp
+where c.product_id is null and dp.placeholder = c.product;
 `;
 
 /** Creates the tables on first use, so a fresh database needs no setup step. */

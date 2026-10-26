@@ -8,14 +8,10 @@ import {
   blankLayer,
   FONTS,
   INK_COLORS,
-  PRODUCTS,
   type CustomDesign,
   type DesignLayer,
-  type DesignProduct,
+  type DesignProductOption,
 } from "@/lib/design-constants";
-
-/** Where layers live within the stage, as a percentage box matching the garment's chest area. */
-const PRINT_AREA = { left: 37.5, top: 43.75, width: 25, height: 39.58 };
 
 let layerSeq = 0;
 function newLayerId() {
@@ -25,9 +21,17 @@ function newLayerId() {
 
 type DragState = { id: string; startX: number; startY: number; originX: number; originY: number };
 
-export function CustomDesignerApp({ initialDesign }: { initialDesign: CustomDesign | null }) {
+export function CustomDesignerApp({
+  initialDesign,
+  products,
+}: {
+  initialDesign: CustomDesign | null;
+  products: DesignProductOption[];
+}) {
   const router = useRouter();
-  const [product, setProduct] = useState<DesignProduct>(initialDesign?.product || "black-tee");
+  const [productId, setProductId] = useState<number | null>(
+    initialDesign?.product?.id ?? products[0]?.id ?? null,
+  );
   const [layers, setLayers] = useState<DesignLayer[]>(initialDesign?.layers || []);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [code, setCode] = useState<string | null>(initialDesign?.code || null);
@@ -40,10 +44,12 @@ export function CustomDesignerApp({ initialDesign }: { initialDesign: CustomDesi
   const dragState = useRef<DragState | null>(null);
 
   const selected = layers.find((l) => l.id === selectedId) || null;
+  const product = products.find((p) => p.id === productId) || initialDesign?.product || null;
+  const printArea = product?.printArea || { left: 37, top: 28, width: 26, height: 38 };
 
   function addLayer() {
     // Defaults to an ink color that reads clearly against whichever garment is selected.
-    const defaultColor = product === "black-tee" ? INK_COLORS[0].hex : INK_COLORS[1].hex;
+    const defaultColor = product?.placeholder === "black-tee" ? INK_COLORS[0].hex : INK_COLORS[1].hex;
     const layer = blankLayer(newLayerId(), defaultColor);
     setLayers((current) => [...current, layer]);
     setSelectedId(layer.id);
@@ -73,8 +79,8 @@ export function CustomDesignerApp({ initialDesign }: { initialDesign: CustomDesi
     const rect = stage.getBoundingClientRect();
     const dxPct = ((e.clientX - state.startX) / rect.width) * 100;
     const dyPct = ((e.clientY - state.startY) / rect.height) * 100;
-    const x = Math.min(100, Math.max(0, state.originX + (dxPct / PRINT_AREA.width) * 100));
-    const y = Math.min(100, Math.max(0, state.originY + (dyPct / PRINT_AREA.height) * 100));
+    const x = Math.min(100, Math.max(0, state.originX + (dxPct / printArea.width) * 100));
+    const y = Math.min(100, Math.max(0, state.originY + (dyPct / printArea.height) * 100));
     updateLayer(state.id, { x, y });
   }
 
@@ -84,6 +90,10 @@ export function CustomDesignerApp({ initialDesign }: { initialDesign: CustomDesi
   }
 
   async function handleSave() {
+    if (!productId) {
+      setSaveError("Choose a product first.");
+      return;
+    }
     setSaving(true);
     setSaveError("");
     setJustSaved(false);
@@ -92,12 +102,12 @@ export function CustomDesignerApp({ initialDesign }: { initialDesign: CustomDesi
         ? await fetch(`/api/custom-designer/${code}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ product, layers }),
+            body: JSON.stringify({ productId, layers }),
           })
         : await fetch("/api/custom-designer", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ product, layers }),
+            body: JSON.stringify({ productId, layers }),
           });
       const data = (await response.json().catch(() => ({ ok: false }))) as { ok: boolean; code?: string; error?: string };
       if (!data.ok) throw new Error(data.error || "Couldn't save your design. Try again.");
@@ -146,22 +156,35 @@ export function CustomDesignerApp({ initialDesign }: { initialDesign: CustomDesi
       <div className="designer-layout">
         <div className="designer-stage-col">
           <div className="designer-products" role="group" aria-label="Choose a product">
-            {PRODUCTS.map((p) => (
+            {products.map((p) => (
               <button
-                aria-pressed={product === p.key}
+                aria-pressed={productId === p.id}
                 className="designer-product"
-                key={p.key}
-                onClick={() => setProduct(p.key)}
+                key={p.id}
+                onClick={() => setProductId(p.id)}
                 type="button"
               >
-                <span className="designer-product-swatch" style={{ background: p.base }} />
+                <span className="designer-product-swatch">
+                  {p.imageUrl ? (
+                    <img alt="" src={p.imageUrl} />
+                  ) : p.placeholder ? (
+                    <GarmentArt product={p.placeholder} />
+                  ) : null}
+                </span>
                 {p.label}
               </button>
             ))}
+            {!products.length ? <p className="designer-hint">No products are available yet.</p> : null}
           </div>
 
           <div className="designer-stage" ref={stageRef}>
-            <div className="designer-garment"><GarmentArt product={product} /></div>
+            <div className="designer-garment">
+              {product?.imageUrl ? (
+                <img alt="" src={product.imageUrl} />
+              ) : product?.placeholder ? (
+                <GarmentArt product={product.placeholder} />
+              ) : null}
+            </div>
             {layers.map((layer) => (
               <div
                 className={`designer-layer${selectedId === layer.id ? " selected" : ""}${draggingId === layer.id ? " dragging" : ""}`}
@@ -171,8 +194,8 @@ export function CustomDesignerApp({ initialDesign }: { initialDesign: CustomDesi
                 onPointerMove={onLayerPointerMove}
                 onPointerUp={onLayerPointerUp}
                 style={{
-                  left: `${PRINT_AREA.left + (layer.x / 100) * PRINT_AREA.width}%`,
-                  top: `${PRINT_AREA.top + (layer.y / 100) * PRINT_AREA.height}%`,
+                  left: `${printArea.left + (layer.x / 100) * printArea.width}%`,
+                  top: `${printArea.top + (layer.y / 100) * printArea.height}%`,
                   transform: `translate(-50%, -50%) rotate(${layer.rotation}deg)`,
                   fontFamily: `"${layer.fontFamily}"`,
                   fontSize: layer.fontSize,

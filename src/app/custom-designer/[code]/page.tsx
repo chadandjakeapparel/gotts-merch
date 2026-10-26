@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { CustomDesignerApp } from "@/components/custom-designer-app";
 import { getSiteContent } from "@/lib/content";
 import { getDesignByCode } from "@/lib/designs";
+import { listActiveDesignProducts } from "@/lib/design-products";
 
 export const dynamic = "force-dynamic";
 
@@ -18,5 +19,12 @@ export default async function SavedDesignPage({ params }: Params) {
   const design = await getDesignByCode(code);
   if (!design) notFound();
 
-  return <CustomDesignerApp initialDesign={design} />;
+  const activeProducts = await listActiveDesignProducts();
+  // Keep the design's own product selectable even if it was since deactivated,
+  // so a saved design doesn't silently lose its product.
+  const products = design.product && !activeProducts.some((p) => p.id === design.product!.id)
+    ? [...activeProducts, design.product]
+    : activeProducts;
+
+  return <CustomDesignerApp initialDesign={design} products={products} />;
 }

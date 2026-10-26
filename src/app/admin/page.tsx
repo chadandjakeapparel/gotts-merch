@@ -877,6 +877,17 @@ export default function AdminPage() {
         </section>
 
         <section className="gm-admin-section">
+          <h2>Custom Designer products</h2>
+          <p className="gm-admin-hint">
+            The products customers can pick from on the Custom Designer tool — name, photo, and print area —
+            have their own workspace.
+          </p>
+          <Link className="gm-btn gm-btn--primary" href="/admin/designer-products">
+            Open Custom Designer products →
+          </Link>
+        </section>
+
+        <section className="gm-admin-section">
           <h2>Get to Know Us</h2>
           <p className="gm-admin-hint">
             The policies and company-info page (Privacy Policy, Terms of Service, and the rest) has its own

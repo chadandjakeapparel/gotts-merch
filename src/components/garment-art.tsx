@@ -1,4 +1,4 @@
-import type { DesignProduct } from "@/lib/design-constants";
+import type { GarmentPlaceholder } from "@/lib/design-constants";
 
 const TEE_OUTLINE =
   "M140,90 L260,90 L300,130 L340,180 L300,210 L280,190 L280,440 L260,460 L140,460 L120,440 L120,190 L100,210 L60,180 L100,130 Z";
@@ -14,7 +14,7 @@ function shade(hex: string, amount: number) {
 }
 
 /** A simple placeholder garment outline, in the product's base color, standing in until real photos are provided. */
-export function GarmentArt({ product }: { product: DesignProduct }) {
+export function GarmentArt({ product }: { product: GarmentPlaceholder }) {
   const base = product === "black-tee" ? "#1b1b1b" : product === "white-hoodie" ? "#f5f5f3" : "#9aa0a8";
   const stroke = shade(base, product === "white-hoodie" ? -40 : -30);
   const accent = shade(base, product === "white-hoodie" ? -25 : 20);
