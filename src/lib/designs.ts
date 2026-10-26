@@ -8,6 +8,8 @@ import {
   type DesignLayer,
   type DesignProductOption,
   type GarmentPlaceholder,
+  type ImageLayer,
+  type TextLayer,
 } from "./design-constants";
 import { db } from "./portal/db";
 import { PortalError } from "./portal/http";
@@ -51,20 +53,40 @@ function parseLayersValue(value: unknown): unknown[] {
 
 /** Trusts nothing from the client: every layer is rebuilt field by field from known-good values. */
 function sanitizeLayers(value: unknown): DesignLayer[] {
-  return parseLayersValue(value).slice(0, MAX_LAYERS).map((raw, i) => {
+  return parseLayersValue(value).slice(0, MAX_LAYERS).map((raw, i): DesignLayer => {
     const r = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
-    return {
-      id: typeof r.id === "string" && r.id ? r.id.slice(0, 40) : `layer-${i}`,
+    const id = typeof r.id === "string" && r.id ? r.id.slice(0, 40) : `layer-${i}`;
+    const placement = {
+      x: clampNum(r.x, 0, 100, 50),
+      y: clampNum(r.y, 0, 100, 50),
+      rotation: clampNum(r.rotation, -180, 180, 0),
+    };
+
+    if (r.kind === "image" && typeof r.imageUrl === "string" && /^https:\/\//.test(r.imageUrl)) {
+      const image: ImageLayer = {
+        id,
+        kind: "image",
+        ...placement,
+        imageUrl: r.imageUrl.trim().slice(0, 500),
+        aspectRatio: clampNum(r.aspectRatio, 0.05, 20, 1),
+        widthPct: clampNum(r.widthPct, 3, 100, 40),
+        bgRemovable: Boolean(r.bgRemovable),
+      };
+      return image;
+    }
+
+    const text: TextLayer = {
+      id,
+      kind: "text",
+      ...placement,
       content: typeof r.content === "string" ? r.content.slice(0, MAX_TEXT_LENGTH) : "",
       fontFamily: typeof r.fontFamily === "string" && VALID_FONTS.has(r.fontFamily) ? r.fontFamily : FONTS[0].family,
       fontSize: clampNum(r.fontSize, 8, 160, 32),
       color: typeof r.color === "string" && VALID_COLORS.has(r.color) ? r.color : INK_COLORS[1].hex,
       bold: Boolean(r.bold),
       italic: Boolean(r.italic),
-      x: clampNum(r.x, 0, 100, 50),
-      y: clampNum(r.y, 0, 100, 50),
-      rotation: clampNum(r.rotation, -180, 180, 0),
     };
+    return text;
   });
 }
 

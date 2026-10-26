@@ -44,20 +44,38 @@ export const INK_COLORS: { name: string; hex: string }[] = [
   { name: "Grey", hex: "#8a8f98" },
 ];
 
-export type DesignLayer = {
-  id: string;
-  content: string;
-  fontFamily: string;
-  fontSize: number;
-  color: string;
-  bold: boolean;
-  italic: boolean;
+type LayerPlacement = {
   /** Percent (0-100) within the garment's print area. */
   x: number;
   y: number;
   /** Degrees. */
   rotation: number;
 };
+
+export type TextLayer = LayerPlacement & {
+  id: string;
+  kind: "text";
+  content: string;
+  fontFamily: string;
+  fontSize: number;
+  color: string;
+  bold: boolean;
+  italic: boolean;
+};
+
+export type ImageLayer = LayerPlacement & {
+  id: string;
+  kind: "image";
+  imageUrl: string;
+  /** Natural image height / width -- keeps it from stretching when resized. */
+  aspectRatio: number;
+  /** Percent of the design stage's own width. */
+  widthPct: number;
+  /** True right after uploading a JPG, until "Remove background" has been run. */
+  bgRemovable: boolean;
+};
+
+export type DesignLayer = TextLayer | ImageLayer;
 
 export type CustomDesign = {
   code: string;
@@ -70,9 +88,11 @@ export type CustomDesign = {
 
 export const MAX_LAYERS = 40;
 export const MAX_TEXT_LENGTH = 200;
+export const MAX_ART_BYTES = 5 * 1024 * 1024;
 
-export const blankLayer = (id: string, color: string = INK_COLORS[1].hex): DesignLayer => ({
+export const blankLayer = (id: string, color: string = INK_COLORS[1].hex): TextLayer => ({
   id,
+  kind: "text",
   content: "Your text here",
   fontFamily: FONTS[0].family,
   fontSize: 32,
@@ -83,3 +103,27 @@ export const blankLayer = (id: string, color: string = INK_COLORS[1].hex): Desig
   y: 50,
   rotation: 0,
 });
+
+/** The design stage is always rendered at this pixel size (see .designer-stage's aspect-ratio). */
+export const STAGE_WIDTH = 400;
+export const STAGE_HEIGHT = 480;
+
+/** Picks a widthPct (percent of the stage's own width) so an image of the given aspect
+ *  ratio fits inside the product's print area without stretching. */
+export function fitImageWidthPct(aspectRatio: number, printArea: PrintArea): number {
+  const pxPerPctW = STAGE_WIDTH / 100;
+  const pxPerPctH = STAGE_HEIGHT / 100;
+  const boxWidthPx = printArea.width * pxPerPctW;
+  const boxHeightPx = printArea.height * pxPerPctH;
+  const widthPx = Math.min(boxWidthPx, boxHeightPx / aspectRatio);
+  return Math.max(5, Math.min(100, widthPx / pxPerPctW));
+}
+
+/** The height (percent of the stage's own height) that keeps an image layer's aspect ratio. */
+export function imageLayerHeightPct(widthPct: number, aspectRatio: number): number {
+  const pxPerPctW = STAGE_WIDTH / 100;
+  const pxPerPctH = STAGE_HEIGHT / 100;
+  const widthPx = widthPct * pxPerPctW;
+  const heightPx = widthPx * aspectRatio;
+  return heightPx / pxPerPctH;
+}

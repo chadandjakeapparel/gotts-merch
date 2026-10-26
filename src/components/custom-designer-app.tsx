@@ -6,12 +6,21 @@ import { useRef, useState } from "react";
 import { GarmentArt } from "@/components/garment-art";
 import {
   blankLayer,
+  fitImageWidthPct,
   FONTS,
+  imageLayerHeightPct,
   INK_COLORS,
+  MAX_ART_BYTES,
+  MAX_LAYERS,
   type CustomDesign,
   type DesignLayer,
   type DesignProductOption,
+  type ImageLayer,
+  type TextLayer,
 } from "@/lib/design-constants";
+import { removeBackgroundFromJpeg } from "@/lib/remove-background";
+
+const ART_TYPES: Record<string, boolean> = { "image/jpeg": true, "image/png": true, "image/webp": true };
 
 let layerSeq = 0;
 function newLayerId() {
@@ -20,6 +29,26 @@ function newLayerId() {
 }
 
 type DragState = { id: string; startX: number; startY: number; originX: number; originY: number };
+
+/** Every field either layer kind might take -- callers only ever set fields that match the
+ *  layer's own kind, so a narrow cast back to DesignLayer at the merge site is safe. */
+type LayerPatch = Partial<Omit<TextLayer, "id" | "kind">> & Partial<Omit<ImageLayer, "id" | "kind">>;
+
+function readImageDimensions(file: File): Promise<{ width: number; height: number }> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      resolve({ width: img.naturalWidth, height: img.naturalHeight });
+      URL.revokeObjectURL(url);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Couldn't read that image."));
+    };
+    img.src = url;
+  });
+}
 
 export function CustomDesignerApp({
   initialDesign,
@@ -40,8 +69,13 @@ export function CustomDesignerApp({
   const [saveError, setSaveError] = useState("");
   const [justSaved, setJustSaved] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+  const [removingBgId, setRemovingBgId] = useState<string | null>(null);
+  const [bgError, setBgError] = useState("");
   const stageRef = useRef<HTMLDivElement>(null);
   const dragState = useRef<DragState | null>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   const selected = layers.find((l) => l.id === selectedId) || null;
   const product = products.find((p) => p.id === productId) || initialDesign?.product || null;
@@ -55,13 +89,70 @@ export function CustomDesignerApp({
     setSelectedId(layer.id);
   }
 
-  function updateLayer(id: string, patch: Partial<DesignLayer>) {
-    setLayers((current) => current.map((l) => (l.id === id ? { ...l, ...patch } : l)));
+  function updateLayer(id: string, patch: LayerPatch) {
+    setLayers((current) => current.map((l) => (l.id === id ? ({ ...l, ...patch } as DesignLayer) : l)));
   }
 
   function removeLayer(id: string) {
     setLayers((current) => current.filter((l) => l.id !== id));
     setSelectedId((current) => (current === id ? null : current));
+  }
+
+  async function addImageFromFile(file: File) {
+    setUploadingImage(true);
+    setUploadError("");
+    try {
+      if (layers.length >= MAX_LAYERS) throw new Error("You've reached the layer limit.");
+      if (!ART_TYPES[file.type]) throw new Error("Use a JPG, PNG, or WEBP image.");
+      if (file.size > MAX_ART_BYTES) throw new Error("Image is too large (max 5MB).");
+
+      const { width: naturalWidth, height: naturalHeight } = await readImageDimensions(file);
+      const aspectRatio = naturalHeight / naturalWidth;
+      const widthPct = fitImageWidthPct(aspectRatio, printArea);
+
+      const formData = new FormData();
+      formData.append("file", file);
+      const response = await fetch("/api/custom-designer/upload", { method: "POST", body: formData });
+      const data = (await response.json().catch(() => ({ ok: false }))) as { ok?: boolean; url?: string; error?: string };
+      if (!response.ok || !data.ok || !data.url) throw new Error(data.error || "Couldn't upload that image. Try again.");
+
+      const layer: ImageLayer = {
+        id: newLayerId(),
+        kind: "image",
+        imageUrl: data.url,
+        aspectRatio,
+        widthPct,
+        x: 50,
+        y: 50,
+        rotation: 0,
+        bgRemovable: file.type === "image/jpeg",
+      };
+      setLayers((current) => [...current, layer]);
+      setSelectedId(layer.id);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Couldn't upload that image. Try again.");
+    } finally {
+      setUploadingImage(false);
+    }
+  }
+
+  async function removeBackground(layer: ImageLayer) {
+    setRemovingBgId(layer.id);
+    setBgError("");
+    try {
+      const blob = await removeBackgroundFromJpeg(layer.imageUrl);
+      const file = new File([blob], "design-art.png", { type: "image/png" });
+      const formData = new FormData();
+      formData.append("file", file);
+      const response = await fetch("/api/custom-designer/upload", { method: "POST", body: formData });
+      const data = (await response.json().catch(() => ({ ok: false }))) as { ok?: boolean; url?: string; error?: string };
+      if (!response.ok || !data.ok || !data.url) throw new Error(data.error || "Couldn't remove the background. Try again.");
+      updateLayer(layer.id, { imageUrl: data.url, bgRemovable: false });
+    } catch (err) {
+      setBgError(err instanceof Error ? err.message : "Couldn't remove the background. Try again.");
+    } finally {
+      setRemovingBgId(null);
+    }
   }
 
   function onLayerPointerDown(e: React.PointerEvent<HTMLDivElement>, layer: DesignLayer) {
@@ -139,7 +230,7 @@ export function CustomDesignerApp({
         <div>
           <span className="gm-eyebrow">Design it yourself</span>
           <h1>Custom Designer</h1>
-          <p className="designer-lead">Pick a blank, add your text, choose a font and ink color, and drag it into place.</p>
+          <p className="designer-lead">Pick a blank, add your text or your own art, and drag it into place.</p>
         </div>
         {code ? (
           <div className="designer-link">
@@ -185,119 +276,196 @@ export function CustomDesignerApp({
                 <GarmentArt product={product.placeholder} />
               ) : null}
             </div>
-            {layers.map((layer) => (
-              <div
-                className={`designer-layer${selectedId === layer.id ? " selected" : ""}${draggingId === layer.id ? " dragging" : ""}`}
-                key={layer.id}
-                onPointerCancel={onLayerPointerUp}
-                onPointerDown={(e) => onLayerPointerDown(e, layer)}
-                onPointerMove={onLayerPointerMove}
-                onPointerUp={onLayerPointerUp}
-                style={{
-                  left: `${printArea.left + (layer.x / 100) * printArea.width}%`,
-                  top: `${printArea.top + (layer.y / 100) * printArea.height}%`,
-                  transform: `translate(-50%, -50%) rotate(${layer.rotation}deg)`,
-                  fontFamily: `"${layer.fontFamily}"`,
-                  fontSize: layer.fontSize,
-                  color: layer.color,
-                  fontWeight: layer.bold ? 700 : 400,
-                  fontStyle: layer.italic ? "italic" : "normal",
-                }}
-              >
-                {layer.content || "Your text here"}
-              </div>
-            ))}
+            {layers.map((layer) => {
+              const isImage = layer.kind === "image";
+              const style: React.CSSProperties = {
+                left: `${printArea.left + (layer.x / 100) * printArea.width}%`,
+                top: `${printArea.top + (layer.y / 100) * printArea.height}%`,
+                transform: `translate(-50%, -50%) rotate(${layer.rotation}deg)`,
+              };
+              if (isImage) {
+                style.width = `${layer.widthPct}%`;
+                style.height = `${imageLayerHeightPct(layer.widthPct, layer.aspectRatio)}%`;
+              } else {
+                style.fontFamily = `"${layer.fontFamily}"`;
+                style.fontSize = layer.fontSize;
+                style.color = layer.color;
+                style.fontWeight = layer.bold ? 700 : 400;
+                style.fontStyle = layer.italic ? "italic" : "normal";
+              }
+              return (
+                <div
+                  className={`designer-layer${isImage ? " designer-layer--image" : ""}${selectedId === layer.id ? " selected" : ""}${draggingId === layer.id ? " dragging" : ""}`}
+                  key={layer.id}
+                  onPointerCancel={onLayerPointerUp}
+                  onPointerDown={(e) => onLayerPointerDown(e, layer)}
+                  onPointerMove={onLayerPointerMove}
+                  onPointerUp={onLayerPointerUp}
+                  style={style}
+                >
+                  {isImage ? <img alt="" draggable={false} src={layer.imageUrl} /> : layer.content || "Your text here"}
+                </div>
+              );
+            })}
           </div>
-          <p className="designer-hint">Drag your text to move it. Click it to edit the font, color, size and angle.</p>
+          <p className="designer-hint">Drag a layer to move it. Click it to edit it.</p>
         </div>
 
         <div className="designer-sidebar">
-          <button className="gm-btn gm-btn--primary" onClick={addLayer} type="button">+ Add text</button>
+          <div className="designer-add-row">
+            <button className="gm-btn gm-btn--primary" onClick={addLayer} type="button">+ Add text</button>
+            <button
+              className="gm-btn gm-btn--ghost"
+              disabled={uploadingImage}
+              onClick={() => imageInputRef.current?.click()}
+              type="button"
+            >
+              {uploadingImage ? "Uploading…" : "+ Add your art"}
+            </button>
+            <input
+              accept="image/jpeg,image/png,image/webp"
+              hidden
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (file) void addImageFromFile(file);
+              }}
+              ref={imageInputRef}
+              type="file"
+            />
+          </div>
+          {uploadError ? <p className="designer-error">{uploadError}</p> : null}
 
           {selected ? (
             <div className="designer-panel">
-              <label className="designer-field">
-                Text
-                <input
-                  autoFocus
-                  onChange={(e) => updateLayer(selected.id, { content: e.target.value.slice(0, 200) })}
-                  value={selected.content}
-                />
-              </label>
-
-              <label className="designer-field">
-                Font
-                <select onChange={(e) => updateLayer(selected.id, { fontFamily: e.target.value })} value={selected.fontFamily}>
-                  {FONTS.map((f) => (
-                    <option key={f.family} style={{ fontFamily: `"${f.family}"` }} value={f.family}>{f.label}</option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="designer-field">
-                Ink color
-                <div className="designer-swatches" role="group">
-                  {INK_COLORS.map((c) => (
-                    <button
-                      aria-label={c.name}
-                      aria-pressed={selected.color === c.hex}
-                      className="designer-swatch"
-                      key={c.hex}
-                      onClick={() => updateLayer(selected.id, { color: c.hex })}
-                      style={{ background: c.hex }}
-                      title={c.name}
-                      type="button"
+              {selected.kind === "text" ? (
+                <>
+                  <label className="designer-field">
+                    Text
+                    <input
+                      autoFocus
+                      onChange={(e) => updateLayer(selected.id, { content: e.target.value.slice(0, 200) })}
+                      value={selected.content}
                     />
-                  ))}
-                </div>
-              </label>
+                  </label>
 
-              <label className="designer-field">
-                Size
-                <input
-                  max={160}
-                  min={12}
-                  onChange={(e) => updateLayer(selected.id, { fontSize: Number(e.target.value) })}
-                  type="range"
-                  value={selected.fontSize}
-                />
-              </label>
+                  <label className="designer-field">
+                    Font
+                    <select onChange={(e) => updateLayer(selected.id, { fontFamily: e.target.value })} value={selected.fontFamily}>
+                      {FONTS.map((f) => (
+                        <option key={f.family} style={{ fontFamily: `"${f.family}"` }} value={f.family}>{f.label}</option>
+                      ))}
+                    </select>
+                  </label>
 
-              <label className="designer-field">
-                Angle
-                <input
-                  max={180}
-                  min={-180}
-                  onChange={(e) => updateLayer(selected.id, { rotation: Number(e.target.value) })}
-                  type="range"
-                  value={selected.rotation}
-                />
-              </label>
+                  <label className="designer-field">
+                    Ink color
+                    <div className="designer-swatches" role="group">
+                      {INK_COLORS.map((c) => (
+                        <button
+                          aria-label={c.name}
+                          aria-pressed={selected.color === c.hex}
+                          className="designer-swatch"
+                          key={c.hex}
+                          onClick={() => updateLayer(selected.id, { color: c.hex })}
+                          style={{ background: c.hex }}
+                          title={c.name}
+                          type="button"
+                        />
+                      ))}
+                    </div>
+                  </label>
 
-              <div className="designer-row-actions">
-                <button
-                  aria-pressed={selected.bold}
-                  className="gm-btn gm-btn--ghost"
-                  onClick={() => updateLayer(selected.id, { bold: !selected.bold })}
-                  type="button"
-                >
-                  <strong>B</strong>
-                </button>
-                <button
-                  aria-pressed={selected.italic}
-                  className="gm-btn gm-btn--ghost"
-                  onClick={() => updateLayer(selected.id, { italic: !selected.italic })}
-                  type="button"
-                >
-                  <em>I</em>
-                </button>
-                <button className="gm-btn gm-btn--ghost designer-danger" onClick={() => removeLayer(selected.id)} type="button">
-                  Delete
-                </button>
-              </div>
+                  <label className="designer-field">
+                    Size
+                    <input
+                      max={160}
+                      min={12}
+                      onChange={(e) => updateLayer(selected.id, { fontSize: Number(e.target.value) })}
+                      type="range"
+                      value={selected.fontSize}
+                    />
+                  </label>
+
+                  <label className="designer-field">
+                    Angle
+                    <input
+                      max={180}
+                      min={-180}
+                      onChange={(e) => updateLayer(selected.id, { rotation: Number(e.target.value) })}
+                      type="range"
+                      value={selected.rotation}
+                    />
+                  </label>
+
+                  <div className="designer-row-actions">
+                    <button
+                      aria-pressed={selected.bold}
+                      className="gm-btn gm-btn--ghost"
+                      onClick={() => updateLayer(selected.id, { bold: !selected.bold })}
+                      type="button"
+                    >
+                      <strong>B</strong>
+                    </button>
+                    <button
+                      aria-pressed={selected.italic}
+                      className="gm-btn gm-btn--ghost"
+                      onClick={() => updateLayer(selected.id, { italic: !selected.italic })}
+                      type="button"
+                    >
+                      <em>I</em>
+                    </button>
+                    <button className="gm-btn gm-btn--ghost designer-danger" onClick={() => removeLayer(selected.id)} type="button">
+                      Delete
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <label className="designer-field">
+                    Size
+                    <input
+                      max={90}
+                      min={5}
+                      onChange={(e) => updateLayer(selected.id, { widthPct: Number(e.target.value) })}
+                      type="range"
+                      value={selected.widthPct}
+                    />
+                  </label>
+
+                  <label className="designer-field">
+                    Angle
+                    <input
+                      max={180}
+                      min={-180}
+                      onChange={(e) => updateLayer(selected.id, { rotation: Number(e.target.value) })}
+                      type="range"
+                      value={selected.rotation}
+                    />
+                  </label>
+
+                  {selected.bgRemovable ? (
+                    <button
+                      className="gm-btn gm-btn--ghost"
+                      disabled={removingBgId === selected.id}
+                      onClick={() => removeBackground(selected)}
+                      type="button"
+                    >
+                      {removingBgId === selected.id ? "Removing background…" : "Remove background"}
+                    </button>
+                  ) : null}
+                  {bgError ? <p className="designer-error">{bgError}</p> : null}
+
+                  <div className="designer-row-actions">
+                    <button className="gm-btn gm-btn--ghost designer-danger" onClick={() => removeLayer(selected.id)} type="button">
+                      Delete
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           ) : (
-            <p className="designer-hint">{layers.length ? "Click a text layer to edit it." : "Add text to get started."}</p>
+            <p className="designer-hint">{layers.length ? "Click a layer to edit it." : "Add text or your own art to get started."}</p>
           )}
 
           <div className="designer-save">
