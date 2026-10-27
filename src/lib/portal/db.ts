@@ -160,6 +160,10 @@ create table if not exists leads (
 );
 create index if not exists leads_status_idx on leads (status);
 
+alter table leads add column if not exists contact_method text not null default 'email';
+alter table leads drop constraint if exists leads_contact_method_check;
+alter table leads add constraint leads_contact_method_check check (contact_method in ('email', 'phone', 'text'));
+
 create table if not exists lead_activities (
   id serial primary key,
   lead_id integer not null references leads(id) on delete cascade,

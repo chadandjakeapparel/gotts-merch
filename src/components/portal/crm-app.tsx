@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import type { Lead, LeadActivity, LeadStatus, Task } from "@/lib/portal/types";
+import type { ContactMethod, Lead, LeadActivity, LeadStatus, Task } from "@/lib/portal/types";
 import { api } from "./api";
 import { type StaffOption, TasksSection } from "./tasks-app";
 
@@ -16,6 +16,12 @@ const STAGES: { key: LeadStatus; label: string }[] = [
   { key: "proposal", label: "Proposal sent" },
   { key: "won", label: "Won" },
   { key: "lost", label: "Lost" },
+];
+
+const CONTACT_METHODS: { key: ContactMethod; label: string }[] = [
+  { key: "email", label: "Email" },
+  { key: "phone", label: "Phone Call" },
+  { key: "text", label: "Text" },
 ];
 
 const ACTIVITY_KINDS: { key: LeadActivity["kind"]; label: string }[] = [
@@ -282,6 +288,7 @@ function LeadModal({
     notes: lead?.notes || "",
   });
   const [status, setStatus] = useState<LeadStatus>(lead?.status || "new");
+  const [contactMethod, setContactMethod] = useState<ContactMethod>(lead?.contactMethod || "email");
   const [lostReason, setLostReason] = useState(lead?.lostReason || "");
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const { busy, error, setError, submit } = useSubmit(async () => {
@@ -293,7 +300,7 @@ function LeadModal({
   function save(e: React.FormEvent) {
     e.preventDefault();
     if (!form.companyName.trim() && !form.contactName.trim()) return setError("Give the lead a company name or a contact name.");
-    const body: Record<string, unknown> = { ...form };
+    const body: Record<string, unknown> = { ...form, contactMethod };
     if (lead) {
       body.status = status;
       if (status === "lost") body.lostReason = lostReason;
@@ -344,11 +351,19 @@ function LeadModal({
         <label className="portal-field">Source<input onChange={set("source")} placeholder="Referral, website, trade show…" value={form.source} /></label>
         <label className="portal-field">Estimated value ($)<input min={0} onChange={set("estimatedValue")} step={0.01} type="number" value={form.estimatedValue} /></label>
       </div>
-      <label className="portal-field">
-        Owner
-        <input list="crm-staff" onChange={set("owner")} placeholder="Who's working this?" value={form.owner} />
-        <datalist id="crm-staff">{staffNames.map((n) => <option key={n} value={n} />)}</datalist>
-      </label>
+      <div className="portal-row">
+        <label className="portal-field">
+          Owner
+          <input list="crm-staff" onChange={set("owner")} placeholder="Who's working this?" value={form.owner} />
+          <datalist id="crm-staff">{staffNames.map((n) => <option key={n} value={n} />)}</datalist>
+        </label>
+        <label className="portal-field">
+          Contact method
+          <select onChange={(e) => setContactMethod(e.target.value as ContactMethod)} value={contactMethod}>
+            {CONTACT_METHODS.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
+          </select>
+        </label>
+      </div>
       {lead ? (
         <div className="portal-row">
           <label className="portal-field">

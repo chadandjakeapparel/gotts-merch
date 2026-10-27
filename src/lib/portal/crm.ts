@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { db } from "./db";
 import { PortalError } from "./http";
-import type { Lead, LeadActivity, LeadStatus } from "./types";
+import type { ContactMethod, Lead, LeadActivity, LeadStatus } from "./types";
 
 type Row = Record<string, unknown>;
 
@@ -23,6 +23,18 @@ export function parseStatus(value: unknown): LeadStatus {
   const s = String(value ?? "");
   if ((STATUSES as string[]).includes(s)) return s as LeadStatus;
   throw new PortalError("That isn't a stage this board uses.");
+}
+
+export const CONTACT_METHODS: ContactMethod[] = ["email", "phone", "text"];
+export const CONTACT_METHOD_LABEL: Record<ContactMethod, string> = {
+  email: "Email",
+  phone: "Phone Call",
+  text: "Text",
+};
+
+export function parseContactMethod(value: unknown): ContactMethod {
+  const s = String(value ?? "");
+  return (CONTACT_METHODS as string[]).includes(s) ? (s as ContactMethod) : "email";
 }
 
 const ACTIVITY_KINDS: LeadActivity["kind"][] = ["note", "call", "email", "meeting", "status"];
@@ -50,6 +62,7 @@ function toLead(r: Row, activities: LeadActivity[]): Lead {
     phone: str(r.phone),
     source: str(r.source),
     status: r.status as LeadStatus,
+    contactMethod: parseContactMethod(r.contact_method),
     estimatedValue: num(r.estimated_value),
     owner: str(r.owner),
     notes: str(r.notes),
@@ -81,6 +94,7 @@ export type LeadInput = {
   email: string;
   phone: string;
   source: string;
+  contactMethod: ContactMethod;
   estimatedValue: number;
   owner: string;
   notes: string;
@@ -96,8 +110,11 @@ export async function createLead(input: LeadInput, createdBy: string): Promise<n
   requireName(input);
   const sql = await db();
   const [row] = await sql`
-    insert into leads (company_name, contact_name, email, phone, source, estimated_value, owner, notes)
-    values (${input.companyName}, ${input.contactName}, ${input.email}, ${input.phone}, ${input.source}, ${input.estimatedValue}, ${input.owner}, ${input.notes})
+    insert into leads (company_name, contact_name, email, phone, source, contact_method, estimated_value, owner, notes)
+    values (
+      ${input.companyName}, ${input.contactName}, ${input.email}, ${input.phone}, ${input.source},
+      ${input.contactMethod}, ${input.estimatedValue}, ${input.owner}, ${input.notes}
+    )
     returning id`;
   const id = Number(row.id);
   await sql`insert into lead_activities (lead_id, kind, body, created_by) values (${id}, 'status', 'Lead created', ${createdBy})`;
@@ -110,8 +127,8 @@ export async function updateLead(id: number, input: LeadInput) {
   const rows = await sql`
     update leads set
       company_name = ${input.companyName}, contact_name = ${input.contactName}, email = ${input.email},
-      phone = ${input.phone}, source = ${input.source}, estimated_value = ${input.estimatedValue},
-      owner = ${input.owner}, notes = ${input.notes}, updated_at = now()
+      phone = ${input.phone}, source = ${input.source}, contact_method = ${input.contactMethod},
+      estimated_value = ${input.estimatedValue}, owner = ${input.owner}, notes = ${input.notes}, updated_at = now()
     where id = ${id} returning id`;
   if (!rows.length) throw new PortalError("That lead no longer exists.", 404);
 }

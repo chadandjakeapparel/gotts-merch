@@ -1,4 +1,4 @@
-import type { LeadInput } from "./crm";
+import { parseContactMethod, type LeadInput } from "./crm";
 import type { CustomerInput } from "./customers";
 import type { ItemInput, OrderInput } from "./data";
 import type { JobInput } from "./jobs";
@@ -28,6 +28,7 @@ export function toLeadInput(body: Record<string, unknown>): LeadInput {
     email: text(body.email, 200),
     phone: text(body.phone, 60),
     source: text(body.source, 120),
+    contactMethod: parseContactMethod(body.contactMethod),
     estimatedValue: Number.isFinite(value) && value > 0 ? value : 0,
     owner: text(body.owner, 120),
     notes: text(body.notes, 2000),

@@ -78,6 +78,8 @@ export type ClientSummary = {
 
 export type LeadStatus = "new" | "contacted" | "qualified" | "proposal" | "won" | "lost";
 
+export type ContactMethod = "email" | "phone" | "text";
+
 export type LeadActivity = {
   id: number;
   kind: "note" | "call" | "email" | "meeting" | "status";
@@ -94,6 +96,7 @@ export type Lead = {
   phone: string;
   source: string;
   status: LeadStatus;
+  contactMethod: ContactMethod;
   estimatedValue: number;
   owner: string;
   notes: string;
