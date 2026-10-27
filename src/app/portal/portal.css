@@ -591,6 +591,7 @@
   cursor: pointer;
 }
 .portal-card:hover { border-color: var(--p-accent-2); }
+.portal-card-jobname { margin: 0; color: var(--p-muted); font-size: 12px; font-style: italic; }
 .portal-card-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; font-variant-numeric: tabular-nums; }
 .portal-card-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; }
 .portal-card-meta .portal-pill { margin-left: 0; }

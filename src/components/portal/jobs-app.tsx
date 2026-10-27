@@ -259,6 +259,7 @@ export function JobsApp({
                       type="button"
                     >
                       <h4>{customerName(j.customerId) || "Unassigned customer"}</h4>
+                      <p className="portal-card-jobname">{j.jobName || "Untitled job"}</p>
                       <div className="portal-card-meta">
                         <span className="portal-muted">{j.inHandDate ? fmtInHandDate(j.inHandDate) : "No in-hand date"}</span>
                         <span className={`portal-pill ${j.goodsOrdered ? "ok" : "warn"}`}>
