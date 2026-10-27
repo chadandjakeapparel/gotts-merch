@@ -45,6 +45,13 @@ export type FaqItem = {
   answer: string;
 };
 
+export type GalleryImage = {
+  url: string;
+  // Optional, shown only in the enlarged lightbox view -- e.g. the event
+  // name or a short note on what's pictured.
+  caption: string;
+};
+
 export type DocumentItem = {
   /** The URL path segment, e.g. "privacy-policy" for /get-to-know-us/privacy-policy. */
   slug: string;
@@ -118,6 +125,9 @@ export type SiteContent = {
   getToKnowUsTitle: string;
   getToKnowUsLead: string;
   documents: DocumentItem[];
+  // Past-event / product photos shown in the gallery on the Charity Golf
+  // Tournaments landing page.
+  golfGallery: GalleryImage[];
 };
 
 export const defaultContent: SiteContent = {
@@ -563,4 +573,5 @@ If you need governance information sooner, email us at {{inquiryEmail}}.`,
 For interviews, logos, product photography or other press assets, email us at {{inquiryEmail}} and we'll get back to you.`,
     },
   ],
+  golfGallery: [],
 };

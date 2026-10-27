@@ -179,6 +179,19 @@ function isValidContent(value: unknown): value is SiteContent {
     return false;
   }
 
+  if (
+    !Array.isArray(data.golfGallery) ||
+    !data.golfGallery.every(
+      (item) =>
+        item &&
+        typeof item === "object" &&
+        typeof (item as Record<string, unknown>).url === "string" &&
+        typeof (item as Record<string, unknown>).caption === "string",
+    )
+  ) {
+    return false;
+  }
+
   return true;
 }
 

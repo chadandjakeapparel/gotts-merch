@@ -942,6 +942,19 @@ export default function AdminPage() {
         </section>
 
         <section className="gm-admin-section">
+          <h2>Charity Golf Tournaments gallery</h2>
+          <p className="gm-admin-hint">
+            Product and past-event photos shown on the Charity Golf Tournaments page have their
+            own workspace, built for uploading a long list of photos without scrolling through the
+            rest of the site — currently {content.golfGallery.length}{" "}
+            {content.golfGallery.length === 1 ? "photo" : "photos"}.
+          </p>
+          <Link className="gm-btn gm-btn--primary" href="/admin/golf-gallery">
+            Open Golf Gallery editor →
+          </Link>
+        </section>
+
+        <section className="gm-admin-section">
           <h2>Get to Know Us</h2>
           <p className="gm-admin-hint">
             The policies and company-info page (Privacy Policy, Terms of Service, and the rest) has its own

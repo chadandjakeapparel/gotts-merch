@@ -8,6 +8,7 @@ import {
   type Differentiator,
   type DocumentItem,
   type FaqItem,
+  type GalleryImage,
   type ProcessStep,
   type ProductCategory,
   type TeamMember,
@@ -88,6 +89,9 @@ export const getSiteContent = cache(async (): Promise<SiteContent> => {
       documents: Array.isArray(data.documents)
         ? normalizeArray<DocumentItem>(data.documents, { slug: "", title: "", description: "", body: "" })
         : defaultContent.documents,
+      golfGallery: Array.isArray(data.golfGallery)
+        ? normalizeArray<GalleryImage>(data.golfGallery, { url: "", caption: "" })
+        : defaultContent.golfGallery,
     };
   } catch {
     return defaultContent;

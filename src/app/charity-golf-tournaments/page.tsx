@@ -8,6 +8,7 @@ import {
   ShirtIcon,
   TowelIcon,
 } from "@/components/icons";
+import { GolfGallery } from "@/components/golf-gallery";
 import { InquiryForm } from "@/components/inquiry-form";
 import { Nav } from "@/components/nav";
 import { SiteFooter } from "@/components/site-footer";
@@ -267,6 +268,21 @@ export default async function CharityGolfTournamentsPage() {
             </div>
           </div>
         </section>
+
+        {content.golfGallery.some((photo) => photo.url) ? (
+          <section className="gm-gallery" id="gallery">
+            <div className="gm-container">
+              <div className="gm-section-heading">
+                <p className="gm-eyebrow">Past events</p>
+                <h2>See it in action</h2>
+                <p>Product shots and photos from tournaments we&rsquo;ve outfitted. Click a photo to enlarge it.</p>
+              </div>
+            </div>
+            <div className="gm-container">
+              <GolfGallery images={content.golfGallery} />
+            </div>
+          </section>
+        ) : null}
 
         <section className="gm-why" id="why-us">
           <div className="gm-container">
