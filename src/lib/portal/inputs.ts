@@ -2,8 +2,23 @@ import type { LeadInput } from "./crm";
 import type { CustomerInput } from "./customers";
 import type { ItemInput, OrderInput } from "./data";
 import type { JobInput } from "./jobs";
+import type { TaskInput } from "./tasks";
 import type { Address } from "./types";
 import { int, money, PortalError, text } from "./http";
+
+export function toTaskInput(body: Record<string, unknown>): TaskInput {
+  const assignedToUserId = body.assignedToUserId == null || body.assignedToUserId === "" ? null : int(body.assignedToUserId);
+  const leadId = body.leadId == null || body.leadId === "" ? null : int(body.leadId);
+  const jobId = body.jobId == null || body.jobId === "" ? null : int(body.jobId);
+  return {
+    name: text(body.name, 200),
+    notes: text(body.notes, 2000),
+    completeBy: text(body.completeBy, 20),
+    assignedToUserId: assignedToUserId != null && Number.isFinite(assignedToUserId) ? assignedToUserId : null,
+    leadId: leadId != null && Number.isFinite(leadId) ? leadId : null,
+    jobId: jobId != null && Number.isFinite(jobId) ? jobId : null,
+  };
+}
 
 export function toLeadInput(body: Record<string, unknown>): LeadInput {
   const value = money(body.estimatedValue);

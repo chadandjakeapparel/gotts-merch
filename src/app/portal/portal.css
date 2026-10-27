@@ -634,3 +634,17 @@
 .portal-activity-add { display: flex; flex-wrap: wrap; gap: 8px; }
 .portal-activity-add select { flex: 0 1 auto; width: auto; }
 .portal-activity-add input { flex: 1 1 200px; }
+
+/* ---------- tasks ---------- */
+.portal-tasks-section { display: flex; flex-direction: column; gap: 10px; padding-top: 10px; border-top: 1px solid var(--p-line); }
+.portal-tasks-section__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.portal-tasks { display: flex; flex-direction: column; gap: 6px; list-style: none; padding: 0; margin: 0; }
+.portal-task { display: flex; align-items: flex-start; gap: 10px; padding: 8px 10px; border-radius: 4px; background: var(--p-sunk); }
+.portal-task input[type="checkbox"] { width: auto; margin-top: 3px; }
+.portal-task-main { display: flex; flex: 1; flex-direction: column; gap: 2px; min-width: 0; padding: 0; border: 0; background: none; text-align: left; cursor: pointer; }
+.portal-task-name { font-weight: 700; font-size: 14px; }
+.portal-task-name.done { color: var(--p-muted); text-decoration: line-through; }
+.portal-task-meta { color: var(--p-muted); font-size: 12px; }
+.portal-task-notes { color: var(--p-muted); font-size: 13px; white-space: pre-wrap; }
+.portal-tasks--page .portal-task { background: var(--p-surface); border-bottom: 1px solid var(--p-line); border-radius: 0; }
+.portal-tasks--page .portal-task:last-child { border-bottom: 0; }

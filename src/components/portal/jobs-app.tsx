@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { Customer, Job, JobStatus, SalesRep } from "@/lib/portal/types";
+import type { Customer, Job, JobStatus, SalesRep, Task } from "@/lib/portal/types";
 import { api } from "./api";
 import { CustomerModal, customerTitle } from "./customers-app";
+import { type StaffOption, TasksSection } from "./tasks-app";
 
 const count = new Intl.NumberFormat("en-US");
 
@@ -71,15 +72,22 @@ export function JobsApp({
   initialJobs,
   initialCustomers,
   initialSalesReps,
+  initialTasks,
+  staffUsers,
+  currentUserName,
   loadError,
 }: {
   initialJobs: Job[];
   initialCustomers: Customer[];
   initialSalesReps: SalesRep[];
+  initialTasks: Task[];
+  staffUsers: StaffOption[];
+  currentUserName: string;
   loadError: string;
 }) {
   const [jobs, setJobs] = useState(initialJobs);
   const [customers, setCustomers] = useState(initialCustomers);
+  const [tasks, setTasks] = useState(initialTasks);
   const salesReps = initialSalesReps;
   const [error, setError] = useState(loadError);
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -98,6 +106,11 @@ export function JobsApp({
     } catch (err) {
       setError(err instanceof Error ? err.message : "The job board couldn't be refreshed.");
     }
+  };
+
+  const reloadTasks = async () => {
+    const res = await api<{ tasks: Task[] }>("GET", "/api/portal/tasks");
+    setTasks(res.tasks);
   };
 
   const reloadCustomers = async () => {
@@ -288,24 +301,32 @@ export function JobsApp({
       {adding ? (
         <JobModal
           close={() => setAdding(false)}
+          currentUserName={currentUserName}
           customers={customers}
           job={null}
           onSaved={reload}
           reloadCustomers={reloadCustomers}
+          reloadTasks={reloadTasks}
           salesReps={salesReps}
+          staffUsers={staffUsers}
           suggestions={suggestions}
+          tasks={tasks}
         />
       ) : null}
       {selected ? (
         <JobModal
           close={() => setSelectedId(null)}
+          currentUserName={currentUserName}
           customers={customers}
           job={selected}
           key={selected.id}
           onSaved={reload}
           reloadCustomers={reloadCustomers}
+          reloadTasks={reloadTasks}
           salesReps={salesReps}
+          staffUsers={staffUsers}
           suggestions={suggestions}
+          tasks={tasks}
         />
       ) : null}
     </div>
@@ -320,12 +341,20 @@ function JobModal({
   salesReps,
   reloadCustomers,
   suggestions,
+  staffUsers,
+  tasks,
+  currentUserName,
+  reloadTasks,
 }: {
   job: Job | null;
   close: () => void;
   onSaved: () => Promise<void>;
   customers: Customer[];
   salesReps: SalesRep[];
+  staffUsers: StaffOption[];
+  tasks: Task[];
+  currentUserName: string;
+  reloadTasks: () => Promise<void>;
   reloadCustomers: () => Promise<Customer[]>;
   suggestions: { decorationTypes: string[]; productionFacilities: string[] };
 }) {
@@ -463,6 +492,16 @@ function JobModal({
         ) : null}
 
         {error ? <p className="portal-msg err" role="alert">{error}</p> : null}
+
+        {job ? (
+          <TasksSection
+            currentUserName={currentUserName}
+            jobId={job.id}
+            onChanged={reloadTasks}
+            staffUsers={staffUsers}
+            tasks={tasks.filter((t) => t.jobId === job.id)}
+          />
+        ) : null}
       </ModalFrame>
       {creatingCustomer ? (
         <CustomerModal

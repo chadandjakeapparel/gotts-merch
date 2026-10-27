@@ -364,6 +364,27 @@ select
   '["Under 50","50–200","200–500","500+"]'::jsonb,
   '["Apparel (polos, aprons, chef coats, rain jackets)","Menus, print & tabletop (menu jackets, coasters, napkins, matchboxes, stickers)","Drinkware & to-go (cups, sleeves, stirrers, to-go bags)","Pens & retail merchandise","Not sure yet"]'::jsonb
 where not exists (select 1 from quote_section);
+
+-- Tasks: assignable from the Tasks page, a CRM lead, or a Job Board job.
+-- Deleting a lead/job takes its tasks with it (same as lead_activities);
+-- deleting a staff login just clears who it was assigned to/by.
+create table if not exists tasks (
+  id serial primary key,
+  name text not null default '',
+  notes text not null default '',
+  complete_by date,
+  completed boolean not null default false,
+  completed_at timestamptz,
+  assigned_to_user_id integer references users(id) on delete set null,
+  assigned_by_user_id integer references users(id) on delete set null,
+  lead_id integer references leads(id) on delete cascade,
+  job_id integer references jobs(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists tasks_assigned_to_idx on tasks (assigned_to_user_id);
+create index if not exists tasks_lead_idx on tasks (lead_id);
+create index if not exists tasks_job_idx on tasks (job_id);
 `;
 
 /** Creates the tables on first use, so a fresh database needs no setup step. */

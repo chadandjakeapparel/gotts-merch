@@ -167,6 +167,26 @@ export type Job = {
   updatedAt: string;
 };
 
+export type Task = {
+  id: number;
+  name: string;
+  notes: string;
+  /** "YYYY-MM-DD", or blank if not set. */
+  completeBy: string;
+  completed: boolean;
+  completedAt: string | null;
+  assignedToUserId: number | null;
+  assignedToName: string;
+  assignedByUserId: number | null;
+  assignedByName: string;
+  leadId: number | null;
+  leadTitle: string;
+  jobId: number | null;
+  jobTitle: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type PortalUser = {
   id: number;
   email: string;

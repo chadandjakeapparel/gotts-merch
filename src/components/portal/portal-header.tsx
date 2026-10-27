@@ -10,6 +10,7 @@ export type PortalNavKey =
   | "crm"
   | "jobs"
   | "customers"
+  | "tasks"
   | "designer-products"
   | "designs"
   | "quote"
@@ -53,7 +54,7 @@ export function PortalHeader({
   }, [menuOpen]);
 
   // Alphabetical, per how this menu was asked to be laid out.
-  const adminTasks: [PortalNavKey, string, string][] = [
+  const adminMenuItems: [PortalNavKey, string, string][] = [
     ["admin", "/portal/admin", "Client Logins"],
     ["designer-products", "/portal/designer-products", "Designer Products"],
     ["quote", "/portal/quote", "Get a Quote"],
@@ -61,7 +62,7 @@ export function PortalHeader({
     ["account", "/portal/account", "My Account"],
     ["designs", "/portal/designs", "Saved Designs"],
   ];
-  const adminTasksActive = adminTasks.some(([key]) => key === current);
+  const adminMenuActive = adminMenuItems.some(([key]) => key === current);
 
   return (
     <header className="portal-top">
@@ -75,10 +76,11 @@ export function PortalHeader({
               <Link aria-current={current === "crm" ? "page" : undefined} href="/portal/crm">CRM</Link>
               <Link aria-current={current === "jobs" ? "page" : undefined} href="/portal/jobs">Job Board</Link>
               <Link aria-current={current === "customers" ? "page" : undefined} href="/portal/customers">Customers</Link>
+              <Link aria-current={current === "tasks" ? "page" : undefined} href="/portal/tasks">Tasks</Link>
               <div className="portal-nav-dropdown" ref={menuRef}>
                 <button
                   aria-expanded={menuOpen}
-                  className={`portal-nav-dropdown__trigger${adminTasksActive ? " active" : ""}`}
+                  className={`portal-nav-dropdown__trigger${adminMenuActive ? " active" : ""}`}
                   onClick={() => setMenuOpen((open) => !open)}
                   type="button"
                 >
@@ -87,7 +89,7 @@ export function PortalHeader({
                 </button>
                 {menuOpen ? (
                   <div className="portal-nav-dropdown__menu" role="menu">
-                    {adminTasks.map(([key, href, text]) => (
+                    {adminMenuItems.map(([key, href, text]) => (
                       <Link
                         aria-current={current === key ? "page" : undefined}
                         href={href}

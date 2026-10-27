@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import type { Lead, LeadActivity, LeadStatus } from "@/lib/portal/types";
+import type { Lead, LeadActivity, LeadStatus, Task } from "@/lib/portal/types";
 import { api } from "./api";
+import { type StaffOption, TasksSection } from "./tasks-app";
 
 const currency = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 const count = new Intl.NumberFormat("en-US");
@@ -75,13 +76,20 @@ function ModalFrame({ title, children, footer, close }: { title: string; childre
 export function CrmApp({
   initialLeads,
   staffNames,
+  staffUsers,
+  initialTasks,
+  currentUserName,
   loadError,
 }: {
   initialLeads: Lead[];
   staffNames: string[];
+  staffUsers: StaffOption[];
+  initialTasks: Task[];
+  currentUserName: string;
   loadError: string;
 }) {
   const [leads, setLeads] = useState(initialLeads);
+  const [tasks, setTasks] = useState(initialTasks);
   const [error, setError] = useState(loadError);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [adding, setAdding] = useState(false);
@@ -96,6 +104,11 @@ export function CrmApp({
     } catch (err) {
       setError(err instanceof Error ? err.message : "The board couldn't be refreshed.");
     }
+  };
+
+  const reloadTasks = async () => {
+    const res = await api<{ tasks: Task[] }>("GET", "/api/portal/tasks");
+    setTasks(res.tasks);
   };
 
   /** Moves a lead to a stage by drag and drop, then reloads so a move into Won picks up the new client link. */
@@ -209,9 +222,31 @@ export function CrmApp({
         })}
       </div>
 
-      {adding ? <LeadModal close={() => setAdding(false)} key="new" lead={null} onSaved={reload} staffNames={staffNames} /> : null}
+      {adding ? (
+        <LeadModal
+          close={() => setAdding(false)}
+          currentUserName={currentUserName}
+          key="new"
+          lead={null}
+          onSaved={reload}
+          reloadTasks={reloadTasks}
+          staffNames={staffNames}
+          staffUsers={staffUsers}
+          tasks={tasks}
+        />
+      ) : null}
       {selected ? (
-        <LeadModal close={() => setSelectedId(null)} key={selected.id} lead={selected} onSaved={reload} staffNames={staffNames} />
+        <LeadModal
+          close={() => setSelectedId(null)}
+          currentUserName={currentUserName}
+          key={selected.id}
+          lead={selected}
+          onSaved={reload}
+          reloadTasks={reloadTasks}
+          staffNames={staffNames}
+          staffUsers={staffUsers}
+          tasks={tasks}
+        />
       ) : null}
     </div>
   );
@@ -222,11 +257,19 @@ function LeadModal({
   close,
   onSaved,
   staffNames,
+  staffUsers,
+  tasks,
+  currentUserName,
+  reloadTasks,
 }: {
   lead: Lead | null;
   close: () => void;
   onSaved: () => Promise<void>;
   staffNames: string[];
+  staffUsers: StaffOption[];
+  tasks: Task[];
+  currentUserName: string;
+  reloadTasks: () => Promise<void>;
 }) {
   const [form, setForm] = useState({
     companyName: lead?.companyName || "",
@@ -326,6 +369,15 @@ function LeadModal({
       ) : null}
       <label className="portal-field">Notes<textarea onChange={set("notes")} rows={3} value={form.notes} /></label>
       {error ? <p className="portal-msg err" role="alert">{error}</p> : null}
+      {lead ? (
+        <TasksSection
+          currentUserName={currentUserName}
+          leadId={lead.id}
+          onChanged={reloadTasks}
+          staffUsers={staffUsers}
+          tasks={tasks.filter((t) => t.leadId === lead.id)}
+        />
+      ) : null}
       {lead ? <ActivityFeed lead={lead} onAdded={onSaved} /> : null}
     </ModalFrame>
   );
