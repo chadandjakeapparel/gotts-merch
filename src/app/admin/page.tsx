@@ -132,7 +132,7 @@ export default function AdminPage() {
     setContent((current) => (current ? { ...current, [key]: value } : current));
   }
 
-  function updateCategory(index: number, field: "title" | "description" | "imageUrl", value: string) {
+  function updateCategory(index: number, field: "title" | "description" | "imageUrl" | "longBody", value: string) {
     setContent((current) => {
       if (!current) return current;
       const next = [...current.productCategories];
@@ -551,6 +551,14 @@ export default function AdminPage() {
                   onChange={(event) => updateCategoryItems(index, event.target.value)}
                   rows={5}
                   value={itemsToText(category.items)}
+                />
+              </label>
+              <label>
+                <span>Long description (shown on this category&rsquo;s own page, /products/{category.key})</span>
+                <textarea
+                  onChange={(event) => updateCategory(index, "longBody", event.target.value)}
+                  rows={4}
+                  value={category.longBody}
                 />
               </label>
               <div className="gm-admin-photo">

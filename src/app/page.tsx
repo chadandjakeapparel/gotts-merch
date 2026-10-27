@@ -1,19 +1,14 @@
+import Link from "next/link";
 import { InquiryForm } from "@/components/inquiry-form";
-import { CheckIcon, CupIcon, MenuCardIcon, PenIcon, ShirtIcon } from "@/components/icons";
+import { CheckIcon } from "@/components/icons";
 import { Nav } from "@/components/nav";
 import { SiteFooter } from "@/components/site-footer";
 import { TeamAvatar } from "@/components/team-avatar";
 import { getSiteContent } from "@/lib/content";
+import { categoryIcons } from "@/lib/category-icons";
 import { getQuoteSection } from "@/lib/portal/quote-section";
 
 export const dynamic = "force-dynamic";
-
-const categoryIcons = {
-  apparel: ShirtIcon,
-  print: MenuCardIcon,
-  drinkware: CupIcon,
-  retail: PenIcon,
-} as const;
 
 export default async function HomePage() {
   const content = await getSiteContent();
@@ -111,6 +106,9 @@ export default async function HomePage() {
                         <li key={item}>{item}</li>
                       ))}
                     </ul>
+                    <Link className="gm-link gm-product-card__link" href={`/products/${category.key}`}>
+                      Learn more →
+                    </Link>
                   </article>
                 );
               })}

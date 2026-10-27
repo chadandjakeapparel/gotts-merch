@@ -6,6 +6,9 @@ export type ProductCategory = {
   // Shown behind the title on the homepage hero's top category tiles. Leave
   // blank to keep the plain colored tile with its icon.
   imageUrl: string;
+  // A longer paragraph shown on this category's own page at /products/<key>,
+  // in addition to the short description used everywhere else.
+  longBody: string;
 };
 
 export type Differentiator = {
@@ -142,6 +145,8 @@ export const defaultContent: SiteContent = {
         "Branded gear built to survive a shift — and a commercial laundry cycle.",
       items: ["Polos", "Aprons", "Chef coats", "Rain jackets"],
       imageUrl: "",
+      longBody:
+        "Corporate apparel and custom staff uniforms for restaurants, hotels, bars and cafés, made to actually hold up: fabric weights chosen for a full shift on your feet, color and logo placement that survive repeated commercial laundering, and embroidery or print that doesn't crack or fade after the first wash. We size-run your whole team, keep reorders consistent season to season, and handle everything from a single location's polos to a multi-property uniform rollout.",
     },
     {
       key: "print",
@@ -157,6 +162,8 @@ export const defaultContent: SiteContent = {
         "Stickers",
       ],
       imageUrl: "",
+      longBody:
+        "Promotional products and printed tabletop pieces guests actually handle: menu jackets and inserts that get reprinted fast when a seasonal menu changes, coasters and napkins that carry your logo without looking like an afterthought, and the small branded touches — matchboxes, stickers, restroom linen napkins — that make a space feel finished. Quick turns matter most here, so pricing and proofing are built around how often menus actually change.",
     },
     {
       key: "drinkware",
@@ -171,6 +178,8 @@ export const defaultContent: SiteContent = {
         "To-go bags",
       ],
       imageUrl: "",
+      longBody:
+        "Branded drinkware and to-go packaging for restaurants, cafés and bars — hot cups, cold cups, cup sleeves, stirrers and to-go bags that carry your logo out the door and into a guest's hands (and their social feed). Ordered at the volumes a real kitchen or bar goes through, with consistent color matching order to order so a reorder six months later still looks like it came from the same run.",
     },
     {
       key: "retail",
@@ -179,6 +188,8 @@ export const defaultContent: SiteContent = {
         "Everyday branded basics, plus a retail line guests can buy on their way out.",
       items: ["Pens", "Tees & hats", "Tote bags", "Register-ready merch"],
       imageUrl: "",
+      longBody:
+        "Everyday branded merch and a guest-facing retail line in one order: pens and basics for day-to-day use, plus tees, hats, tote bags and other register-ready pieces guests will actually buy on their way out. A small rack near the host stand or register turns loyal regulars into walking advertising and adds a revenue line that didn't exist before — packaged and priced to sell, not just to give away.",
     },
   ],
   activationsEyebrow: "Live, on-site merch production",

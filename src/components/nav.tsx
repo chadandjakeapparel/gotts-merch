@@ -119,7 +119,7 @@ export function Nav({
                   {productCategories.map((category) => (
                     <Link
                       className="gm-mega__item"
-                      href={`/#product-${category.key}`}
+                      href={`/products/${category.key}`}
                       key={category.key}
                       onClick={() => setProductsOpen(false)}
                     >
@@ -180,7 +180,7 @@ export function Nav({
                 </Link>
                 {productCategories.map((category) => (
                   <Link
-                    href={`/#product-${category.key}`}
+                    href={`/products/${category.key}`}
                     key={category.key}
                     onClick={() => setOpen(false)}
                   >

@@ -35,6 +35,9 @@ export async function GET() {
     "## Pages",
     "",
     `- [Homepage](${siteUrl}/): products, on-site activations, process, FAQ, and quote request`,
+    ...content.productCategories.map(
+      (category) => `- [${category.title}](${siteUrl}/products/${category.key}): ${category.description}`,
+    ),
     `- [Brands](${siteUrl}/brands): manufacturer and supplier brands ${content.brandName} carries`,
     `- [Custom Designer](${siteUrl}/custom-designer): a free tool for customers to design their own apparel online and save a link to it`,
     `- [Get to Know Us](${siteUrl}/get-to-know-us): company policies and information`,
