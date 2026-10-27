@@ -17,7 +17,11 @@ async function loadDoc(slug: string) {
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { content, doc } = await loadDoc((await params).slug);
   if (!doc) return { title: `Not found | ${content.brandName}` };
-  return { title: `${doc.title} | ${content.brandName}`, description: doc.description };
+  return {
+    title: `${doc.title} | ${content.brandName}`,
+    description: doc.description,
+    alternates: { canonical: `/get-to-know-us/${doc.slug}` },
+  };
 }
 
 export default async function DocumentPage({ params }: Params) {

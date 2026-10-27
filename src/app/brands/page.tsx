@@ -12,6 +12,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: `${content.brandsTitle} | ${content.brandName}`,
     description: content.brandsLead,
+    alternates: { canonical: "/brands" },
   };
 }
 

@@ -9,6 +9,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: `${content.getToKnowUsTitle} | ${content.brandName}`,
     description: content.getToKnowUsLead.replaceAll("{{brandName}}", content.brandName),
+    alternates: { canonical: "/get-to-know-us" },
   };
 }
 

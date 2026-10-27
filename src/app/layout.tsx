@@ -17,9 +17,14 @@ const inter = Inter({
 
 export async function generateMetadata(): Promise<Metadata> {
   const content = await getSiteContent();
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://gottsmerch.com";
   return {
     title: content.metaTitle,
     description: content.metaDescription,
+    // Lets every page's own `alternates.canonical` be given as a relative
+    // path and still resolve to the right absolute URL.
+    metadataBase: new URL(siteUrl),
+    alternates: { canonical: "/" },
     // Leaving faviconUrl blank keeps the default src/app/icon.svg mark.
     icons: content.faviconUrl ? { icon: content.faviconUrl } : undefined,
     openGraph: {
@@ -63,7 +68,6 @@ export default async function RootLayout({
     logo: content.logoUrl || `${siteUrl}/icon.svg`,
     email: content.inquiryEmail,
     knowsAbout: content.productCategories.map((category) => category.title),
-    areaServed: content.venueTypes,
   };
 
   return (

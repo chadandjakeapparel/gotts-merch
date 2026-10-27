@@ -11,7 +11,9 @@ type Params = { params: Promise<{ code: string }> };
 
 export async function generateMetadata(): Promise<Metadata> {
   const content = await getSiteContent();
-  return { title: `Your design | ${content.brandName}` };
+  // Private, per-customer links with no unique public content of their own
+  // -- kept out of search entirely rather than competing with the real pages.
+  return { title: `Your design | ${content.brandName}`, robots: { index: false, follow: false } };
 }
 
 export default async function SavedDesignPage({ params }: Params) {

@@ -10,6 +10,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: `Custom Designer | ${content.brandName}`,
     description: "Design your own tee, hoodie or crewneck -- add text, pick a font and ink color, then save your design.",
+    alternates: { canonical: "/custom-designer" },
   };
 }
 
