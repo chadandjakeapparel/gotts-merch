@@ -115,6 +115,13 @@ export async function createUser(input: { email: string; name: string; role: Rol
   return { email, password };
 }
 
+export async function renameUser(id: number, name: string) {
+  if (!name.trim()) throw new PortalError("Give this login a name.");
+  const sql = await db();
+  const rows = await sql`update users set name = ${name.trim()} where id = ${id} returning id`;
+  if (!rows.length) throw new PortalError("That login no longer exists.", 404);
+}
+
 /** Sets a new temporary password and signs the person out everywhere. */
 export async function resetUserPassword(id: number) {
   const password = temporaryPassword();

@@ -53,6 +53,7 @@ export function AdminApp({
   const [secret, setSecret] = useState<{ email: string; password: string; created: boolean } | null>(null);
   const [newClient, setNewClient] = useState("");
   const [editing, setEditing] = useState<{ id: number; name: string } | null>(null);
+  const [editingUser, setEditingUser] = useState<{ id: number; name: string } | null>(null);
   const [confirming, setConfirming] = useState<string | null>(null);
   const [login, setLogin] = useState({ email: "", name: "", clientId: initialClients[0] ? String(initialClients[0].id) : "staff" });
   const [busy, setBusy] = useState(false);
@@ -226,7 +227,29 @@ export function AdminApp({
               {users.map((u) => (
                 <tr key={u.id}>
                   <td>{u.email}{u.isOwner ? <span className="portal-pill ok">Owner</span> : null}{u.mustChangePassword ? <span className="portal-pill low">Temporary password</span> : null}</td>
-                  <td>{u.name}</td>
+                  <td>
+                    {editingUser?.id === u.id ? (
+                      <form
+                        className="portal-inline-form"
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          void run(async () => {
+                            await api("PATCH", `/api/portal/admin/users/${u.id}`, { action: "rename", name: editingUser.name });
+                            setEditingUser(null);
+                          });
+                        }}
+                      >
+                        <input aria-label="Login name" autoFocus onChange={(e) => setEditingUser({ id: u.id, name: e.target.value })} value={editingUser.name} />
+                        <button className="portal-btn small primary" disabled={busy} type="submit">Save</button>
+                        <button className="portal-btn small" onClick={() => setEditingUser(null)} type="button">Cancel</button>
+                      </form>
+                    ) : (
+                      <span className="portal-row-actions">
+                        {u.name}
+                        <button className="portal-link small" onClick={() => setEditingUser({ id: u.id, name: u.name })} type="button">Rename</button>
+                      </span>
+                    )}
+                  </td>
                   <td>{u.role === "staff" ? <strong>Staff</strong> : clientNames.get(u.clientId ?? 0) || "Unknown client"}</td>
                   <td>{fmtDate(u.lastLoginAt)}</td>
                   <td className="r">

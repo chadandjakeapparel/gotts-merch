@@ -1,14 +1,22 @@
-import { deleteUser, resetUserPassword } from "@/lib/portal/accounts";
-import { handle, int, PortalError, readJson } from "@/lib/portal/http";
+import { deleteUser, renameUser, resetUserPassword } from "@/lib/portal/accounts";
+import { handle, int, PortalError, readJson, text } from "@/lib/portal/http";
 
 type Params = { params: Promise<{ id: string }> };
 
-/** `{ action: "reset" }` sets a new temporary password and returns it. */
+/**
+ * `{ action: "reset" }` sets a new temporary password and returns it.
+ * `{ action: "rename", name }` changes the login's display name.
+ */
 export async function PATCH(request: Request, { params }: Params) {
   return handle(request, { staff: true }, async () => {
     const body = await readJson(request);
-    if (body.action !== "reset") throw new PortalError("Unknown action.");
-    return await resetUserPassword(int((await params).id));
+    const id = int((await params).id);
+    if (body.action === "reset") return await resetUserPassword(id);
+    if (body.action === "rename") {
+      await renameUser(id, text(body.name, 120));
+      return {};
+    }
+    throw new PortalError("Unknown action.");
   });
 }
 
