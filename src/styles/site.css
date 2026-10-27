@@ -115,8 +115,19 @@ fieldset {
   font-size: clamp(2rem, 3.6vw, 3.1rem);
 }
 
+.gm-section-heading p {
+  max-width: 640px;
+  margin-top: 16px;
+  color: var(--gm-ink-soft);
+  font-size: 1.02rem;
+}
+
 .gm-section-heading--light .gm-eyebrow {
   color: var(--gm-blue-light);
+}
+
+.gm-section-heading--light p {
+  color: rgba(255, 255, 255, 0.72);
 }
 
 .gm-section-heading--light h2 {
@@ -1505,6 +1516,18 @@ fieldset {
   cursor: pointer;
 }
 
+/* Charity golf tournaments landing page */
+
+.gm-golf-grid {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.gm-golf-related {
+  padding-block: clamp(56px, 7vw, 90px);
+  background: var(--gm-white);
+  border-top: 1px solid var(--gm-line);
+}
+
 /* Footer */
 
 .gm-footer {
@@ -1572,7 +1595,8 @@ fieldset {
   .gm-products__grid,
   .gm-why__grid,
   .gm-process__grid,
-  .gm-activations__grid {
+  .gm-activations__grid,
+  .gm-golf-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 
@@ -1610,7 +1634,8 @@ fieldset {
   .gm-why__grid,
   .gm-process__grid,
   .gm-about__team,
-  .gm-activations__grid {
+  .gm-activations__grid,
+  .gm-golf-grid {
     grid-template-columns: 1fr;
   }
 

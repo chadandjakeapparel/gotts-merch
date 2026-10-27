@@ -38,6 +38,7 @@ export async function GET() {
     ...content.productCategories.map(
       (category) => `- [${category.title}](${siteUrl}/products/${category.key}): ${category.description}`,
     ),
+    `- [Charity Golf Tournaments](${siteUrl}/charity-golf-tournaments): custom golf balls, apparel, gift bags, giveaways and towels for charity and corporate golf tournaments`,
     `- [Brands](${siteUrl}/brands): manufacturer and supplier brands ${content.brandName} carries`,
     `- [Custom Designer](${siteUrl}/custom-designer): a free tool for customers to design their own apparel online and save a link to it`,
     `- [Get to Know Us](${siteUrl}/get-to-know-us): company policies and information`,

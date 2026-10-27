@@ -127,6 +127,16 @@ export function Nav({
                       <span className="gm-mega__item-desc">{category.description}</span>
                     </Link>
                   ))}
+                  <Link
+                    className="gm-mega__item"
+                    href="/charity-golf-tournaments"
+                    onClick={() => setProductsOpen(false)}
+                  >
+                    <span className="gm-mega__item-title">Charity Golf Tournaments</span>
+                    <span className="gm-mega__item-desc">
+                      Golf balls, apparel, gift bags & towels for your event.
+                    </span>
+                  </Link>
                 </div>
               </div>
             ) : null}
@@ -187,6 +197,9 @@ export function Nav({
                     {category.title}
                   </Link>
                 ))}
+                <Link href="/charity-golf-tournaments" onClick={() => setOpen(false)}>
+                  Charity Golf Tournaments
+                </Link>
               </div>
             ) : null}
           </div>

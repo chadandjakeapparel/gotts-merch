@@ -148,3 +148,109 @@ export function CheckIcon({ size = 18, className }: IconProps) {
     </svg>
   );
 }
+
+export function GolfBallIcon({ size = 26, className }: IconProps) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      height={size}
+      viewBox="0 0 24 24"
+      width={size}
+    >
+      <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="1.6" />
+      <circle cx="9" cy="9" fill="currentColor" r="0.9" />
+      <circle cx="13.5" cy="8.2" fill="currentColor" r="0.9" />
+      <circle cx="16" cy="11.5" fill="currentColor" r="0.9" />
+      <circle cx="9" cy="13.5" fill="currentColor" r="0.9" />
+      <circle cx="13" cy="15.5" fill="currentColor" r="0.9" />
+    </svg>
+  );
+}
+
+export function BagIcon({ size = 26, className }: IconProps) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      height={size}
+      viewBox="0 0 24 24"
+      width={size}
+    >
+      <path
+        d="M7.5 9V6.6a4.5 4.5 0 0 1 9 0V9"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="1.6"
+      />
+      <path
+        d="M5.6 9h12.8l-1.1 10.4a1.4 1.4 0 0 1-1.4 1.3H8.1a1.4 1.4 0 0 1-1.4-1.3L5.6 9Z"
+        stroke="currentColor"
+        strokeLinejoin="round"
+        strokeWidth="1.6"
+      />
+    </svg>
+  );
+}
+
+export function GiftIcon({ size = 26, className }: IconProps) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      height={size}
+      viewBox="0 0 24 24"
+      width={size}
+    >
+      <rect height="10" rx="1.2" stroke="currentColor" strokeWidth="1.6" width="15" x="4.5" y="9.5" />
+      <path d="M4.5 13h15M12 9.5v10" stroke="currentColor" strokeWidth="1.6" />
+      <path
+        d="M12 9.5c-1.4 0-3.3-.7-3.3-2.5a1.9 1.9 0 0 1 1.9-1.9c1.4 0 1.4 2.6 1.4 4.4ZM12 9.5c1.4 0 3.3-.7 3.3-2.5a1.9 1.9 0 0 0-1.9-1.9c-1.4 0-1.4 2.6-1.4 4.4Z"
+        stroke="currentColor"
+        strokeLinejoin="round"
+        strokeWidth="1.5"
+      />
+    </svg>
+  );
+}
+
+export function TowelIcon({ size = 26, className }: IconProps) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      height={size}
+      viewBox="0 0 24 24"
+      width={size}
+    >
+      <rect height="16.5" rx="2" stroke="currentColor" strokeWidth="1.6" width="13.5" x="5.25" y="3.75" />
+      <path d="M5.25 9h13.5M5.25 15h13.5" stroke="currentColor" strokeWidth="1.4" />
+    </svg>
+  );
+}
+
+export function FlagIcon({ size = 26, className }: IconProps) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      height={size}
+      viewBox="0 0 24 24"
+      width={size}
+    >
+      <path d="M7 20V4" stroke="currentColor" strokeLinecap="round" strokeWidth="1.6" />
+      <path
+        d="M7 4.5 17.5 8 7 11.5Z"
+        stroke="currentColor"
+        strokeLinejoin="round"
+        strokeWidth="1.6"
+      />
+      <circle cx="7" cy="20.5" fill="currentColor" r="1" />
+    </svg>
+  );
+}
