@@ -97,6 +97,7 @@ export function JobsApp({
   const [query, setQuery] = useState("");
   const [customerFilter, setCustomerFilter] = useState("");
   const [jobTypeFilter, setJobTypeFilter] = useState("");
+  const [facilityFilter, setFacilityFilter] = useState("");
 
   const reload = async () => {
     try {
@@ -156,6 +157,7 @@ export function JobsApp({
     return jobs.filter((j) => {
       if (customerFilter && String(j.customerId) !== customerFilter) return false;
       if (jobTypeFilter && j.decorationType !== jobTypeFilter) return false;
+      if (facilityFilter && j.productionFacility !== facilityFilter) return false;
       if (!q) return true;
       const haystack = [
         j.jobName,
@@ -172,7 +174,7 @@ export function JobsApp({
         .toLowerCase();
       return haystack.includes(q);
     });
-  }, [jobs, query, customerFilter, jobTypeFilter, customerName]);
+  }, [jobs, query, customerFilter, jobTypeFilter, facilityFilter, customerName]);
 
   const byStage = useMemo(() => {
     const m = new Map<JobStatus, Job[]>(STAGES.map((s) => [s.key, [] as Job[]]));
@@ -225,6 +227,14 @@ export function JobsApp({
         <select aria-label="Filter by job type" onChange={(e) => setJobTypeFilter(e.target.value)} value={jobTypeFilter}>
           <option value="">All job types</option>
           {suggestions.decorationTypes.map((d) => <option key={d} value={d}>{d}</option>)}
+        </select>
+        <select
+          aria-label="Filter by production facility"
+          onChange={(e) => setFacilityFilter(e.target.value)}
+          value={facilityFilter}
+        >
+          <option value="">All production facilities</option>
+          {suggestions.productionFacilities.map((f) => <option key={f} value={f}>{f}</option>)}
         </select>
       </div>
 
