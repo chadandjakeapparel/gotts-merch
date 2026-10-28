@@ -43,6 +43,10 @@ export async function GET() {
     `- [Custom Designer](${siteUrl}/custom-designer): a free tool for customers to design their own apparel online and save a link to it`,
     `- [Get to Know Us](${siteUrl}/get-to-know-us): company policies and information`,
     ...content.documents.map((doc) => `  - [${doc.title}](${siteUrl}/get-to-know-us/${doc.slug}): ${doc.description}`),
+    `- [Blog](${siteUrl}/blog): guides on quantities, timelines and what to order`,
+    ...content.blogPosts
+      .filter((post) => post.slug)
+      .map((post) => `  - [${post.title}](${siteUrl}/blog/${post.slug}): ${post.excerpt}`),
     "",
     "## Contact",
     "",

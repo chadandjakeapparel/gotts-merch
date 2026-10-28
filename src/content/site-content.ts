@@ -67,6 +67,23 @@ export type DocumentItem = {
   body: string;
 };
 
+export type BlogPost = {
+  /** The URL path segment, e.g. "golf-tournament-swag-budget" for /blog/<slug>. */
+  slug: string;
+  title: string;
+  // Shown on the blog index card and used as the page's meta description.
+  excerpt: string;
+  // Shown at the top of the post and on its index card. Leave blank to skip it.
+  coverImageUrl: string;
+  /** "YYYY-MM-DD". Drives display order (newest first) on the blog index. */
+  publishedAt: string;
+  // Same format as DocumentItem.body: blank line = new paragraph, "## " =
+  // heading, lines starting with "- " = a bullet list, "[text](url)" = a
+  // link. {{brandName}} and {{inquiryEmail}} are replaced with the site's
+  // current values.
+  body: string;
+};
+
 export type SiteContent = {
   brandName: string;
   // Leave blank to use the default recreated wordmark/G mark.
@@ -128,6 +145,10 @@ export type SiteContent = {
   // Past-event / product photos shown in the gallery on the Charity Golf
   // Tournaments landing page.
   golfGallery: GalleryImage[];
+  blogEyebrow: string;
+  blogTitle: string;
+  blogLead: string;
+  blogPosts: BlogPost[];
 };
 
 export const defaultContent: SiteContent = {
@@ -574,4 +595,9 @@ For interviews, logos, product photography or other press assets, email us at {{
     },
   ],
   golfGallery: [],
+  blogEyebrow: "Blog",
+  blogTitle: "Guides for planning your next order.",
+  blogLead:
+    "Practical answers on quantities, timelines and what to pick — from the team at {{brandName}}.",
+  blogPosts: [],
 };

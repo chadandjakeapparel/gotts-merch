@@ -955,6 +955,18 @@ export default function AdminPage() {
         </section>
 
         <section className="gm-admin-section">
+          <h2>Blog</h2>
+          <p className="gm-admin-hint">
+            Blog posts have their own workspace, built for writing and publishing as many as you
+            need — currently {content.blogPosts.length}{" "}
+            {content.blogPosts.length === 1 ? "post" : "posts"}.
+          </p>
+          <Link className="gm-btn gm-btn--primary" href="/admin/blog">
+            Open Blog editor →
+          </Link>
+        </section>
+
+        <section className="gm-admin-section">
           <h2>Get to Know Us</h2>
           <p className="gm-admin-hint">
             The policies and company-info page (Privacy Policy, Terms of Service, and the rest) has its own

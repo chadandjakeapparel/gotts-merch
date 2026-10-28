@@ -4,6 +4,7 @@ import {
   defaultContent,
   type SiteContent,
   type ActivationStation,
+  type BlogPost,
   type BrandPartner,
   type Differentiator,
   type DocumentItem,
@@ -92,6 +93,16 @@ export const getSiteContent = cache(async (): Promise<SiteContent> => {
       golfGallery: Array.isArray(data.golfGallery)
         ? normalizeArray<GalleryImage>(data.golfGallery, { url: "", caption: "" })
         : defaultContent.golfGallery,
+      blogPosts: Array.isArray(data.blogPosts)
+        ? normalizeArray<BlogPost>(data.blogPosts, {
+            slug: "",
+            title: "",
+            excerpt: "",
+            coverImageUrl: "",
+            publishedAt: "",
+            body: "",
+          })
+        : defaultContent.blogPosts,
     };
   } catch {
     return defaultContent;

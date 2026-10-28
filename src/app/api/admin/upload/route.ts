@@ -9,7 +9,7 @@ const ALLOWED_TYPES: Record<string, string> = {
   "image/png": "png",
   "image/webp": "webp",
 };
-const ALLOWED_FOLDERS = new Set(["team", "brand", "favicon", "og", "category", "golf-gallery"]);
+const ALLOWED_FOLDERS = new Set(["team", "brand", "favicon", "og", "category", "golf-gallery", "blog"]);
 
 export async function POST(request: Request) {
   const store = await cookies();

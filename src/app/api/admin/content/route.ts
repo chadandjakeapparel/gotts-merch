@@ -58,6 +58,9 @@ function isValidContent(value: unknown): value is SiteContent {
     "getToKnowUsEyebrow",
     "getToKnowUsTitle",
     "getToKnowUsLead",
+    "blogEyebrow",
+    "blogTitle",
+    "blogLead",
   ];
   for (const key of requiredStrings) {
     if (typeof data[key] !== "string") return false;
@@ -187,6 +190,23 @@ function isValidContent(value: unknown): value is SiteContent {
         typeof item === "object" &&
         typeof (item as Record<string, unknown>).url === "string" &&
         typeof (item as Record<string, unknown>).caption === "string",
+    )
+  ) {
+    return false;
+  }
+
+  if (
+    !Array.isArray(data.blogPosts) ||
+    !data.blogPosts.every(
+      (item) =>
+        item &&
+        typeof item === "object" &&
+        typeof (item as Record<string, unknown>).slug === "string" &&
+        typeof (item as Record<string, unknown>).title === "string" &&
+        typeof (item as Record<string, unknown>).excerpt === "string" &&
+        typeof (item as Record<string, unknown>).coverImageUrl === "string" &&
+        typeof (item as Record<string, unknown>).publishedAt === "string" &&
+        typeof (item as Record<string, unknown>).body === "string",
     )
   ) {
     return false;
