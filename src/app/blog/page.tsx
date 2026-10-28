@@ -24,7 +24,7 @@ export default async function BlogIndexPage() {
   const content = await getSiteContent();
   const lead = content.blogLead.replaceAll("{{brandName}}", content.brandName);
   const posts = [...content.blogPosts]
-    .filter((post) => post.slug && post.title)
+    .filter((post) => post.slug && post.title && post.published)
     .sort((a, b) => (b.publishedAt || "").localeCompare(a.publishedAt || ""));
 
   return (

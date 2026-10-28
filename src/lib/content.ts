@@ -101,6 +101,7 @@ export const getSiteContent = cache(async (): Promise<SiteContent> => {
             coverImageUrl: "",
             publishedAt: "",
             body: "",
+            published: false,
           })
         : defaultContent.blogPosts,
     };

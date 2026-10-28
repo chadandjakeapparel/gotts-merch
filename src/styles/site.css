@@ -2115,6 +2115,35 @@ fieldset {
   font-weight: 600;
 }
 
+.gm-admin-badge {
+  flex-shrink: 0;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.gm-admin-badge--draft {
+  color: var(--gm-ink-soft);
+  background: var(--gm-slate);
+}
+
+.gm-admin-badge--published {
+  color: #1d7a4c;
+  background: rgba(29, 122, 76, 0.15);
+}
+
+.gm-admin-section .gm-admin-checkbox {
+  flex-direction: row;
+  align-items: center;
+}
+
+.gm-admin-checkbox input[type="checkbox"] {
+  width: auto;
+}
+
 /* Client login link */
 
 .gm-client-login {

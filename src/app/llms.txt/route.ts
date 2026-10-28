@@ -45,7 +45,7 @@ export async function GET() {
     ...content.documents.map((doc) => `  - [${doc.title}](${siteUrl}/get-to-know-us/${doc.slug}): ${doc.description}`),
     `- [Blog](${siteUrl}/blog): guides on quantities, timelines and what to order`,
     ...content.blogPosts
-      .filter((post) => post.slug)
+      .filter((post) => post.slug && post.published)
       .map((post) => `  - [${post.title}](${siteUrl}/blog/${post.slug}): ${post.excerpt}`),
     "",
     "## Contact",

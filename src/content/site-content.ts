@@ -82,6 +82,9 @@ export type BlogPost = {
   // link. {{brandName}} and {{inquiryEmail}} are replaced with the site's
   // current values.
   body: string;
+  // Drafts never appear on the public blog (index, post URL, sitemap, or
+  // llms.txt) until flipped on.
+  published: boolean;
 };
 
 export type SiteContent = {
@@ -599,5 +602,84 @@ For interviews, logos, product photography or other press assets, email us at {{
   blogTitle: "Guides for planning your next order.",
   blogLead:
     "Practical answers on quantities, timelines and what to pick — from the team at {{brandName}}.",
-  blogPosts: [],
+  blogPosts: [
+    {
+      slug: "how-many-golf-balls-charity-tournament",
+      title: "How Many Promotional Golf Balls Should You Order for a Charity Tournament?",
+      excerpt:
+        "A simple formula for sizing your golf ball order -- gift bags, hole sponsors, and prizes -- so you don't over-buy or run short.",
+      coverImageUrl: "",
+      publishedAt: "2026-10-28",
+      published: false,
+      body: `If you're planning merch for a charity golf tournament, golf balls are usually the single biggest line item in the budget -- and the easiest one to either over-order or run short on. Here's a simple way to size your order before you request a quote.
+
+## Start with the gift bag
+
+Most tournaments put one sleeve (3 balls) per golfer in the welcome gift bag. For a field of 144 golfers (a typical 4-person scramble with 36 foursomes), that's 48 dozen, or 576 balls, just for the gift bags.
+
+- 1 sleeve (3 balls) per golfer for the gift bag
+- Round up to the nearest dozen when you order, since most printers run in dozens
+
+## Add hole sponsors
+
+If hole sponsors want their own branded balls at their tee box, plan for 1 dozen per sponsored hole. An 18-hole course with 10-12 sponsored holes adds another 10-12 dozen to the order.
+
+## Add prizes
+
+Closest-to-pin, longest-drive, and hole-in-one contests typically use higher-end balls than the gift bag sleeves. Budget 1-2 dozen premium balls for these, separate from the bulk order.
+
+## Putting it together
+
+For a standard 144-golfer tournament with 10 sponsored holes, a realistic order looks like:
+
+- 48 dozen standard balls for gift bags
+- 10 dozen branded balls for hole sponsors
+- 1-2 dozen premium balls for contest prizes
+
+## Picking a brand
+
+We print and stamp balls from Titleist, Callaway, TaylorMade, Bridgestone, Srixon and most major manufacturers, so your budget -- not the brand -- usually drives the decision. [Get a quote](/charity-golf-tournaments#quote) with your headcount and we'll put together options at a few price points.
+
+{{brandName}} works with charity and corporate golf tournaments on the full gift bag line-up -- golf balls, apparel, bags, towels and giveaways -- from a single quote.`,
+    },
+    {
+      slug: "embroidery-vs-screen-printing",
+      title: "Embroidery vs. Screen Printing: Which Is Right for Your Order?",
+      excerpt:
+        "The real differences in cost, durability, and look -- and how to pick the right method for your next apparel order.",
+      coverImageUrl: "",
+      publishedAt: "2026-10-28",
+      published: false,
+      body: `Embroidery and screen printing are the two most common ways to brand apparel, and the right choice depends on what you're printing, how many you need, and how the garment will be used.
+
+## Embroidery
+
+Embroidery stitches your logo directly into the fabric with thread. It holds up to years of washing and wear, which makes it the default choice for uniforms, polos, jackets, and anything that goes through a commercial laundry cycle.
+
+- Best for: polos, jackets, hats, vests
+- Durability: very high -- doesn't crack, fade, or peel
+- Cost: higher per-unit cost, with a setup fee per design
+- Limitations: not ideal for large, highly detailed, or photo-realistic designs
+
+## Screen printing
+
+Screen printing applies ink directly to the fabric through a stencil. It's the better choice for large graphics, multiple colors across a big print area, or soft, lightweight apparel like t-shirts.
+
+- Best for: t-shirts, tote bags, large back prints
+- Durability: good, though prints can fade or crack over many years of heavy washing
+- Cost: lower per-unit cost at higher quantities, with per-color setup fees
+- Limitations: less practical for very small quantities or extremely small, detailed logos
+
+## A quick way to decide
+
+- Going on a polo, jacket, or anything that gets washed weekly? Choose embroidery.
+- Need a big, colorful design on a t-shirt or tote bag? Choose screen printing.
+- Ordering under a dozen pieces? Embroidery's setup fee is usually a smaller share of the total cost.
+- Ordering in bulk with a simple 1-2 color logo? Screen printing is usually the better value.
+
+Not sure which fits your order? [Send us your logo and quantity](/#quote) and we'll recommend the method that balances cost, durability, and look for what you're printing.
+
+{{brandName}} offers both embroidery and screen printing in-house, so you're never stuck choosing based on what one vendor happens to offer.`,
+    },
+  ],
 };

@@ -206,7 +206,8 @@ function isValidContent(value: unknown): value is SiteContent {
         typeof (item as Record<string, unknown>).excerpt === "string" &&
         typeof (item as Record<string, unknown>).coverImageUrl === "string" &&
         typeof (item as Record<string, unknown>).publishedAt === "string" &&
-        typeof (item as Record<string, unknown>).body === "string",
+        typeof (item as Record<string, unknown>).body === "string" &&
+        typeof (item as Record<string, unknown>).published === "boolean",
     )
   ) {
     return false;

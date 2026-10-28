@@ -134,6 +134,15 @@ export default function AdminBlogPage() {
     });
   }
 
+  function setPublished(index: number, value: boolean) {
+    setContent((current) => {
+      if (!current) return current;
+      const next = [...current.blogPosts];
+      next[index] = { ...next[index], published: value };
+      return { ...current, blogPosts: next };
+    });
+  }
+
   function addPost() {
     setContent((current) => {
       if (!current) return current;
@@ -141,7 +150,15 @@ export default function AdminBlogPage() {
         ...current,
         blogPosts: [
           ...current.blogPosts,
-          { slug: "", title: "", excerpt: "", coverImageUrl: "", publishedAt: todayIso(), body: "" },
+          {
+            slug: "",
+            title: "",
+            excerpt: "",
+            coverImageUrl: "",
+            publishedAt: todayIso(),
+            body: "",
+            published: false,
+          },
         ],
       };
     });
@@ -236,30 +253,49 @@ export default function AdminBlogPage() {
           </label>
           <p className="gm-admin-hint">
             Use <code>{"{{brandName}}"}</code> anywhere in the lead or a post body to insert your
-            site&rsquo;s name automatically. Until the first post is published, the blog page shows a
-            &ldquo;check back soon&rdquo; message instead of this intro.
+            site&rsquo;s name automatically. Until at least one post is marked Published, the blog
+            page shows a &ldquo;check back soon&rdquo; message instead of this intro.
           </p>
         </section>
 
         <section className="gm-admin-section">
           <h2>
             Posts ({content.blogPosts.length}
-            {content.blogPosts.length === 1 ? " post" : " posts"})
+            {content.blogPosts.length === 1 ? " post" : " posts"}
+            {" — "}
+            {content.blogPosts.filter((p) => p.published).length} live,{" "}
+            {content.blogPosts.filter((p) => !p.published).length} draft)
           </h2>
           <p className="gm-admin-hint">
-            Posts appear on the blog newest-first by publish date, each at its own address
-            (/blog/[the slug]). In a body: a blank line starts a new paragraph, <code>## </code>{" "}
-            starts a heading, a block of lines each starting with <code>- </code> becomes a bullet
-            list, <code>[link text](/some/url)</code> becomes a link, and{" "}
-            <code>{"{{brandName}}"}</code> / <code>{"{{inquiryEmail}}"}</code> insert your
-            site&rsquo;s current name and contact email.
+            A new post starts as a <strong>Draft</strong> -- only you can see it, via its
+            &ldquo;View this post&rdquo; link below, and it&rsquo;s left out of the public blog
+            page, sitemap, and llms.txt. Check <strong>Published</strong> on a post when
+            it&rsquo;s ready to go live. Published posts appear on the blog newest-first by
+            publish date, each at its own address (/blog/[the slug]). In a body: a blank line
+            starts a new paragraph, <code>## </code> starts a heading, a block of lines each
+            starting with <code>- </code> becomes a bullet list, <code>[link text](/some/url)</code>{" "}
+            becomes a link, and <code>{"{{brandName}}"}</code> / <code>{"{{inquiryEmail}}"}</code>{" "}
+            insert your site&rsquo;s current name and contact email.
           </p>
           {content.blogPosts.map((post, index) => {
             const normalizedSlug = post.slug.trim().toLowerCase();
             const duplicateSlug = normalizedSlug && slugs.filter((s) => s === normalizedSlug).length > 1;
             return (
               <div className="gm-admin-card" key={index}>
-                <p className="gm-admin-card__label">Post {index + 1}</p>
+                <div className="gm-admin-card__header">
+                  <p className="gm-admin-card__label">Post {index + 1}</p>
+                  <span className={`gm-admin-badge ${post.published ? "gm-admin-badge--published" : "gm-admin-badge--draft"}`}>
+                    {post.published ? "Published" : "Draft"}
+                  </span>
+                </div>
+                <label className="gm-admin-checkbox">
+                  <input
+                    checked={post.published}
+                    onChange={(event) => setPublished(index, event.target.checked)}
+                    type="checkbox"
+                  />
+                  <span>Published (live on gottsmerch.com/blog)</span>
+                </label>
                 <label>
                   <span>Title</span>
                   <input
