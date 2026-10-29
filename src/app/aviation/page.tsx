@@ -286,6 +286,17 @@ export default async function AviationPage() {
           </div>
         </section>
 
+        <section className="gm-aviation-fleet">
+          <div className="gm-container">
+            {/* eslint-disable-next-line @next/next/no-img-element -- static page asset, not admin-managed content */}
+            <img
+              alt="Illustrated lineup of private jets we outfit crews for, including the Gulfstream G550, Dassault Falcon 7X, Praetor 300, Cirrus SF50 Vision Jet, Bombardier Global 5500, Challenger 350 and Cessna Citation 3J3+"
+              src="/aviation-jet-fleet.webp"
+            />
+            <p>From the Gulfstream G550 to the Cessna Citation — we know your fleet.</p>
+          </div>
+        </section>
+
         <section className="gm-products gm-products--alt" id="ground-ops">
           <div className="gm-container">
             <div className="gm-section-heading">
