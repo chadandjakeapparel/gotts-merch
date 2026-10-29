@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import type { Customer, Job, SalesRep } from "@/lib/portal/types";
+import { useMemo, useState } from "react";
+import type { Customer, Job, SalesRep, Task } from "@/lib/portal/types";
 import { api } from "./api";
 import { addressSummary, CustomerModal, customerTitle } from "./customers-app";
+import { JobModal } from "./jobs-app";
+import { type StaffOption } from "./tasks-app";
 
 const count = new Intl.NumberFormat("en-US");
 
@@ -42,22 +44,67 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
 
 export function CustomerDetailApp({
   customer,
-  jobs,
+  initialJobs,
+  initialCustomers,
+  initialTasks,
   salesReps,
+  staffUsers,
+  currentUserName,
+  loadError,
 }: {
   customer: Customer;
-  jobs: Job[];
+  initialJobs: Job[];
+  initialCustomers: Customer[];
+  initialTasks: Task[];
   salesReps: SalesRep[];
+  staffUsers: StaffOption[];
+  currentUserName: string;
+  loadError: string;
 }) {
   const router = useRouter();
+  const [jobs, setJobs] = useState(initialJobs);
+  const [customers, setCustomers] = useState(initialCustomers);
+  const [tasks, setTasks] = useState(initialTasks);
+  const [error, setError] = useState(loadError);
   const [editing, setEditing] = useState(false);
+  const [editingJobId, setEditingJobId] = useState<number | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
 
+  const reloadJobs = async () => {
+    try {
+      const res = await api<{ jobs: Job[] }>("GET", "/api/portal/jobs");
+      setJobs(res.jobs.filter((j) => j.customerId === customer.id));
+      setError("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "This customer's jobs couldn't be refreshed.");
+    }
+  };
+
+  const reloadTasks = async () => {
+    const res = await api<{ tasks: Task[] }>("GET", "/api/portal/tasks");
+    setTasks(res.tasks);
+  };
+
+  const reloadCustomers = async () => {
+    const res = await api<{ customers: Customer[] }>("GET", "/api/portal/customers");
+    setCustomers(res.customers);
+    return res.customers;
+  };
+
+  const suggestions = useMemo(
+    () => ({
+      decorationTypes: [...new Set(jobs.map((j) => j.decorationType).filter(Boolean))],
+      productionFacilities: [...new Set(jobs.map((j) => j.productionFacility).filter(Boolean))],
+    }),
+    [jobs],
+  );
+
   const repName = salesReps.find((r) => r.id === customer.salesRepId)?.name || "Unassigned";
   const otherAddresses = customer.shippingAddresses.filter((a) => !a.isPrimary);
   const activeJobs = jobs.filter((j) => j.status !== "delivered").length;
+  const editingJob = editingJobId ? jobs.find((j) => j.id === editingJobId) || null : null;
 
   async function handleDelete() {
     setDeleting(true);
@@ -95,6 +142,7 @@ export function CustomerDetailApp({
           <button className="portal-btn primary" onClick={() => setEditing(true)} type="button">Edit</button>
         </span>
       </div>
+      {error ? <p className="portal-msg err" role="alert">{error}</p> : null}
       {deleteError ? <p className="portal-msg err" role="alert">{deleteError}</p> : null}
 
       <section aria-label="Summary" className="portal-summary">
@@ -153,7 +201,11 @@ export function CustomerDetailApp({
               {jobs.length ? (
                 jobs.map((j) => (
                   <tr key={j.id}>
-                    <td>{j.jobName || "Untitled job"}</td>
+                    <td>
+                      <button className="portal-link" onClick={() => setEditingJobId(j.id)} type="button">
+                        {j.jobName || "Untitled job"}
+                      </button>
+                    </td>
                     <td>{JOB_STATUS_LABEL[j.status]}</td>
                     <td>{j.inHandDate ? fmtInHandDate(j.inHandDate) : ""}</td>
                     <td>{j.decorationType}</td>
@@ -177,6 +229,22 @@ export function CustomerDetailApp({
             router.refresh();
           }}
           salesReps={salesReps}
+        />
+      ) : null}
+
+      {editingJob ? (
+        <JobModal
+          close={() => setEditingJobId(null)}
+          currentUserName={currentUserName}
+          customers={customers}
+          job={editingJob}
+          onSaved={reloadJobs}
+          reloadCustomers={reloadCustomers}
+          reloadTasks={reloadTasks}
+          salesReps={salesReps}
+          staffUsers={staffUsers}
+          suggestions={suggestions}
+          tasks={tasks}
         />
       ) : null}
     </div>

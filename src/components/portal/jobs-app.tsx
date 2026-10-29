@@ -401,7 +401,7 @@ export function JobsApp({
   );
 }
 
-function JobModal({
+export function JobModal({
   job,
   close,
   onSaved,
