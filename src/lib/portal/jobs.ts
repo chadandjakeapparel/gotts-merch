@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { PortalError } from "./http";
-import type { Job, JobActivity, JobStatus } from "./types";
+import type { Job, JobActivity, JobFile, JobStatus } from "./types";
 
 type Row = Record<string, unknown>;
 
@@ -33,7 +33,19 @@ function toActivity(r: Row): JobActivity {
   };
 }
 
-function toJob(r: Row, activities: JobActivity[]): Job {
+function toFile(r: Row): JobFile {
+  return {
+    id: num(r.id),
+    fileName: str(r.file_name),
+    url: str(r.url),
+    contentType: str(r.content_type),
+    size: num(r.size),
+    uploadedBy: str(r.uploaded_by),
+    createdAt: iso(r.created_at) || "",
+  };
+}
+
+function toJob(r: Row, activities: JobActivity[], files: JobFile[]): Job {
   return {
     id: num(r.id),
     customerId: r.customer_id == null ? null : num(r.customer_id),
@@ -49,21 +61,28 @@ function toJob(r: Row, activities: JobActivity[]): Job {
     createdAt: iso(r.created_at) || "",
     updatedAt: iso(r.updated_at) || "",
     activities,
+    files,
   };
 }
 
 export async function listJobs(): Promise<Job[]> {
   const sql = await db();
-  const [jobs, activities] = await Promise.all([
+  const [jobs, activities, files] = await Promise.all([
     sql`select * from jobs order by updated_at desc`,
     sql`select * from job_activities order by created_at desc`,
+    sql`select * from job_files order by created_at desc`,
   ]);
-  const byJob = new Map<number, JobActivity[]>();
+  const activitiesByJob = new Map<number, JobActivity[]>();
   for (const r of activities) {
     const id = num(r.job_id);
-    byJob.set(id, [...(byJob.get(id) || []), toActivity(r)]);
+    activitiesByJob.set(id, [...(activitiesByJob.get(id) || []), toActivity(r)]);
   }
-  return jobs.map((r) => toJob(r, byJob.get(num(r.id)) || []));
+  const filesByJob = new Map<number, JobFile[]>();
+  for (const r of files) {
+    const id = num(r.job_id);
+    filesByJob.set(id, [...(filesByJob.get(id) || []), toFile(r)]);
+  }
+  return jobs.map((r) => toJob(r, activitiesByJob.get(num(r.id)) || [], filesByJob.get(num(r.id)) || []));
 }
 
 export type JobInput = {
@@ -200,4 +219,28 @@ export async function addJobActivity(jobId: number, body: string, createdBy: str
 export async function deleteJob(id: number) {
   const sql = await db();
   await sql`delete from jobs where id = ${id}`;
+}
+
+export type JobFileInput = {
+  fileName: string;
+  url: string;
+  contentType: string;
+  size: number;
+};
+
+export async function addJobFile(jobId: number, input: JobFileInput, uploadedBy: string): Promise<JobFile> {
+  const sql = await db();
+  const rows = await sql`select id from jobs where id = ${jobId}`;
+  if (!rows.length) throw new PortalError("That job no longer exists.", 404);
+  const [row] = await sql`
+    insert into job_files (job_id, file_name, url, content_type, size, uploaded_by)
+    values (${jobId}, ${input.fileName}, ${input.url}, ${input.contentType}, ${input.size}, ${uploadedBy})
+    returning *`;
+  await sql`update jobs set updated_at = now() where id = ${jobId}`;
+  return toFile(row);
+}
+
+export async function deleteJobFile(jobId: number, fileId: number) {
+  const sql = await db();
+  await sql`delete from job_files where id = ${fileId} and job_id = ${jobId}`;
 }

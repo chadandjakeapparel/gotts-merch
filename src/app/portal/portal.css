@@ -295,6 +295,17 @@
 }
 .portal-toolbar input[type="search"] { flex: 1 1 200px; width: auto; }
 .portal-toolbar select { flex: 0 1 auto; width: auto; }
+.portal-toolbar-date {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--p-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.portal-toolbar-date input[type="date"] { width: auto; }
 .portal-toolbar-end { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
 .portal-filters { display: flex; flex-wrap: wrap; gap: 4px; }
 .portal-filters button {
@@ -651,6 +662,58 @@
 .portal-log-details[open] summary::before { content: "▾"; }
 .portal-log-details summary:hover { color: var(--p-ink); }
 .portal-log-details .portal-activity-section { margin-top: 10px; padding-top: 10px; }
+
+/* ---------- job files ---------- */
+.portal-files-section { display: flex; flex-direction: column; gap: 10px; padding-top: 10px; border-top: 1px solid var(--p-line); }
+
+.portal-dropzone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 18px 14px;
+  border: 1px dashed var(--p-line);
+  border-radius: 6px;
+  background: var(--p-sunk);
+  color: var(--p-muted);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease, color 120ms ease;
+}
+.portal-dropzone:hover,
+.portal-dropzone.drag-over {
+  border-color: var(--p-accent-2);
+  background: var(--p-accent-soft);
+  color: var(--p-ink);
+}
+.portal-dropzone input[type="file"] { display: none; }
+
+.portal-file-list { display: flex; flex-direction: column; gap: 6px; list-style: none; padding: 0; margin: 0; }
+.portal-file-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 4px;
+  background: var(--p-sunk);
+  font-size: 13px;
+}
+.portal-file-list a { flex: 1 1 auto; min-width: 0; overflow: hidden; color: var(--p-accent-2); font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.portal-file-list button {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--p-muted);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.portal-file-list button:hover { color: var(--p-crit); }
+.portal-file-list button:disabled { cursor: wait; opacity: 0.6; }
 
 /* ---------- tasks ---------- */
 .portal-tasks-section { display: flex; flex-direction: column; gap: 10px; padding-top: 10px; border-top: 1px solid var(--p-line); }

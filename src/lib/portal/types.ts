@@ -161,6 +161,16 @@ export type JobActivity = {
   createdAt: string;
 };
 
+export type JobFile = {
+  id: number;
+  fileName: string;
+  url: string;
+  contentType: string;
+  size: number;
+  uploadedBy: string;
+  createdAt: string;
+};
+
 export type Job = {
   id: number;
   customerId: number | null;
@@ -177,6 +187,7 @@ export type Job = {
   createdAt: string;
   updatedAt: string;
   activities: JobActivity[];
+  files: JobFile[];
 };
 
 export type Task = {

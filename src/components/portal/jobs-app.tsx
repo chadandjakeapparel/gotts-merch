@@ -36,6 +36,20 @@ function fmtLogDate(value: string) {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 }
 
+function fmtCreatedDate(value: string) {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+function fmtFileSize(bytes: number) {
+  if (!bytes) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 function useSubmit(onDone: () => Promise<void>) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -111,6 +125,8 @@ export function JobsApp({
   const [customerFilter, setCustomerFilter] = useState("");
   const [jobTypeFilter, setJobTypeFilter] = useState("");
   const [facilityFilter, setFacilityFilter] = useState("");
+  const [createdFrom, setCreatedFrom] = useState("");
+  const [createdTo, setCreatedTo] = useState("");
 
   const reload = async () => {
     try {
@@ -171,6 +187,9 @@ export function JobsApp({
       if (customerFilter && String(j.customerId) !== customerFilter) return false;
       if (jobTypeFilter && j.decorationType !== jobTypeFilter) return false;
       if (facilityFilter && j.productionFacility !== facilityFilter) return false;
+      const createdDate = j.createdAt.slice(0, 10);
+      if (createdFrom && createdDate < createdFrom) return false;
+      if (createdTo && createdDate > createdTo) return false;
       if (!q) return true;
       const haystack = [
         j.jobName,
@@ -187,7 +206,7 @@ export function JobsApp({
         .toLowerCase();
       return haystack.includes(q);
     });
-  }, [jobs, query, customerFilter, jobTypeFilter, facilityFilter, customerName]);
+  }, [jobs, query, customerFilter, jobTypeFilter, facilityFilter, createdFrom, createdTo, customerName]);
 
   const byStage = useMemo(() => {
     const m = new Map<JobStatus, Job[]>(STAGES.map((s) => [s.key, [] as Job[]]));
@@ -249,6 +268,26 @@ export function JobsApp({
           <option value="">All production facilities</option>
           {suggestions.productionFacilities.map((f) => <option key={f} value={f}>{f}</option>)}
         </select>
+        <label className="portal-toolbar-date">
+          Created after
+          <input aria-label="Created after" onChange={(e) => setCreatedFrom(e.target.value)} type="date" value={createdFrom} />
+        </label>
+        <label className="portal-toolbar-date">
+          Created before
+          <input aria-label="Created before" onChange={(e) => setCreatedTo(e.target.value)} type="date" value={createdTo} />
+        </label>
+        {createdFrom || createdTo ? (
+          <button
+            className="portal-btn small"
+            onClick={() => {
+              setCreatedFrom("");
+              setCreatedTo("");
+            }}
+            type="button"
+          >
+            Clear dates
+          </button>
+        ) : null}
       </div>
 
       <div className="portal-board">
@@ -305,6 +344,12 @@ export function JobsApp({
                       <div className="portal-card-foot">
                         <span className="portal-muted">{j.decorationType || "No decoration set"}</span>
                         {j.quantity ? <span>{count.format(j.quantity)} pcs</span> : null}
+                      </div>
+                      <div className="portal-card-foot">
+                        <span className="portal-muted small">Created {fmtCreatedDate(j.createdAt)}</span>
+                        {j.files.length ? (
+                          <span className="portal-pill">{j.files.length} file{j.files.length === 1 ? "" : "s"}</span>
+                        ) : null}
                       </div>
                       <span className="portal-job-tip">
                         <strong>{j.jobName || "Untitled job"}</strong>
@@ -452,6 +497,8 @@ function JobModal({
         }
         title={job ? (job.jobName || "Untitled job") : "New job"}
       >
+        {job ? <p className="portal-muted small">Created {fmtCreatedDate(job.createdAt)}</p> : null}
+
         <label className="portal-field">
           Customer name
           <select
@@ -526,6 +573,8 @@ function JobModal({
           />
         ) : null}
 
+        {job ? <JobFilesSection job={job} onChanged={onSaved} /> : null}
+
         {job ? <JobActivityLog job={job} onAdded={onSaved} /> : null}
       </ModalFrame>
       {creatingCustomer ? (
@@ -537,6 +586,100 @@ function JobModal({
         />
       ) : null}
     </>
+  );
+}
+
+/** Drag-and-drop (or click to browse) file uploads for a job, with the uploaded list shown right below. */
+function JobFilesSection({ job, onChanged }: { job: Job; onChanged: () => Promise<void> }) {
+  const [dragOver, setDragOver] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState("");
+  const [removingId, setRemovingId] = useState<number | null>(null);
+
+  async function uploadFiles(fileList: FileList | File[]) {
+    const files = Array.from(fileList);
+    if (!files.length) return;
+    setUploading(true);
+    setError("");
+    try {
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append("file", file);
+        const response = await fetch(`/api/portal/jobs/${job.id}/files`, { method: "POST", body: formData });
+        const data = (await response.json()) as { ok?: boolean; error?: string };
+        if (!response.ok || !data.ok) throw new Error(data.error || "Upload failed");
+      }
+      await onChanged();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function removeFile(fileId: number) {
+    setRemovingId(fileId);
+    setError("");
+    try {
+      await api("DELETE", `/api/portal/jobs/${job.id}/files/${fileId}`);
+      await onChanged();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't remove that file.");
+    } finally {
+      setRemovingId(null);
+    }
+  }
+
+  return (
+    <div className="portal-files-section">
+      <span className="portal-eyebrow">Files</span>
+      <label
+        className={`portal-dropzone${dragOver ? " drag-over" : ""}`}
+        onDragLeave={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOver(false);
+        }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragOver(true);
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragOver(false);
+          if (e.dataTransfer.files?.length) void uploadFiles(e.dataTransfer.files);
+        }}
+      >
+        <input
+          multiple
+          onChange={(e) => {
+            if (e.target.files?.length) void uploadFiles(e.target.files);
+            e.target.value = "";
+          }}
+          type="file"
+        />
+        <span>{uploading ? "Uploading…" : "Drag files here, or click to browse"}</span>
+      </label>
+      {error ? <p className="portal-msg err" role="alert">{error}</p> : null}
+      {job.files.length ? (
+        <ul className="portal-file-list">
+          {job.files.map((f) => (
+            <li key={f.id}>
+              <a href={f.url} rel="noreferrer" target="_blank">{f.fileName}</a>
+              <span className="portal-muted small">{fmtFileSize(f.size)}</span>
+              <button
+                aria-label={`Remove ${f.fileName}`}
+                disabled={removingId === f.id}
+                onClick={() => void removeFile(f.id)}
+                type="button"
+              >
+                Remove
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="portal-muted small">No files yet.</p>
+      )}
+    </div>
   );
 }
 
