@@ -291,6 +291,14 @@
   .portal-detail-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
+.portal-panel-compact .portal-panel-head { padding: 10px 14px; }
+.portal-panel-compact .portal-panel-head h2 { font-size: 14px; }
+.portal-panel-compact .portal-panel-body { gap: 6px; padding: 10px 14px; }
+.portal-panel-compact .portal-copy { gap: 0; }
+.portal-panel-compact .portal-eyebrow { font-size: 10px; }
+.portal-panel-compact .portal-copy > span:last-child { font-size: 13px; }
+.portal-panel-compact .portal-address-summary { font-size: 13px; }
+
 .portal-toolbar {
   display: flex;
   flex-wrap: wrap;

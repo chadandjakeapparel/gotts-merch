@@ -71,6 +71,9 @@ export function CustomerDetailApp({
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [createdFrom, setCreatedFrom] = useState("");
+  const [createdTo, setCreatedTo] = useState("");
 
   const reloadJobs = async () => {
     try {
@@ -105,6 +108,18 @@ export function CustomerDetailApp({
   const otherAddresses = customer.shippingAddresses.filter((a) => !a.isPrimary);
   const activeJobs = jobs.filter((j) => j.status !== "delivered").length;
   const editingJob = editingJobId ? jobs.find((j) => j.id === editingJobId) || null : null;
+
+  const filteredJobs = useMemo(
+    () =>
+      jobs.filter((j) => {
+        if (statusFilter && j.status !== statusFilter) return false;
+        const createdDate = j.createdAt.slice(0, 10);
+        if (createdFrom && createdDate < createdFrom) return false;
+        if (createdTo && createdDate > createdTo) return false;
+        return true;
+      }),
+    [jobs, statusFilter, createdFrom, createdTo],
+  );
 
   async function handleDelete() {
     setDeleting(true);
@@ -153,7 +168,7 @@ export function CustomerDetailApp({
       </section>
 
       <div className="portal-detail-grid">
-        <section className="portal-panel">
+        <section className="portal-panel portal-panel-compact">
           <div className="portal-panel-head"><h2>Contact</h2></div>
           <div className="portal-panel-body">
             {customer.kind === "company" ? <Field label="Point of contact" value={customer.pointOfContact} /> : null}
@@ -164,7 +179,7 @@ export function CustomerDetailApp({
           </div>
         </section>
 
-        <section className="portal-panel">
+        <section className="portal-panel portal-panel-compact">
           <div className="portal-panel-head"><h2>Addresses</h2></div>
           <div className="portal-panel-body">
             <Field label="Billing" value={addressSummary(customer.billingAddress)} />
@@ -185,6 +200,35 @@ export function CustomerDetailApp({
 
       <section className="portal-panel">
         <div className="portal-panel-head"><h2>Jobs</h2></div>
+        <div className="portal-toolbar">
+          <select aria-label="Filter by status" onChange={(e) => setStatusFilter(e.target.value)} value={statusFilter}>
+            <option value="">All statuses</option>
+            {Object.entries(JOB_STATUS_LABEL).map(([key, label]) => (
+              <option key={key} value={key}>{label}</option>
+            ))}
+          </select>
+          <label className="portal-toolbar-date">
+            Created after
+            <input aria-label="Created after" onChange={(e) => setCreatedFrom(e.target.value)} type="date" value={createdFrom} />
+          </label>
+          <label className="portal-toolbar-date">
+            Created before
+            <input aria-label="Created before" onChange={(e) => setCreatedTo(e.target.value)} type="date" value={createdTo} />
+          </label>
+          {statusFilter || createdFrom || createdTo ? (
+            <button
+              className="portal-btn small"
+              onClick={() => {
+                setStatusFilter("");
+                setCreatedFrom("");
+                setCreatedTo("");
+              }}
+              type="button"
+            >
+              Clear filters
+            </button>
+          ) : null}
+        </div>
         <div className="portal-table-wrap">
           <table className="portal-table">
             <thead>
@@ -198,8 +242,8 @@ export function CustomerDetailApp({
               </tr>
             </thead>
             <tbody>
-              {jobs.length ? (
-                jobs.map((j) => (
+              {filteredJobs.length ? (
+                filteredJobs.map((j) => (
                   <tr key={j.id}>
                     <td>
                       <button className="portal-link" onClick={() => setEditingJobId(j.id)} type="button">
@@ -214,7 +258,11 @@ export function CustomerDetailApp({
                   </tr>
                 ))
               ) : (
-                <tr><td className="portal-col-empty" colSpan={6}>No jobs yet for this customer.</td></tr>
+                <tr>
+                  <td className="portal-col-empty" colSpan={6}>
+                    {jobs.length ? "No jobs match those filters." : "No jobs yet for this customer."}
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>
