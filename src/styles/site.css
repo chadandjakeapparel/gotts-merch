@@ -635,6 +635,10 @@ fieldset {
   background: var(--gm-white);
 }
 
+.gm-products--alt {
+  background: var(--gm-paper);
+}
+
 .gm-products__grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -1602,6 +1606,14 @@ fieldset {
 }
 
 .gm-golf-related {
+  padding-block: clamp(56px, 7vw, 90px);
+  background: var(--gm-white);
+  border-top: 1px solid var(--gm-line);
+}
+
+/* Shared "keep exploring" cross-link section, used at the bottom of
+   industry landing pages (golf, aviation, ...). */
+.gm-related-section {
   padding-block: clamp(56px, 7vw, 90px);
   background: var(--gm-white);
   border-top: 1px solid var(--gm-line);

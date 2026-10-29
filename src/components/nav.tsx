@@ -138,6 +138,16 @@ export function Nav({
                       Golf balls, apparel, gift bags & towels for your event.
                     </span>
                   </Link>
+                  <Link
+                    className="gm-mega__item"
+                    href="/aviation"
+                    onClick={() => setProductsOpen(false)}
+                  >
+                    <span className="gm-mega__item-title">Aviation</span>
+                    <span className="gm-mega__item-desc">
+                      Charter crew apparel, VIP gifting & hi-vis ground crew wear.
+                    </span>
+                  </Link>
                 </div>
               </div>
             ) : null}
@@ -200,6 +210,9 @@ export function Nav({
                 ))}
                 <Link href="/charity-golf-tournaments" onClick={() => setOpen(false)}>
                   Charity Golf Tournaments
+                </Link>
+                <Link href="/aviation" onClick={() => setOpen(false)}>
+                  Aviation
                 </Link>
               </div>
             ) : null}

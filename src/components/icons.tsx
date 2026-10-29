@@ -254,3 +254,52 @@ export function FlagIcon({ size = 26, className }: IconProps) {
     </svg>
   );
 }
+
+export function VestIcon({ size = 26, className }: IconProps) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      height={size}
+      viewBox="0 0 24 24"
+      width={size}
+    >
+      <path
+        d="M8.5 4h2.3L12 6.2 13.2 4h2.3l2.8 3.2-2.1 1.9v9.9a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V9.1L5.9 7.2 8.5 4Z"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.6"
+      />
+      <path d="M7.5 11.5h9M7.5 14.5h9" stroke="currentColor" strokeLinecap="round" strokeWidth="1.4" />
+    </svg>
+  );
+}
+
+export function BeanieIcon({ size = 26, className }: IconProps) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      height={size}
+      viewBox="0 0 24 24"
+      width={size}
+    >
+      <path
+        d="M4.75 14.5a7.25 7.25 0 0 1 14.5 0"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="1.6"
+      />
+      <path
+        d="M4.25 14.5h15.5v2.3a1.2 1.2 0 0 1-1.2 1.2H5.45a1.2 1.2 0 0 1-1.2-1.2v-2.3Z"
+        stroke="currentColor"
+        strokeLinejoin="round"
+        strokeWidth="1.6"
+      />
+      <circle cx="12" cy="4.5" fill="currentColor" r="1.1" />
+    </svg>
+  );
+}

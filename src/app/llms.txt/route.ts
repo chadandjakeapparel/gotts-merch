@@ -39,6 +39,7 @@ export async function GET() {
       (category) => `- [${category.title}](${siteUrl}/products/${category.key}): ${category.description}`,
     ),
     `- [Charity Golf Tournaments](${siteUrl}/charity-golf-tournaments): custom golf balls, apparel, gift bags, giveaways and towels for charity and corporate golf tournaments`,
+    `- [Aviation](${siteUrl}/aviation): premium apparel and VIP client gifting for private jet charter and management companies, plus hi-vis safety wear, uniforms and promotional products for aviation ground operations and office teams`,
     `- [Brands](${siteUrl}/brands): manufacturer and supplier brands ${content.brandName} carries`,
     `- [Custom Designer](${siteUrl}/custom-designer): a free tool for customers to design their own apparel online and save a link to it`,
     `- [Get to Know Us](${siteUrl}/get-to-know-us): company policies and information`,
