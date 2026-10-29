@@ -7,9 +7,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  return handle(request, { staff: true }, async () => {
+  return handle(request, { staff: true }, async ({ user }) => {
     const body = await readJson(request);
-    const id = await createJob(toJobInput(body));
+    const id = await createJob(toJobInput(body), user.name || user.email);
     return { id };
   });
 }

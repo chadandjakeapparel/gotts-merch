@@ -292,6 +292,16 @@ create table if not exists jobs (
 create index if not exists jobs_status_idx on jobs (status);
 create index if not exists jobs_customer_idx on jobs (customer_id);
 
+create table if not exists job_activities (
+  id serial primary key,
+  job_id integer not null references jobs(id) on delete cascade,
+  kind text not null default 'note' check (kind in ('note', 'status', 'change')),
+  body text not null default '',
+  created_by text not null default '',
+  created_at timestamptz not null default now()
+);
+create index if not exists job_activities_job_idx on job_activities (job_id, created_at desc);
+
 -- Products offered in /custom-designer, managed from /admin/designer-products.
 -- A blank image_url falls back to the built-in SVG named by "placeholder", so
 -- the 3 starting products keep working until real photos are uploaded.

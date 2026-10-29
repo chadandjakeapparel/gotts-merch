@@ -6,11 +6,12 @@ type Params = { params: Promise<{ id: string }> };
 
 /** Saves the job's fields and, if `status` is included, moves it to that stage. */
 export async function PATCH(request: Request, { params }: Params) {
-  return handle(request, { staff: true }, async () => {
+  return handle(request, { staff: true }, async ({ user }) => {
     const id = int((await params).id);
     const body = await readJson(request);
-    await updateJob(id, toJobInput(body));
-    if (body.status != null) await setJobStatus(id, parseJobStatus(body.status));
+    const createdBy = user.name || user.email;
+    await updateJob(id, toJobInput(body), createdBy);
+    if (body.status != null) await setJobStatus(id, parseJobStatus(body.status), createdBy);
     return {};
   });
 }

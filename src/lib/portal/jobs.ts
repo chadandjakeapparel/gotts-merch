@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { PortalError } from "./http";
-import type { Job, JobStatus } from "./types";
+import type { Job, JobActivity, JobStatus } from "./types";
 
 type Row = Record<string, unknown>;
 
@@ -23,7 +23,17 @@ export function parseJobStatus(value: unknown): JobStatus {
   throw new PortalError("That isn't a stage this board uses.");
 }
 
-function toJob(r: Row): Job {
+function toActivity(r: Row): JobActivity {
+  return {
+    id: num(r.id),
+    kind: r.kind as JobActivity["kind"],
+    body: str(r.body),
+    createdBy: str(r.created_by),
+    createdAt: iso(r.created_at) || "",
+  };
+}
+
+function toJob(r: Row, activities: JobActivity[]): Job {
   return {
     id: num(r.id),
     customerId: r.customer_id == null ? null : num(r.customer_id),
@@ -38,13 +48,22 @@ function toJob(r: Row): Job {
     productionFacility: str(r.production_facility),
     createdAt: iso(r.created_at) || "",
     updatedAt: iso(r.updated_at) || "",
+    activities,
   };
 }
 
 export async function listJobs(): Promise<Job[]> {
   const sql = await db();
-  const rows = await sql`select * from jobs order by updated_at desc`;
-  return rows.map(toJob);
+  const [jobs, activities] = await Promise.all([
+    sql`select * from jobs order by updated_at desc`,
+    sql`select * from job_activities order by created_at desc`,
+  ]);
+  const byJob = new Map<number, JobActivity[]>();
+  for (const r of activities) {
+    const id = num(r.job_id);
+    byJob.set(id, [...(byJob.get(id) || []), toActivity(r)]);
+  }
+  return jobs.map((r) => toJob(r, byJob.get(num(r.id)) || []));
 }
 
 export type JobInput = {
@@ -71,7 +90,45 @@ function asFkError(error: unknown) {
   return (error as { code?: string }).code === "23503" ? new PortalError("Choose a valid customer.", 400) : error;
 }
 
-export async function createJob(input: JobInput): Promise<number> {
+function describeChange(label: string, oldValue: string, newValue: string): string {
+  if (!oldValue) return `${label} set to "${newValue}"`;
+  if (!newValue) return `${label} cleared (was "${oldValue}")`;
+  return `${label} changed from "${oldValue}" to "${newValue}"`;
+}
+
+/** Compares a job's current row against a save's input, as a list of human-readable change lines. */
+function diffJob(existing: Row, input: JobInput): string[] {
+  const changes: string[] = [];
+  const oldCustomerId = existing.customer_id == null ? null : num(existing.customer_id);
+  if (oldCustomerId !== input.customerId) changes.push("Customer changed");
+  if (str(existing.job_name) !== input.jobName) {
+    changes.push(describeChange("Job name", str(existing.job_name), input.jobName));
+  }
+  if (str(existing.contact_name) !== input.contactName) {
+    changes.push(describeChange("Contact name", str(existing.contact_name), input.contactName));
+  }
+  if (isoDate(existing.in_hand_date) !== (input.inHandDate || "")) {
+    changes.push(describeChange("In-hand date", isoDate(existing.in_hand_date), input.inHandDate));
+  }
+  if (Boolean(existing.goods_ordered) !== input.goodsOrdered) {
+    changes.push(`Goods ordered marked as ${input.goodsOrdered ? "ordered" : "not ordered"}`);
+  }
+  if (str(existing.po_numbers) !== input.poNumbers) {
+    changes.push(describeChange("PO numbers", str(existing.po_numbers), input.poNumbers));
+  }
+  if (str(existing.decoration_type) !== input.decorationType) {
+    changes.push(describeChange("Decoration type", str(existing.decoration_type), input.decorationType));
+  }
+  if (num(existing.quantity) !== input.quantity) {
+    changes.push(`Quantity changed from ${num(existing.quantity)} to ${input.quantity}`);
+  }
+  if (str(existing.production_facility) !== input.productionFacility) {
+    changes.push(describeChange("Production facility", str(existing.production_facility), input.productionFacility));
+  }
+  return changes;
+}
+
+export async function createJob(input: JobInput, createdBy: string): Promise<number> {
   requireJob(input);
   const sql = await db();
   try {
@@ -84,33 +141,60 @@ export async function createJob(input: JobInput): Promise<number> {
         ${input.goodsOrdered}, ${input.poNumbers}, ${input.decorationType}, ${input.quantity},
         ${input.productionFacility}
       ) returning id`;
-    return Number(row.id);
+    const id = Number(row.id);
+    await sql`insert into job_activities (job_id, kind, body, created_by) values (${id}, 'status', 'Job created', ${createdBy})`;
+    return id;
   } catch (error) {
     throw asFkError(error);
   }
 }
 
-export async function updateJob(id: number, input: JobInput) {
+export async function updateJob(id: number, input: JobInput, createdBy: string) {
   requireJob(input);
   const sql = await db();
   try {
-    const rows = await sql`
-      update jobs set
-        customer_id = ${input.customerId}, job_name = ${input.jobName}, contact_name = ${input.contactName},
-        in_hand_date = ${input.inHandDate || null}, goods_ordered = ${input.goodsOrdered},
-        po_numbers = ${input.poNumbers}, decoration_type = ${input.decorationType},
-        quantity = ${input.quantity}, production_facility = ${input.productionFacility}, updated_at = now()
-      where id = ${id} returning id`;
-    if (!rows.length) throw new PortalError("That job no longer exists.", 404);
+    await sql.begin(async (tx) => {
+      const [existing] = await tx`select * from jobs where id = ${id} for update`;
+      if (!existing) throw new PortalError("That job no longer exists.", 404);
+      const changes = diffJob(existing, input);
+      await tx`
+        update jobs set
+          customer_id = ${input.customerId}, job_name = ${input.jobName}, contact_name = ${input.contactName},
+          in_hand_date = ${input.inHandDate || null}, goods_ordered = ${input.goodsOrdered},
+          po_numbers = ${input.poNumbers}, decoration_type = ${input.decorationType},
+          quantity = ${input.quantity}, production_facility = ${input.productionFacility}, updated_at = now()
+        where id = ${id}`;
+      for (const message of changes) {
+        await tx`insert into job_activities (job_id, kind, body, created_by) values (${id}, 'change', ${message}, ${createdBy})`;
+      }
+    });
   } catch (error) {
     throw asFkError(error);
   }
 }
 
-export async function setJobStatus(id: number, status: JobStatus) {
+export async function setJobStatus(id: number, status: JobStatus, createdBy: string) {
   const sql = await db();
-  const rows = await sql`update jobs set status = ${status}, updated_at = now() where id = ${id} returning id`;
+  return sql.begin(async (tx) => {
+    const [job] = await tx`select * from jobs where id = ${id} for update`;
+    if (!job) throw new PortalError("That job no longer exists.", 404);
+    const changed = str(job.status) !== status;
+    await tx`update jobs set status = ${status}, updated_at = now() where id = ${id}`;
+    if (changed) {
+      const label = JOB_STATUS_LABEL[status];
+      await tx`
+        insert into job_activities (job_id, kind, body, created_by) values (${id}, 'status', ${`Status changed to ${label}`}, ${createdBy})`;
+    }
+  });
+}
+
+export async function addJobActivity(jobId: number, body: string, createdBy: string) {
+  if (!body.trim()) throw new PortalError("Write something before saving.");
+  const sql = await db();
+  const rows = await sql`select id from jobs where id = ${jobId}`;
   if (!rows.length) throw new PortalError("That job no longer exists.", 404);
+  await sql`insert into job_activities (job_id, kind, body, created_by) values (${jobId}, 'note', ${body}, ${createdBy})`;
+  await sql`update jobs set updated_at = now() where id = ${jobId}`;
 }
 
 export async function deleteJob(id: number) {

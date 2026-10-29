@@ -631,9 +631,26 @@
 .portal-activity { padding: 8px 10px; border-radius: 4px; background: var(--p-sunk); font-size: 13px; }
 .portal-activity-head { display: flex; justify-content: space-between; gap: 8px; color: var(--p-muted); font-size: 12px; margin-bottom: 4px; }
 .portal-activity p { margin: 0; white-space: pre-wrap; }
-.portal-activity-add { display: flex; flex-wrap: wrap; gap: 8px; }
+.portal-modal .portal-activity-add { display: flex; flex-direction: row; flex-wrap: wrap; gap: 8px; }
 .portal-activity-add select { flex: 0 1 auto; width: auto; }
 .portal-activity-add input { flex: 1 1 200px; }
+
+.portal-log-details { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--p-line); }
+.portal-log-details summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--p-muted);
+  font-size: 13px;
+  font-weight: 700;
+  list-style: none;
+  cursor: pointer;
+}
+.portal-log-details summary::-webkit-details-marker { display: none; }
+.portal-log-details summary::before { content: "▸"; font-size: 11px; }
+.portal-log-details[open] summary::before { content: "▾"; }
+.portal-log-details summary:hover { color: var(--p-ink); }
+.portal-log-details .portal-activity-section { margin-top: 10px; padding-top: 10px; }
 
 /* ---------- tasks ---------- */
 .portal-tasks-section { display: flex; flex-direction: column; gap: 10px; padding-top: 10px; border-top: 1px solid var(--p-line); }

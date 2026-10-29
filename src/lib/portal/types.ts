@@ -153,6 +153,14 @@ export type Customer = {
 
 export type JobStatus = "pending" | "in_production" | "ready" | "delivered";
 
+export type JobActivity = {
+  id: number;
+  kind: "note" | "status" | "change";
+  body: string;
+  createdBy: string;
+  createdAt: string;
+};
+
 export type Job = {
   id: number;
   customerId: number | null;
@@ -168,6 +176,7 @@ export type Job = {
   productionFacility: string;
   createdAt: string;
   updatedAt: string;
+  activities: JobActivity[];
 };
 
 export type Task = {

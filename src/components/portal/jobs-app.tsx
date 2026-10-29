@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { Customer, Job, JobStatus, SalesRep, Task } from "@/lib/portal/types";
+import type { Customer, Job, JobActivity, JobStatus, SalesRep, Task } from "@/lib/portal/types";
 import { api } from "./api";
 import { CustomerModal, customerTitle } from "./customers-app";
 import { type StaffOption, TasksSection } from "./tasks-app";
@@ -15,12 +15,25 @@ const STAGES: { key: JobStatus; label: string }[] = [
   { key: "delivered", label: "Delivered" },
 ];
 
+const JOB_ACTIVITY_LABEL: Record<JobActivity["kind"], string> = {
+  note: "Note",
+  status: "Status",
+  change: "Change",
+};
+
 /** Parses a "YYYY-MM-DD" date as a local date, so it never shifts a day off in formatting. */
 function fmtInHandDate(value: string) {
   if (!value) return "";
   const [y, m, d] = value.split("-").map(Number);
   if (!y || !m || !d) return value;
   return new Date(y, m - 1, d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+function fmtLogDate(value: string) {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 }
 
 function useSubmit(onDone: () => Promise<void>) {
@@ -512,6 +525,8 @@ function JobModal({
             tasks={tasks.filter((t) => t.jobId === job.id)}
           />
         ) : null}
+
+        {job ? <JobActivityLog job={job} onAdded={onSaved} /> : null}
       </ModalFrame>
       {creatingCustomer ? (
         <CustomerModal
@@ -522,5 +537,54 @@ function JobModal({
         />
       ) : null}
     </>
+  );
+}
+
+/** A collapsed-by-default log of who made what comments and changes on a job -- closed until "Log details" is clicked. */
+function JobActivityLog({ job, onAdded }: { job: Job; onAdded: () => Promise<void> }) {
+  const [body, setBody] = useState("");
+  const { busy, error, submit } = useSubmit(async () => {
+    await onAdded();
+    setBody("");
+  });
+
+  return (
+    <details className="portal-log-details">
+      <summary>Log details{job.activities.length ? ` (${job.activities.length})` : ""}</summary>
+      <div className="portal-activity-section">
+        <div className="portal-activity-list">
+          {job.activities.length ? (
+            job.activities.map((a) => (
+              <div className="portal-activity" key={a.id}>
+                <div className="portal-activity-head">
+                  <span>{JOB_ACTIVITY_LABEL[a.kind]} · {a.createdBy}</span>
+                  <span>{fmtLogDate(a.createdAt)}</span>
+                </div>
+                <p>{a.body}</p>
+              </div>
+            ))
+          ) : (
+            <p className="portal-muted small">Nothing logged yet.</p>
+          )}
+        </div>
+        <form
+          className="portal-activity-add"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!body.trim()) return;
+            void submit(() => api("POST", `/api/portal/jobs/${job.id}/activities`, { body }));
+          }}
+        >
+          <input
+            aria-label="Add a comment to the log"
+            onChange={(e) => setBody(e.target.value)}
+            placeholder="Add a comment…"
+            value={body}
+          />
+          <button className="portal-btn small primary" disabled={busy || !body.trim()} type="submit">Log it</button>
+        </form>
+        {error ? <p className="portal-msg err" role="alert">{error}</p> : null}
+      </div>
+    </details>
   );
 }
