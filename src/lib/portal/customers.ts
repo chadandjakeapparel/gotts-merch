@@ -120,6 +120,21 @@ export async function listCustomers(): Promise<Customer[]> {
   );
 }
 
+export async function getCustomer(id: number): Promise<Customer | null> {
+  const sql = await db();
+  const [[row], emails, shippingAddresses] = await Promise.all([
+    sql`select * from customers where id = ${id}`,
+    sql`select email from customer_emails where customer_id = ${id} order by id`,
+    sql`select * from customer_shipping_addresses where customer_id = ${id} order by is_primary desc, created_at asc`,
+  ]);
+  if (!row) return null;
+  return toCustomer(
+    row,
+    emails.map((r) => str(r.email)).filter(Boolean),
+    shippingAddresses.map(toShippingAddress),
+  );
+}
+
 /** The customers flagged "inventory held", for the inventory screen's dropdowns. */
 export async function listHeldCustomers(): Promise<{ id: number; name: string }[]> {
   const sql = await db();

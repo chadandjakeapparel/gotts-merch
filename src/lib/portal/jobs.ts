@@ -85,6 +85,27 @@ export async function listJobs(): Promise<Job[]> {
   return jobs.map((r) => toJob(r, activitiesByJob.get(num(r.id)) || [], filesByJob.get(num(r.id)) || []));
 }
 
+/** For a customer's record page: just their jobs, newest first. */
+export async function listJobsByCustomer(customerId: number): Promise<Job[]> {
+  const sql = await db();
+  const [jobs, activities, files] = await Promise.all([
+    sql`select * from jobs where customer_id = ${customerId} order by created_at desc`,
+    sql`select ja.* from job_activities ja join jobs j on j.id = ja.job_id where j.customer_id = ${customerId}`,
+    sql`select jf.* from job_files jf join jobs j on j.id = jf.job_id where j.customer_id = ${customerId}`,
+  ]);
+  const activitiesByJob = new Map<number, JobActivity[]>();
+  for (const r of activities) {
+    const id = num(r.job_id);
+    activitiesByJob.set(id, [...(activitiesByJob.get(id) || []), toActivity(r)]);
+  }
+  const filesByJob = new Map<number, JobFile[]>();
+  for (const r of files) {
+    const id = num(r.job_id);
+    filesByJob.set(id, [...(filesByJob.get(id) || []), toFile(r)]);
+  }
+  return jobs.map((r) => toJob(r, activitiesByJob.get(num(r.id)) || [], filesByJob.get(num(r.id)) || []));
+}
+
 export type JobInput = {
   customerId: number | null;
   jobName: string;

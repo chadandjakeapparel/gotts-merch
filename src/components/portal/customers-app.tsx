@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Address, Customer, CustomerKind, SalesRep, ShippingAddress } from "@/lib/portal/types";
 import { api } from "./api";
@@ -121,7 +122,7 @@ function AddressFields({ legend, value, onChange }: { legend: string; value: Add
   );
 }
 
-const addressSummary = (a: Address) =>
+export const addressSummary = (a: Address) =>
   [a.name, a.line1, a.line2, [a.city, [a.state, a.zip].filter(Boolean).join(" ")].filter(Boolean).join(", ")]
     .filter(Boolean)
     .join(" · ") || "Blank address";
@@ -277,7 +278,6 @@ export function CustomersApp({
   const [salesReps, setSalesReps] = useState(initialSalesReps);
   const [error, setError] = useState(loadError);
   const [query, setQuery] = useState("");
-  const [selectedId, setSelectedId] = useState<number | null>(null);
   const [adding, setAdding] = useState(false);
   const [importing, setImporting] = useState(false);
   const [managingReps, setManagingReps] = useState(false);
@@ -318,8 +318,6 @@ export function CustomersApp({
       return haystack.includes(q);
     });
   }, [customers, query, repName]);
-
-  const selected = selectedId ? customers.find((c) => c.id === selectedId) || null : null;
 
   return (
     <div className="portal-crm">
@@ -364,9 +362,9 @@ export function CustomersApp({
               filtered.map((c) => (
                 <tr key={c.id}>
                   <td>
-                    <button className="portal-link" onClick={() => setSelectedId(c.id)} type="button">
+                    <Link className="portal-link" href={`/portal/customers/${c.id}`}>
                       {customerTitle(c)}
-                    </button>
+                    </Link>
                     {c.kind === "company" && c.pointOfContact ? (
                       <div className="portal-muted small">{c.pointOfContact}</div>
                     ) : null}
@@ -387,9 +385,6 @@ export function CustomersApp({
 
       {adding ? (
         <CustomerModal close={() => setAdding(false)} customer={null} key="new" onSaved={reload} salesReps={salesReps} />
-      ) : null}
-      {selected ? (
-        <CustomerModal close={() => setSelectedId(null)} customer={selected} key={selected.id} onSaved={reload} salesReps={salesReps} />
       ) : null}
       {managingReps ? <SalesRepsModal close={() => setManagingReps(false)} onChanged={reloadReps} salesReps={salesReps} /> : null}
       {importing ? <ImportCustomersForm close={() => setImporting(false)} onImported={reload} salesReps={salesReps} /> : null}
