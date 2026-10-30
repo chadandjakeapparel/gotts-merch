@@ -172,10 +172,10 @@ function diffJob(existing: Row, input: JobInput): string[] {
     changes.push(describeChange("Production facility", str(existing.production_facility), input.productionFacility));
   }
   if (str(existing.sales_order_number) !== input.salesOrderNumber) {
-    changes.push(describeChange("Sales order number", str(existing.sales_order_number), input.salesOrderNumber));
+    changes.push(describeChange("Sales Order Number", str(existing.sales_order_number), input.salesOrderNumber));
   }
   if (str(existing.invoice_number) !== input.invoiceNumber) {
-    changes.push(describeChange("Invoice number", str(existing.invoice_number), input.invoiceNumber));
+    changes.push(describeChange("Invoice Number", str(existing.invoice_number), input.invoiceNumber));
   }
   if (str(existing.notes) !== input.notes) {
     changes.push("Notes updated");

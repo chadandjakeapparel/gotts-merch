@@ -573,8 +573,8 @@ export function JobModal({
         </label>
 
         <div className="portal-row">
-          <label className="portal-field">Sales order number<input onChange={set("salesOrderNumber")} value={form.salesOrderNumber} /></label>
-          <label className="portal-field">Invoice number<input onChange={set("invoiceNumber")} value={form.invoiceNumber} /></label>
+          <label className="portal-field">Sales Order Number<input onChange={set("salesOrderNumber")} value={form.salesOrderNumber} /></label>
+          <label className="portal-field">Invoice Number<input onChange={set("invoiceNumber")} value={form.invoiceNumber} /></label>
         </div>
 
         {job ? (
