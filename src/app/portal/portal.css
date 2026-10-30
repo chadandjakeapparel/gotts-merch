@@ -294,6 +294,52 @@
 .portal-share-gate { max-width: 420px; margin: 60px auto; }
 .portal-share-brand { display: flex; justify-content: center; margin-bottom: 16px; }
 
+.portal-lightbox-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  background: rgba(9, 18, 32, 0.92);
+}
+.portal-lightbox-img {
+  max-width: 100%;
+  max-height: calc(100vh - 120px);
+  border-radius: 4px;
+  object-fit: contain;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+.portal-lightbox-close,
+.portal-lightbox-nav {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  line-height: 1;
+  cursor: pointer;
+}
+.portal-lightbox-close:hover,
+.portal-lightbox-nav:hover { background: rgba(255, 255, 255, 0.22); }
+.portal-lightbox-close { top: 16px; right: 20px; width: 40px; height: 40px; font-size: 24px; }
+.portal-lightbox-nav { top: 50%; width: 48px; height: 48px; font-size: 28px; transform: translateY(-50%); }
+.portal-lightbox-nav.prev { left: 16px; }
+.portal-lightbox-nav.next { right: 16px; }
+.portal-lightbox-caption {
+  position: absolute;
+  right: 0;
+  bottom: 16px;
+  left: 0;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 13px;
+  text-align: center;
+}
+
 .portal-panel-compact .portal-panel-head { padding: 10px 14px; }
 .portal-panel-compact .portal-panel-head h2 { font-size: 14px; }
 .portal-panel-compact .portal-panel-body { gap: 6px; padding: 10px 14px; }
@@ -717,7 +763,22 @@
   background: var(--p-sunk);
   font-size: 13px;
 }
-.portal-file-list a { flex: 1 1 auto; min-width: 0; overflow: hidden; color: var(--p-accent-2); font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.portal-file-list a,
+.portal-file-list .portal-file-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--p-accent-2);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
 .portal-file-list button {
   flex-shrink: 0;
   padding: 2px 8px;

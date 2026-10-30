@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { FileFolder, FolderFile } from "@/lib/portal/types";
 import { api } from "./api";
+import { ImageLightbox, isImageFile } from "./image-lightbox";
 
 const count = new Intl.NumberFormat("en-US");
 
@@ -346,6 +347,9 @@ function FolderFilesSection({ folder, onChanged }: { folder: FileFolder; onChang
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [removingId, setRemovingId] = useState<number | null>(null);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
+  const imageFiles = useMemo(() => folder.files.filter((f) => isImageFile(f.contentType)), [folder.files]);
 
   async function uploadFiles(fileList: FileList | File[]) {
     const files = Array.from(fileList);
@@ -415,7 +419,17 @@ function FolderFilesSection({ folder, onChanged }: { folder: FileFolder; onChang
           <ul className="portal-file-list">
             {folder.files.map((f) => (
               <li key={f.id}>
-                <a href={f.url} rel="noreferrer" target="_blank">{f.fileName}</a>
+                {isImageFile(f.contentType) ? (
+                  <button
+                    className="portal-file-name"
+                    onClick={() => setLightboxIndex(imageFiles.findIndex((img) => img.id === f.id))}
+                    type="button"
+                  >
+                    {f.fileName}
+                  </button>
+                ) : (
+                  <a href={f.url} rel="noreferrer" target="_blank">{f.fileName}</a>
+                )}
                 <span className="portal-muted small">{fmtFileSize(f.size)}</span>
                 <button
                   aria-label={`Remove ${f.fileName}`}
@@ -431,6 +445,9 @@ function FolderFilesSection({ folder, onChanged }: { folder: FileFolder; onChang
         ) : (
           <p className="portal-muted small">No files yet.</p>
         )}
+        {lightboxIndex !== null ? (
+          <ImageLightbox files={imageFiles} index={lightboxIndex} onClose={() => setLightboxIndex(null)} onNavigate={setLightboxIndex} />
+        ) : null}
       </div>
     </section>
   );

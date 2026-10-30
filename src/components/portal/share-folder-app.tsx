@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { LogoMark } from "@/components/logo";
+import { ImageLightbox, isImageFile } from "./image-lightbox";
 
 type SharedFile = {
   id: number;
@@ -25,6 +26,9 @@ export function ShareFolderApp({ token, logoUrl, brandName }: { token: string; l
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [folder, setFolder] = useState<{ title: string; files: SharedFile[] } | null>(null);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
+  const imageFiles = useMemo(() => (folder?.files || []).filter((f) => isImageFile(f.contentType)), [folder]);
 
   async function unlock(e: React.FormEvent) {
     e.preventDefault();
@@ -88,16 +92,32 @@ export function ShareFolderApp({ token, logoUrl, brandName }: { token: string; l
       </div>
       {folder.files.length ? (
         <ul className="portal-file-list">
-          {folder.files.map((f) => (
-            <li key={f.id}>
-              <a href={f.url} rel="noreferrer" target="_blank">{f.fileName}</a>
-              <span className="portal-muted small">{fmtFileSize(f.size)}</span>
-            </li>
-          ))}
+          {folder.files.map((f) =>
+            isImageFile(f.contentType) ? (
+              <li key={f.id}>
+                <button
+                  className="portal-file-name"
+                  onClick={() => setLightboxIndex(imageFiles.findIndex((img) => img.id === f.id))}
+                  type="button"
+                >
+                  {f.fileName}
+                </button>
+                <span className="portal-muted small">{fmtFileSize(f.size)}</span>
+              </li>
+            ) : (
+              <li key={f.id}>
+                <a href={f.url} rel="noreferrer" target="_blank">{f.fileName}</a>
+                <span className="portal-muted small">{fmtFileSize(f.size)}</span>
+              </li>
+            ),
+          )}
         </ul>
       ) : (
         <p className="portal-muted small">No files in this folder yet.</p>
       )}
+      {lightboxIndex !== null ? (
+        <ImageLightbox files={imageFiles} index={lightboxIndex} onClose={() => setLightboxIndex(null)} onNavigate={setLightboxIndex} />
+      ) : null}
     </div>
   );
 }
