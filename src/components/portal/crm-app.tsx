@@ -212,7 +212,7 @@ export function CrmApp({
                       type="button"
                     >
                       <h4>{leadTitle(l)}</h4>
-                      {l.jobName ? <span className="portal-muted small">{l.jobName}</span> : null}
+                      {l.jobName ? <p className="portal-card-jobname">{l.jobName}</p> : null}
                       {l.companyName && l.contactName ? <span className="portal-muted small">{l.contactName}</span> : null}
                       <div className="portal-card-foot">
                         <span className="portal-muted">{l.owner || "Unassigned"}</span>
