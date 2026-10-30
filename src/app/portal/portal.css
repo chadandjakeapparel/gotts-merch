@@ -291,6 +291,8 @@
   .portal-detail-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
+.portal-breadcrumb { color: var(--p-muted); font-size: 13px; }
+
 .portal-share-gate { max-width: 420px; margin: 60px auto; }
 .portal-share-brand { display: flex; justify-content: center; margin-bottom: 16px; }
 
@@ -779,6 +781,7 @@
   white-space: nowrap;
   cursor: pointer;
 }
+.portal-file-list input { flex: 1 1 auto; min-width: 0; }
 .portal-file-list button {
   flex-shrink: 0;
   padding: 2px 8px;

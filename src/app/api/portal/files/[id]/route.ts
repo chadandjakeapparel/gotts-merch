@@ -1,13 +1,15 @@
-import { deleteFolder, getFolder, renameFolder } from "@/lib/portal/files";
+import { deleteFolder, getFolder, getFolderPath, listFolders, renameFolder } from "@/lib/portal/files";
 import { handle, int, PortalError, readJson, text } from "@/lib/portal/http";
 
 type Params = { params: Promise<{ id: string }> };
 
 export async function GET(request: Request, { params }: Params) {
   return handle(request, { staff: true }, async () => {
-    const folder = await getFolder(int((await params).id));
+    const id = int((await params).id);
+    const folder = await getFolder(id);
     if (!folder) throw new PortalError("That folder no longer exists.", 404);
-    return { folder };
+    const [subfolders, path] = await Promise.all([listFolders(id), getFolderPath(id)]);
+    return { folder, subfolders, path };
   });
 }
 

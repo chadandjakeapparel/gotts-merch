@@ -13,7 +13,7 @@ export default async function FilesPage() {
   let folders: Awaited<ReturnType<typeof listFolders>> = [];
   let loadError = "";
   try {
-    folders = await listFolders();
+    folders = await listFolders(null);
   } catch (error) {
     console.error("[portal]", error);
     loadError = "The folder list couldn't be loaded. Refresh the page to try again.";

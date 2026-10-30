@@ -207,6 +207,8 @@ export type FolderFile = {
 export type FileFolder = {
   id: number;
   name: string;
+  parentFolderId: number | null;
+  subfolderCount: number;
   shareToken: string;
   shareTitle: string;
   shareExternally: boolean;
@@ -217,6 +219,9 @@ export type FileFolder = {
   updatedAt: string;
   files: FolderFile[];
 };
+
+/** A folder's ancestry, root-first, for breadcrumb navigation. */
+export type FolderPathEntry = { id: number; name: string };
 
 export type Task = {
   id: number;

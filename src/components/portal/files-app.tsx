@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import type { FileFolder, FolderFile } from "@/lib/portal/types";
+import { Fragment, useEffect, useMemo, useState } from "react";
+import type { FileFolder, FolderFile, FolderPathEntry } from "@/lib/portal/types";
 import { api } from "./api";
 import { ImageLightbox, isImageFile } from "./image-lightbox";
 
@@ -67,6 +67,39 @@ function ModalFrame({
   );
 }
 
+function FolderTable({ folders }: { folders: FileFolder[] }) {
+  return (
+    <div className="portal-table-wrap">
+      <table className="portal-table">
+        <thead>
+          <tr>
+            <th>Folder</th>
+            <th className="r">Subfolders</th>
+            <th className="r">Files</th>
+            <th>Shared externally</th>
+            <th>Created</th>
+          </tr>
+        </thead>
+        <tbody>
+          {folders.length ? (
+            folders.map((f) => (
+              <tr key={f.id}>
+                <td><Link className="portal-link" href={`/portal/files/${f.id}`}>{f.name}</Link></td>
+                <td className="r">{count.format(f.subfolderCount)}</td>
+                <td className="r">{count.format(f.files.length)}</td>
+                <td>{f.shareExternally ? <span className="portal-pill ok">Shared</span> : null}</td>
+                <td>{fmtDate(f.createdAt)}</td>
+              </tr>
+            ))
+          ) : (
+            <tr><td className="portal-col-empty" colSpan={5}>No folders yet.</td></tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export function FilesApp({ initialFolders, loadError }: { initialFolders: FileFolder[]; loadError: string }) {
   const [folders, setFolders] = useState(initialFolders);
   const [error, setError] = useState(loadError);
@@ -110,39 +143,22 @@ export function FilesApp({ initialFolders, loadError }: { initialFolders: FileFo
         />
       </div>
 
-      <div className="portal-table-wrap">
-        <table className="portal-table">
-          <thead>
-            <tr>
-              <th>Folder</th>
-              <th className="r">Files</th>
-              <th>Shared externally</th>
-              <th>Created</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.length ? (
-              filtered.map((f) => (
-                <tr key={f.id}>
-                  <td><Link className="portal-link" href={`/portal/files/${f.id}`}>{f.name}</Link></td>
-                  <td className="r">{count.format(f.files.length)}</td>
-                  <td>{f.shareExternally ? <span className="portal-pill ok">Shared</span> : null}</td>
-                  <td>{fmtDate(f.createdAt)}</td>
-                </tr>
-              ))
-            ) : (
-              <tr><td className="portal-col-empty" colSpan={4}>No folders yet.</td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      <FolderTable folders={filtered} />
 
-      {adding ? <NewFolderModal close={() => setAdding(false)} onSaved={reload} /> : null}
+      {adding ? <NewFolderModal close={() => setAdding(false)} onSaved={reload} parentFolderId={null} /> : null}
     </div>
   );
 }
 
-function NewFolderModal({ close, onSaved }: { close: () => void; onSaved: () => Promise<void> }) {
+function NewFolderModal({
+  close,
+  onSaved,
+  parentFolderId,
+}: {
+  close: () => void;
+  onSaved: () => Promise<void>;
+  parentFolderId: number | null;
+}) {
   const [name, setName] = useState("");
   const { busy, error, setError, submit } = useSubmit(async () => {
     await onSaved();
@@ -152,7 +168,7 @@ function NewFolderModal({ close, onSaved }: { close: () => void; onSaved: () => 
   function save(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) return setError("Give the folder a name.");
-    void submit(() => api("POST", "/api/portal/files", { name }));
+    void submit(() => api("POST", "/api/portal/files", { name, parentFolderId }));
   }
 
   return (
@@ -164,7 +180,7 @@ function NewFolderModal({ close, onSaved }: { close: () => void; onSaved: () => 
           <button className="portal-btn primary" disabled={busy} onClick={save} type="button">Create folder</button>
         </>
       }
-      title="New folder"
+      title={parentFolderId == null ? "New folder" : "New subfolder"}
     >
       <label className="portal-field">Folder name<input autoFocus onChange={(e) => setName(e.target.value)} value={name} /></label>
       {error ? <p className="portal-msg err" role="alert">{error}</p> : null}
@@ -172,18 +188,29 @@ function NewFolderModal({ close, onSaved }: { close: () => void; onSaved: () => 
   );
 }
 
-export function FolderDetailApp({ folder: initialFolder }: { folder: FileFolder }) {
+export function FolderDetailApp({
+  folder: initialFolder,
+  subfolders: initialSubfolders,
+  path,
+}: {
+  folder: FileFolder;
+  subfolders: FileFolder[];
+  path: FolderPathEntry[];
+}) {
   const [folder, setFolder] = useState(initialFolder);
+  const [subfolders, setSubfolders] = useState(initialSubfolders);
   const [error, setError] = useState("");
   const [renaming, setRenaming] = useState(false);
   const [nameDraft, setNameDraft] = useState(folder.name);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [addingSubfolder, setAddingSubfolder] = useState(false);
 
   const reload = async () => {
     try {
-      const res = await api<{ folder: FileFolder }>("GET", `/api/portal/files/${folder.id}`);
+      const res = await api<{ folder: FileFolder; subfolders: FileFolder[] }>("GET", `/api/portal/files/${folder.id}`);
       setFolder(res.folder);
+      setSubfolders(res.subfolders);
       setError("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "This folder couldn't be refreshed.");
@@ -214,7 +241,17 @@ export function FolderDetailApp({ folder: initialFolder }: { folder: FileFolder 
 
   return (
     <div className="portal-crm">
-      <Link className="portal-link" href="/portal/files">← All folders</Link>
+      <nav aria-label="Folder path" className="portal-breadcrumb">
+        <Link className="portal-link" href="/portal/files">All folders</Link>
+        {path.slice(0, -1).map((p) => (
+          <Fragment key={p.id}>
+            {" / "}
+            <Link className="portal-link" href={`/portal/files/${p.id}`}>{p.name}</Link>
+          </Fragment>
+        ))}
+        {" / "}
+        {folder.name}
+      </nav>
 
       <div className="portal-title-row">
         <div>
@@ -233,7 +270,7 @@ export function FolderDetailApp({ folder: initialFolder }: { folder: FileFolder 
           <span className="portal-row-actions">
             {confirmingDelete ? (
               <>
-                <span className="portal-muted small">Delete this folder and its files?</span>
+                <span className="portal-muted small">Delete this folder, its subfolders, and all their files?</span>
                 <button className="portal-btn small danger" disabled={deleting} onClick={() => void handleDelete()} type="button">Delete</button>
                 <button className="portal-btn small" onClick={() => setConfirmingDelete(false)} type="button">Cancel</button>
               </>
@@ -250,7 +287,19 @@ export function FolderDetailApp({ folder: initialFolder }: { folder: FileFolder 
 
       <SharingSettings folder={folder} onChanged={reload} />
 
+      <section className="portal-panel">
+        <div className="portal-panel-head">
+          <h2>Subfolders</h2>
+          <button className="portal-btn" onClick={() => setAddingSubfolder(true)} type="button">New subfolder</button>
+        </div>
+        <FolderTable folders={subfolders} />
+      </section>
+
       <FolderFilesSection folder={folder} onChanged={reload} />
+
+      {addingSubfolder ? (
+        <NewFolderModal close={() => setAddingSubfolder(false)} onSaved={reload} parentFolderId={folder.id} />
+      ) : null}
     </div>
   );
 }
@@ -348,6 +397,8 @@ function FolderFilesSection({ folder, onChanged }: { folder: FileFolder; onChang
   const [error, setError] = useState("");
   const [removingId, setRemovingId] = useState<number | null>(null);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [renamingId, setRenamingId] = useState<number | null>(null);
+  const [renameDraft, setRenameDraft] = useState("");
 
   const imageFiles = useMemo(() => folder.files.filter((f) => isImageFile(f.contentType)), [folder.files]);
 
@@ -385,6 +436,18 @@ function FolderFilesSection({ folder, onChanged }: { folder: FileFolder; onChang
     }
   }
 
+  async function renameFile(file: FolderFile) {
+    if (!renameDraft.trim()) return;
+    setError("");
+    try {
+      await api("PATCH", `/api/portal/files/${folder.id}/files/${file.id}`, { fileName: renameDraft });
+      setRenamingId(null);
+      await onChanged();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't rename that file.");
+    }
+  }
+
   return (
     <section className="portal-panel">
       <div className="portal-panel-head"><h2>Files</h2></div>
@@ -417,30 +480,53 @@ function FolderFilesSection({ folder, onChanged }: { folder: FileFolder; onChang
         {error ? <p className="portal-msg err" role="alert">{error}</p> : null}
         {folder.files.length ? (
           <ul className="portal-file-list">
-            {folder.files.map((f) => (
-              <li key={f.id}>
-                {isImageFile(f.contentType) ? (
+            {folder.files.map((f) =>
+              renamingId === f.id ? (
+                <li key={f.id}>
+                  <input
+                    autoFocus
+                    onChange={(e) => setRenameDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") void renameFile(f);
+                      if (e.key === "Escape") setRenamingId(null);
+                    }}
+                    value={renameDraft}
+                  />
+                  <button onClick={() => void renameFile(f)} type="button">Save</button>
+                  <button onClick={() => setRenamingId(null)} type="button">Cancel</button>
+                </li>
+              ) : (
+                <li key={f.id}>
+                  {isImageFile(f.contentType) ? (
+                    <button
+                      className="portal-file-name"
+                      onClick={() => setLightboxIndex(imageFiles.findIndex((img) => img.id === f.id))}
+                      type="button"
+                    >
+                      {f.fileName}
+                    </button>
+                  ) : (
+                    <a href={f.url} rel="noreferrer" target="_blank">{f.fileName}</a>
+                  )}
+                  <span className="portal-muted small">{fmtFileSize(f.size)}</span>
                   <button
-                    className="portal-file-name"
-                    onClick={() => setLightboxIndex(imageFiles.findIndex((img) => img.id === f.id))}
+                    aria-label={`Rename ${f.fileName}`}
+                    onClick={() => { setRenamingId(f.id); setRenameDraft(f.fileName); }}
                     type="button"
                   >
-                    {f.fileName}
+                    Rename
                   </button>
-                ) : (
-                  <a href={f.url} rel="noreferrer" target="_blank">{f.fileName}</a>
-                )}
-                <span className="portal-muted small">{fmtFileSize(f.size)}</span>
-                <button
-                  aria-label={`Remove ${f.fileName}`}
-                  disabled={removingId === f.id}
-                  onClick={() => void removeFile(f)}
-                  type="button"
-                >
-                  Remove
-                </button>
-              </li>
-            ))}
+                  <button
+                    aria-label={`Remove ${f.fileName}`}
+                    disabled={removingId === f.id}
+                    onClick={() => void removeFile(f)}
+                    type="button"
+                  >
+                    Remove
+                  </button>
+                </li>
+              ),
+            )}
           </ul>
         ) : (
           <p className="portal-muted small">No files yet.</p>

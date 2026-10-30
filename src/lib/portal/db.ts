@@ -424,6 +424,7 @@ create index if not exists tasks_job_idx on tasks (job_id);
 create table if not exists file_folders (
   id serial primary key,
   name text not null default '',
+  parent_folder_id integer references file_folders(id) on delete cascade,
   share_token text not null default '',
   share_title text not null default '',
   share_externally boolean not null default false,
@@ -434,6 +435,8 @@ create table if not exists file_folders (
 );
 create unique index if not exists file_folders_share_token_idx on file_folders (share_token);
 alter table file_folders add column if not exists share_title text not null default '';
+alter table file_folders add column if not exists parent_folder_id integer references file_folders(id) on delete cascade;
+create index if not exists file_folders_parent_idx on file_folders (parent_folder_id);
 
 create table if not exists folder_files (
   id serial primary key,

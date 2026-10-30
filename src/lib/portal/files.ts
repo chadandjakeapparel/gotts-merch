@@ -1,7 +1,7 @@
 import { hashPassword, verifyPassword } from "./auth";
 import { db } from "./db";
 import { PortalError } from "./http";
-import type { FileFolder, FolderFile } from "./types";
+import type { FileFolder, FolderFile, FolderPathEntry } from "./types";
 
 type Row = Record<string, unknown>;
 
@@ -25,6 +25,8 @@ function toFolder(r: Row, files: FolderFile[]): FileFolder {
   return {
     id: num(r.id),
     name: str(r.name),
+    parentFolderId: r.parent_folder_id == null ? null : num(r.parent_folder_id),
+    subfolderCount: num(r.subfolder_count),
     shareToken: str(r.share_token),
     shareTitle: str(r.share_title),
     shareExternally: Boolean(r.share_externally),
@@ -57,10 +59,17 @@ async function uniqueSlug(sql: Awaited<ReturnType<typeof db>>, name: string): Pr
   }
 }
 
-export async function listFolders(): Promise<FileFolder[]> {
+/** Folders directly inside `parentId` (or the root folders, when null), each with its subfolder count. */
+export async function listFolders(parentId: number | null): Promise<FileFolder[]> {
   const sql = await db();
   const [folders, files] = await Promise.all([
-    sql`select * from file_folders order by name asc`,
+    parentId == null
+      ? sql`
+          select f.*, (select count(*)::int from file_folders c where c.parent_folder_id = f.id) as subfolder_count
+          from file_folders f where f.parent_folder_id is null order by f.name asc`
+      : sql`
+          select f.*, (select count(*)::int from file_folders c where c.parent_folder_id = f.id) as subfolder_count
+          from file_folders f where f.parent_folder_id = ${parentId} order by f.name asc`,
     sql`select * from folder_files order by created_at desc`,
   ]);
   const byFolder = new Map<number, FolderFile[]>();
@@ -74,20 +83,40 @@ export async function listFolders(): Promise<FileFolder[]> {
 export async function getFolder(id: number): Promise<FileFolder | null> {
   const sql = await db();
   const [[row], files] = await Promise.all([
-    sql`select * from file_folders where id = ${id}`,
+    sql`
+      select f.*, (select count(*)::int from file_folders c where c.parent_folder_id = f.id) as subfolder_count
+      from file_folders f where f.id = ${id}`,
     sql`select * from folder_files where folder_id = ${id} order by created_at desc`,
   ]);
   if (!row) return null;
   return toFolder(row, files.map(toFile));
 }
 
-export async function createFolder(name: string, createdBy: string): Promise<number> {
+/** The folder's ancestry, root-first, ending with the folder itself -- for breadcrumb navigation. */
+export async function getFolderPath(id: number): Promise<FolderPathEntry[]> {
+  const sql = await db();
+  const path: FolderPathEntry[] = [];
+  let currentId: number | null = id;
+  while (currentId != null) {
+    const [row] = (await sql`select id, name, parent_folder_id from file_folders where id = ${currentId}`) as Row[];
+    if (!row) break;
+    path.unshift({ id: num(row.id), name: str(row.name) });
+    currentId = row.parent_folder_id == null ? null : num(row.parent_folder_id);
+  }
+  return path;
+}
+
+export async function createFolder(name: string, createdBy: string, parentFolderId: number | null): Promise<number> {
   if (!name.trim()) throw new PortalError("Give the folder a name.");
   const sql = await db();
+  if (parentFolderId != null) {
+    const [parent] = await sql`select id from file_folders where id = ${parentFolderId}`;
+    if (!parent) throw new PortalError("That parent folder no longer exists.", 404);
+  }
   const slug = await uniqueSlug(sql, name);
   const [row] = await sql`
-    insert into file_folders (name, share_token, created_by)
-    values (${name}, ${slug}, ${createdBy})
+    insert into file_folders (name, parent_folder_id, share_token, created_by)
+    values (${name}, ${parentFolderId}, ${slug}, ${createdBy})
     returning id`;
   return Number(row.id);
 }
@@ -156,6 +185,14 @@ export async function addFolderFile(folderId: number, input: FolderFileInput, up
     returning *`;
   await sql`update file_folders set updated_at = now() where id = ${folderId}`;
   return toFile(row);
+}
+
+export async function renameFolderFile(folderId: number, fileId: number, fileName: string) {
+  if (!fileName.trim()) throw new PortalError("Give the file a name.");
+  const sql = await db();
+  const rows = await sql`
+    update folder_files set file_name = ${fileName} where id = ${fileId} and folder_id = ${folderId} returning id`;
+  if (!rows.length) throw new PortalError("That file no longer exists.", 404);
 }
 
 export async function deleteFolderFile(folderId: number, fileId: number) {
