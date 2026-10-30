@@ -128,6 +128,38 @@
 }
 .portal-row { display: flex; flex-wrap: wrap; gap: 12px; }
 .portal-row > * { flex: 1 1 180px; }
+
+.portal-combobox { position: relative; }
+.portal-combobox__menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  max-height: 240px;
+  overflow-y: auto;
+  padding: 6px;
+  background: var(--p-surface);
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-radius);
+  box-shadow: 0 10px 30px rgba(9, 30, 63, 0.18);
+}
+.portal-combobox__option {
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--p-ink);
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.portal-combobox__option:hover { background: var(--p-sunk); }
+.portal-combobox__option.new { color: var(--p-accent-2); }
+.portal-combobox__empty { margin: 0; padding: 8px 10px; color: var(--p-muted); font-size: 13px; }
 .portal-hint { color: var(--p-muted); font-size: 13px; }
 .portal-check { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; }
 .portal-check input { margin-top: 3px; }

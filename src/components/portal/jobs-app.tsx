@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Customer, Job, JobActivity, JobStatus, SalesRep, Task } from "@/lib/portal/types";
 import { api } from "./api";
 import { CustomerModal, customerTitle } from "./customers-app";
@@ -401,6 +401,104 @@ export function JobsApp({
   );
 }
 
+/** A searchable customer picker: type to filter, click a result to choose it. */
+function CustomerCombobox({
+  customers,
+  value,
+  onChange,
+  onCreateNew,
+}: {
+  customers: Customer[];
+  value: string;
+  onChange: (id: string) => void;
+  onCreateNew: () => void;
+}) {
+  const options = useMemo(
+    () => customers.map((c) => ({ id: c.id, name: customerTitle(c) })).sort((a, b) => a.name.localeCompare(b.name)),
+    [customers],
+  );
+  const selectedName = options.find((o) => String(o.id) === value)?.name || "";
+  const [query, setQuery] = useState(selectedName);
+  const [open, setOpen] = useState(false);
+  const boxRef = useRef<HTMLDivElement>(null);
+
+  // Keeps the box's text in sync when the selection changes from outside
+  // (picking a result, or finishing "+ Create new customer…").
+  useEffect(() => {
+    setQuery(selectedName);
+  }, [value, selectedName]);
+
+  useEffect(() => {
+    if (!open) return;
+    function onPointerDown(e: MouseEvent) {
+      if (boxRef.current && !boxRef.current.contains(e.target as Node)) {
+        setOpen(false);
+        setQuery(selectedName);
+      }
+    }
+    document.addEventListener("mousedown", onPointerDown);
+    return () => document.removeEventListener("mousedown", onPointerDown);
+  }, [open, selectedName]);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q || q === selectedName.toLowerCase()) return options;
+    return options.filter((o) => o.name.toLowerCase().includes(q));
+  }, [options, query, selectedName]);
+
+  function pick(id: number) {
+    onChange(String(id));
+    setOpen(false);
+  }
+
+  return (
+    <div className="portal-combobox" ref={boxRef}>
+      <input
+        aria-label="Customer name"
+        onChange={(e) => {
+          setQuery(e.target.value);
+          setOpen(true);
+        }}
+        onFocus={() => setOpen(true)}
+        placeholder="Search customers…"
+        value={query}
+      />
+      {open ? (
+        <div className="portal-combobox__menu" role="listbox">
+          {filtered.length ? (
+            filtered.map((o) => (
+              <button
+                className="portal-combobox__option"
+                key={o.id}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  pick(o.id);
+                }}
+                type="button"
+              >
+                {o.name}
+              </button>
+            ))
+          ) : (
+            <p className="portal-combobox__empty">No customers match &quot;{query}&quot;.</p>
+          )}
+          <button
+            className="portal-combobox__option new"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              setOpen(false);
+              onCreateNew();
+            }}
+            type="button"
+          >
+            + Create new customer…
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function JobModal({
   job,
   close,
@@ -428,16 +526,6 @@ export function JobModal({
 }) {
   const [customerId, setCustomerId] = useState(job?.customerId != null ? String(job.customerId) : "");
   const [creatingCustomer, setCreatingCustomer] = useState(false);
-  const [customerSearch, setCustomerSearch] = useState("");
-  const customerOptions = useMemo(
-    () => customers.map((c) => ({ id: c.id, name: customerTitle(c) })).sort((a, b) => a.name.localeCompare(b.name)),
-    [customers],
-  );
-  const visibleCustomerOptions = useMemo(() => {
-    const q = customerSearch.trim().toLowerCase();
-    if (!q) return customerOptions;
-    return customerOptions.filter((c) => c.name.toLowerCase().includes(q) || String(c.id) === customerId);
-  }, [customerOptions, customerSearch, customerId]);
   const [form, setForm] = useState({
     jobName: job?.jobName || "",
     contactName: job?.contactName || "",
@@ -514,25 +602,12 @@ export function JobModal({
 
         <label className="portal-field">
           Customer name
-          <input
-            aria-label="Search customers"
-            onChange={(e) => setCustomerSearch(e.target.value)}
-            placeholder="Search customers…"
-            type="search"
-            value={customerSearch}
-          />
-          <select
-            onChange={(e) => {
-              if (e.target.value === "__new__") { setCreatingCustomer(true); return; }
-              setCustomerId(e.target.value);
-            }}
-            required
+          <CustomerCombobox
+            customers={customers}
+            onChange={setCustomerId}
+            onCreateNew={() => setCreatingCustomer(true)}
             value={customerId}
-          >
-            <option value="">Select a customer…</option>
-            {visibleCustomerOptions.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            <option value="__new__">+ Create new customer…</option>
-          </select>
+          />
         </label>
 
         <label className="portal-field">Job name<input autoFocus onChange={set("jobName")} value={form.jobName} /></label>
