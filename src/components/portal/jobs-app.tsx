@@ -446,6 +446,9 @@ export function JobModal({
     decorationType: job?.decorationType || "",
     quantity: String(job?.quantity ?? 0),
     productionFacility: job?.productionFacility || "",
+    salesOrderNumber: job?.salesOrderNumber || "",
+    invoiceNumber: job?.invoiceNumber || "",
+    notes: job?.notes || "",
   });
   const [goodsOrdered, setGoodsOrdered] = useState(job?.goodsOrdered || false);
   const [status, setStatus] = useState<JobStatus>(job?.status || "pending");
@@ -454,7 +457,7 @@ export function JobModal({
     await onSaved();
     close();
   });
-  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, [k]: e.target.value });
+  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setForm({ ...form, [k]: e.target.value });
 
   async function handleCustomerCreated() {
     const before = new Set(customers.map((c) => c.id));
@@ -569,6 +572,11 @@ export function JobModal({
           </datalist>
         </label>
 
+        <div className="portal-row">
+          <label className="portal-field">Sales order number<input onChange={set("salesOrderNumber")} value={form.salesOrderNumber} /></label>
+          <label className="portal-field">Invoice number<input onChange={set("invoiceNumber")} value={form.invoiceNumber} /></label>
+        </div>
+
         {job ? (
           <label className="portal-field">
             Stage
@@ -577,6 +585,8 @@ export function JobModal({
             </select>
           </label>
         ) : null}
+
+        <label className="portal-field">Notes<textarea onChange={set("notes")} rows={3} value={form.notes} /></label>
 
         {error ? <p className="portal-msg err" role="alert">{error}</p> : null}
 

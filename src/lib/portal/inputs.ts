@@ -81,6 +81,9 @@ export function toJobInput(body: Record<string, unknown>): JobInput {
     decorationType: text(body.decorationType, 120),
     quantity: int(body.quantity),
     productionFacility: text(body.productionFacility, 200),
+    salesOrderNumber: text(body.salesOrderNumber, 80),
+    invoiceNumber: text(body.invoiceNumber, 80),
+    notes: text(body.notes, 2000),
   };
 }
 

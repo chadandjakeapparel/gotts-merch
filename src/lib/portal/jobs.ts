@@ -58,6 +58,9 @@ function toJob(r: Row, activities: JobActivity[], files: JobFile[]): Job {
     decorationType: str(r.decoration_type),
     quantity: num(r.quantity),
     productionFacility: str(r.production_facility),
+    salesOrderNumber: str(r.sales_order_number),
+    invoiceNumber: str(r.invoice_number),
+    notes: str(r.notes),
     createdAt: iso(r.created_at) || "",
     updatedAt: iso(r.updated_at) || "",
     activities,
@@ -116,6 +119,9 @@ export type JobInput = {
   decorationType: string;
   quantity: number;
   productionFacility: string;
+  salesOrderNumber: string;
+  invoiceNumber: string;
+  notes: string;
 };
 
 function requireJob(input: JobInput) {
@@ -165,6 +171,15 @@ function diffJob(existing: Row, input: JobInput): string[] {
   if (str(existing.production_facility) !== input.productionFacility) {
     changes.push(describeChange("Production facility", str(existing.production_facility), input.productionFacility));
   }
+  if (str(existing.sales_order_number) !== input.salesOrderNumber) {
+    changes.push(describeChange("Sales order number", str(existing.sales_order_number), input.salesOrderNumber));
+  }
+  if (str(existing.invoice_number) !== input.invoiceNumber) {
+    changes.push(describeChange("Invoice number", str(existing.invoice_number), input.invoiceNumber));
+  }
+  if (str(existing.notes) !== input.notes) {
+    changes.push("Notes updated");
+  }
   return changes;
 }
 
@@ -175,11 +190,11 @@ export async function createJob(input: JobInput, createdBy: string): Promise<num
     const [row] = await sql`
       insert into jobs (
         customer_id, job_name, contact_name, in_hand_date, goods_ordered, po_numbers,
-        decoration_type, quantity, production_facility
+        decoration_type, quantity, production_facility, sales_order_number, invoice_number, notes
       ) values (
         ${input.customerId}, ${input.jobName}, ${input.contactName}, ${input.inHandDate || null},
         ${input.goodsOrdered}, ${input.poNumbers}, ${input.decorationType}, ${input.quantity},
-        ${input.productionFacility}
+        ${input.productionFacility}, ${input.salesOrderNumber}, ${input.invoiceNumber}, ${input.notes}
       ) returning id`;
     const id = Number(row.id);
     await sql`insert into job_activities (job_id, kind, body, created_by) values (${id}, 'status', 'Job created', ${createdBy})`;
@@ -202,7 +217,9 @@ export async function updateJob(id: number, input: JobInput, createdBy: string) 
           customer_id = ${input.customerId}, job_name = ${input.jobName}, contact_name = ${input.contactName},
           in_hand_date = ${input.inHandDate || null}, goods_ordered = ${input.goodsOrdered},
           po_numbers = ${input.poNumbers}, decoration_type = ${input.decorationType},
-          quantity = ${input.quantity}, production_facility = ${input.productionFacility}, updated_at = now()
+          quantity = ${input.quantity}, production_facility = ${input.productionFacility},
+          sales_order_number = ${input.salesOrderNumber}, invoice_number = ${input.invoiceNumber},
+          notes = ${input.notes}, updated_at = now()
         where id = ${id}`;
       for (const message of changes) {
         await tx`insert into job_activities (job_id, kind, body, created_by) values (${id}, 'change', ${message}, ${createdBy})`;

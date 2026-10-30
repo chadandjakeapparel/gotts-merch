@@ -294,6 +294,10 @@ create table if not exists jobs (
 create index if not exists jobs_status_idx on jobs (status);
 create index if not exists jobs_customer_idx on jobs (customer_id);
 
+alter table jobs add column if not exists notes text not null default '';
+alter table jobs add column if not exists sales_order_number text not null default '';
+alter table jobs add column if not exists invoice_number text not null default '';
+
 create table if not exists job_activities (
   id serial primary key,
   job_id integer not null references jobs(id) on delete cascade,

@@ -185,6 +185,9 @@ export type Job = {
   decorationType: string;
   quantity: number;
   productionFacility: string;
+  salesOrderNumber: string;
+  invoiceNumber: string;
+  notes: string;
   createdAt: string;
   updatedAt: string;
   activities: JobActivity[];
