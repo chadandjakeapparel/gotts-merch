@@ -92,6 +92,7 @@ export type Lead = {
   id: number;
   companyName: string;
   contactName: string;
+  jobName: string;
   email: string;
   phone: string;
   source: string;

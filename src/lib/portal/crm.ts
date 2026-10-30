@@ -58,6 +58,7 @@ function toLead(r: Row, activities: LeadActivity[]): Lead {
     id: num(r.id),
     companyName: str(r.company_name),
     contactName: str(r.contact_name),
+    jobName: str(r.job_name),
     email: str(r.email),
     phone: str(r.phone),
     source: str(r.source),
@@ -91,6 +92,7 @@ export async function listLeads(): Promise<Lead[]> {
 export type LeadInput = {
   companyName: string;
   contactName: string;
+  jobName: string;
   email: string;
   phone: string;
   source: string;
@@ -110,9 +112,9 @@ export async function createLead(input: LeadInput, createdBy: string): Promise<n
   requireName(input);
   const sql = await db();
   const [row] = await sql`
-    insert into leads (company_name, contact_name, email, phone, source, contact_method, estimated_value, owner, notes)
+    insert into leads (company_name, contact_name, job_name, email, phone, source, contact_method, estimated_value, owner, notes)
     values (
-      ${input.companyName}, ${input.contactName}, ${input.email}, ${input.phone}, ${input.source},
+      ${input.companyName}, ${input.contactName}, ${input.jobName}, ${input.email}, ${input.phone}, ${input.source},
       ${input.contactMethod}, ${input.estimatedValue}, ${input.owner}, ${input.notes}
     )
     returning id`;
@@ -126,8 +128,8 @@ export async function updateLead(id: number, input: LeadInput) {
   const sql = await db();
   const rows = await sql`
     update leads set
-      company_name = ${input.companyName}, contact_name = ${input.contactName}, email = ${input.email},
-      phone = ${input.phone}, source = ${input.source}, contact_method = ${input.contactMethod},
+      company_name = ${input.companyName}, contact_name = ${input.contactName}, job_name = ${input.jobName},
+      email = ${input.email}, phone = ${input.phone}, source = ${input.source}, contact_method = ${input.contactMethod},
       estimated_value = ${input.estimatedValue}, owner = ${input.owner}, notes = ${input.notes}, updated_at = now()
     where id = ${id} returning id`;
   if (!rows.length) throw new PortalError("That lead no longer exists.", 404);

@@ -25,6 +25,7 @@ export function toLeadInput(body: Record<string, unknown>): LeadInput {
   return {
     companyName: text(body.companyName, 200),
     contactName: text(body.contactName, 200),
+    jobName: text(body.jobName, 200),
     email: text(body.email, 200),
     phone: text(body.phone, 60),
     source: text(body.source, 120),

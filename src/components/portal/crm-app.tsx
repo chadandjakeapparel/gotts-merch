@@ -212,6 +212,7 @@ export function CrmApp({
                       type="button"
                     >
                       <h4>{leadTitle(l)}</h4>
+                      {l.jobName ? <span className="portal-muted small">{l.jobName}</span> : null}
                       {l.companyName && l.contactName ? <span className="portal-muted small">{l.contactName}</span> : null}
                       <div className="portal-card-foot">
                         <span className="portal-muted">{l.owner || "Unassigned"}</span>
@@ -280,6 +281,7 @@ function LeadModal({
   const [form, setForm] = useState({
     companyName: lead?.companyName || "",
     contactName: lead?.contactName || "",
+    jobName: lead?.jobName || "",
     email: lead?.email || "",
     phone: lead?.phone || "",
     source: lead?.source || "",
@@ -343,6 +345,7 @@ function LeadModal({
         <label className="portal-field">Company<input autoFocus onChange={set("companyName")} value={form.companyName} /></label>
         <label className="portal-field">Contact name<input onChange={set("contactName")} value={form.contactName} /></label>
       </div>
+      <label className="portal-field">Job name<input onChange={set("jobName")} value={form.jobName} /></label>
       <div className="portal-row">
         <label className="portal-field">Email<input onChange={set("email")} type="email" value={form.email} /></label>
         <label className="portal-field">Phone<input onChange={set("phone")} type="tel" value={form.phone} /></label>
