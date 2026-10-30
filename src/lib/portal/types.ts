@@ -208,6 +208,7 @@ export type FileFolder = {
   id: number;
   name: string;
   shareToken: string;
+  shareTitle: string;
   shareExternally: boolean;
   /** Whether a share password has been set -- the hash itself is never sent to the client. */
   hasSharePassword: boolean;

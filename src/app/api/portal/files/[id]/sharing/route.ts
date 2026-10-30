@@ -9,6 +9,8 @@ export async function PATCH(request: Request, { params }: Params) {
     await setFolderSharing(int((await params).id), {
       shareExternally: Boolean(body.shareExternally),
       password: text(body.password, 200),
+      shareToken: text(body.shareToken, 60),
+      shareTitle: text(body.shareTitle, 200),
     });
     return {};
   });

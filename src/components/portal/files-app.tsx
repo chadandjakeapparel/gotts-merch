@@ -256,25 +256,32 @@ export function FolderDetailApp({ folder: initialFolder }: { folder: FileFolder 
 
 function SharingSettings({ folder, onChanged }: { folder: FileFolder; onChanged: () => Promise<void> }) {
   const [shareExternally, setShareExternally] = useState(folder.shareExternally);
+  const [shareToken, setShareToken] = useState(folder.shareToken);
+  const [shareTitle, setShareTitle] = useState(folder.shareTitle);
   const [password, setPassword] = useState("");
   const [copied, setCopied] = useState(false);
-  const [shareUrl, setShareUrl] = useState("");
+  const [origin, setOrigin] = useState("");
   const { busy, error, setError, submit } = useSubmit(onChanged);
 
   useEffect(() => {
     setShareExternally(folder.shareExternally);
-  }, [folder.shareExternally]);
+    setShareToken(folder.shareToken);
+    setShareTitle(folder.shareTitle);
+  }, [folder.shareExternally, folder.shareToken, folder.shareTitle]);
 
   useEffect(() => {
-    setShareUrl(`${window.location.origin}/files/${folder.shareToken}`);
-  }, [folder.shareToken]);
+    setOrigin(window.location.origin);
+  }, []);
+
+  const shareUrl = `${origin}/files/${shareToken}`;
 
   function save() {
     if (shareExternally && !folder.hasSharePassword && !password.trim()) {
       return setError("Set a password before sharing this folder externally.");
     }
+    if (!shareToken.trim()) return setError("Give this folder's link a few letters or numbers.");
     void submit(async () => {
-      await api("PATCH", `/api/portal/files/${folder.id}/sharing`, { shareExternally, password });
+      await api("PATCH", `/api/portal/files/${folder.id}/sharing`, { shareExternally, password, shareToken, shareTitle });
       setPassword("");
     });
   }
@@ -289,6 +296,17 @@ function SharingSettings({ folder, onChanged }: { folder: FileFolder; onChanged:
         </label>
         {shareExternally ? (
           <>
+            <label className="portal-field">
+              Custom link
+              <div className="portal-inline">
+                <span className="portal-muted mono">{origin}/files/</span>
+                <input onChange={(e) => setShareToken(e.target.value)} value={shareToken} />
+              </div>
+            </label>
+            <label className="portal-field">
+              Page title
+              <input onChange={(e) => setShareTitle(e.target.value)} placeholder={folder.name} value={shareTitle} />
+            </label>
             <label className="portal-field">
               {folder.hasSharePassword ? "New password (leave blank to keep the current one)" : "Password"}
               <input autoComplete="off" onChange={(e) => setPassword(e.target.value)} type="text" value={password} />

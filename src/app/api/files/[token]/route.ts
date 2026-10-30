@@ -31,7 +31,7 @@ export async function POST(request: Request, { params }: Params) {
     await recordLoginSuccess(key);
     return NextResponse.json({
       ok: true,
-      folder: { name: folder.name, files: folder.files },
+      folder: { name: folder.name, title: folder.shareTitle || folder.name, files: folder.files },
     });
   } catch (error) {
     console.error("[portal]", error);

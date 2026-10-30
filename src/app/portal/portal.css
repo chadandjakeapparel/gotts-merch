@@ -292,6 +292,7 @@
 }
 
 .portal-share-gate { max-width: 420px; margin: 60px auto; }
+.portal-share-brand { display: flex; justify-content: center; margin-bottom: 16px; }
 
 .portal-panel-compact .portal-panel-head { padding: 10px 14px; }
 .portal-panel-compact .portal-panel-head h2 { font-size: 14px; }

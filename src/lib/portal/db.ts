@@ -425,6 +425,7 @@ create table if not exists file_folders (
   id serial primary key,
   name text not null default '',
   share_token text not null default '',
+  share_title text not null default '',
   share_externally boolean not null default false,
   share_password_hash text not null default '',
   created_by text not null default '',
@@ -432,6 +433,7 @@ create table if not exists file_folders (
   updated_at timestamptz not null default now()
 );
 create unique index if not exists file_folders_share_token_idx on file_folders (share_token);
+alter table file_folders add column if not exists share_title text not null default '';
 
 create table if not exists folder_files (
   id serial primary key,

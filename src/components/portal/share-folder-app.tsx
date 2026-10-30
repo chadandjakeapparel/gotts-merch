@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { LogoMark } from "@/components/logo";
 
 type SharedFile = {
   id: number;
@@ -19,11 +20,11 @@ function fmtFileSize(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function ShareFolderApp({ token }: { token: string }) {
+export function ShareFolderApp({ token, logoUrl, brandName }: { token: string; logoUrl: string; brandName: string }) {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [folder, setFolder] = useState<{ name: string; files: SharedFile[] } | null>(null);
+  const [folder, setFolder] = useState<{ title: string; files: SharedFile[] } | null>(null);
 
   async function unlock(e: React.FormEvent) {
     e.preventDefault();
@@ -36,7 +37,7 @@ export function ShareFolderApp({ token }: { token: string }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password }),
       });
-      const data = (await response.json()) as { ok: boolean; error?: string; folder?: { name: string; files: SharedFile[] } };
+      const data = (await response.json()) as { ok: boolean; error?: string; folder?: { title: string; files: SharedFile[] } };
       if (!data.ok || !data.folder) throw new Error(data.error || "That password isn't right.");
       setFolder(data.folder);
     } catch (err) {
@@ -49,6 +50,9 @@ export function ShareFolderApp({ token }: { token: string }) {
   if (!folder) {
     return (
       <div className="portal-crm portal-share-gate">
+        <div className="portal-share-brand">
+          <LogoMark brandName={brandName} logoUrl={logoUrl} size={44} />
+        </div>
         <div className="portal-title-row">
           <div>
             <span className="portal-eyebrow">Shared files</span>
@@ -72,11 +76,14 @@ export function ShareFolderApp({ token }: { token: string }) {
   }
 
   return (
-    <div className="portal-crm">
+    <div className="portal-crm portal-share-gate">
+      <div className="portal-share-brand">
+        <LogoMark brandName={brandName} logoUrl={logoUrl} size={44} />
+      </div>
       <div className="portal-title-row">
         <div>
           <span className="portal-eyebrow">Shared files</span>
-          <h1>{folder.name}</h1>
+          <h1>{folder.title}</h1>
         </div>
       </div>
       {folder.files.length ? (

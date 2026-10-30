@@ -1,4 +1,3 @@
-import { randomBytes } from "node:crypto";
 import { hashPassword, verifyPassword } from "./auth";
 import { db } from "./db";
 import { PortalError } from "./http";
@@ -27,6 +26,7 @@ function toFolder(r: Row, files: FolderFile[]): FileFolder {
     id: num(r.id),
     name: str(r.name),
     shareToken: str(r.share_token),
+    shareTitle: str(r.share_title),
     shareExternally: Boolean(r.share_externally),
     hasSharePassword: Boolean(str(r.share_password_hash)),
     createdBy: str(r.created_by),
@@ -36,8 +36,25 @@ function toFolder(r: Row, files: FolderFile[]): FileFolder {
   };
 }
 
-function newShareToken() {
-  return randomBytes(18).toString("base64url");
+/** Lowercase letters, numbers and hyphens only -- keeps the share link readable and URL-safe. */
+function normalizeSlug(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+}
+
+/** Picks a unique starting slug for a new folder, derived from its name. */
+async function uniqueSlug(sql: Awaited<ReturnType<typeof db>>, name: string): Promise<string> {
+  const base = normalizeSlug(name) || "folder";
+  let candidate = base;
+  for (let suffix = 2; ; suffix++) {
+    const [row] = await sql`select id from file_folders where share_token = ${candidate}`;
+    if (!row) return candidate;
+    candidate = `${base}-${suffix}`;
+  }
 }
 
 export async function listFolders(): Promise<FileFolder[]> {
@@ -67,9 +84,10 @@ export async function getFolder(id: number): Promise<FileFolder | null> {
 export async function createFolder(name: string, createdBy: string): Promise<number> {
   if (!name.trim()) throw new PortalError("Give the folder a name.");
   const sql = await db();
+  const slug = await uniqueSlug(sql, name);
   const [row] = await sql`
     insert into file_folders (name, share_token, created_by)
-    values (${name}, ${newShareToken()}, ${createdBy})
+    values (${name}, ${slug}, ${createdBy})
     returning id`;
   return Number(row.id);
 }
@@ -90,6 +108,10 @@ export type FolderSharingInput = {
   shareExternally: boolean;
   /** Leave blank to keep the current password when one is already set. */
   password: string;
+  /** The folder's custom link slug (the part after /files/). */
+  shareToken: string;
+  /** Shown as the page title on the share page; falls back to the folder name when blank. */
+  shareTitle: string;
 };
 
 export async function setFolderSharing(id: number, input: FolderSharingInput) {
@@ -100,11 +122,19 @@ export async function setFolderSharing(id: number, input: FolderSharingInput) {
   if (input.shareExternally && !input.password.trim() && !hasPassword) {
     throw new PortalError("Set a password before sharing this folder externally.");
   }
+
+  const slug = normalizeSlug(input.shareToken);
+  if (!slug) throw new PortalError("Give this folder's link a few letters or numbers.");
+  const [conflict] = await sql`select id from file_folders where share_token = ${slug} and id <> ${id}`;
+  if (conflict) throw new PortalError("That link is already taken -- try a different one.");
+
   const passwordHash = input.password.trim() ? await hashPassword(input.password.trim()) : null;
   await sql`
     update file_folders set
       share_externally = ${input.shareExternally},
       share_password_hash = coalesce(${passwordHash}, share_password_hash),
+      share_token = ${slug},
+      share_title = ${input.shareTitle},
       updated_at = now()
     where id = ${id}`;
 }
