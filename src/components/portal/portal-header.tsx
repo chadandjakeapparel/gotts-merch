@@ -11,6 +11,7 @@ export type PortalNavKey =
   | "jobs"
   | "customers"
   | "tasks"
+  | "files"
   | "designer-products"
   | "designs"
   | "quote"
@@ -77,6 +78,7 @@ export function PortalHeader({
               <Link aria-current={current === "jobs" ? "page" : undefined} href="/portal/jobs">Job Board</Link>
               <Link aria-current={current === "customers" ? "page" : undefined} href="/portal/customers">Customers</Link>
               <Link aria-current={current === "tasks" ? "page" : undefined} href="/portal/tasks">Tasks</Link>
+              <Link aria-current={current === "files" ? "page" : undefined} href="/portal/files">Files</Link>
               <div className="portal-nav-dropdown" ref={menuRef}>
                 <button
                   aria-expanded={menuOpen}

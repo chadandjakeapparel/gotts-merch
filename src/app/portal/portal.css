@@ -291,6 +291,8 @@
   .portal-detail-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
+.portal-share-gate { max-width: 420px; margin: 60px auto; }
+
 .portal-panel-compact .portal-panel-head { padding: 10px 14px; }
 .portal-panel-compact .portal-panel-head h2 { font-size: 14px; }
 .portal-panel-compact .portal-panel-body { gap: 6px; padding: 10px 14px; }

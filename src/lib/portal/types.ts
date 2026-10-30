@@ -194,6 +194,29 @@ export type Job = {
   files: JobFile[];
 };
 
+export type FolderFile = {
+  id: number;
+  fileName: string;
+  url: string;
+  contentType: string;
+  size: number;
+  uploadedBy: string;
+  createdAt: string;
+};
+
+export type FileFolder = {
+  id: number;
+  name: string;
+  shareToken: string;
+  shareExternally: boolean;
+  /** Whether a share password has been set -- the hash itself is never sent to the client. */
+  hasSharePassword: boolean;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  files: FolderFile[];
+};
+
 export type Task = {
   id: number;
   name: string;

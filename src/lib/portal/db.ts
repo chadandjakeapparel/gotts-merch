@@ -417,6 +417,33 @@ create table if not exists tasks (
 create index if not exists tasks_assigned_to_idx on tasks (assigned_to_user_id);
 create index if not exists tasks_lead_idx on tasks (lead_id);
 create index if not exists tasks_job_idx on tasks (job_id);
+
+-- Files: staff-only folders of uploaded files, optionally shared externally
+-- by a password-protected link (share_token stays stable even when sharing
+-- is turned off, so re-enabling it doesn't change the link).
+create table if not exists file_folders (
+  id serial primary key,
+  name text not null default '',
+  share_token text not null default '',
+  share_externally boolean not null default false,
+  share_password_hash text not null default '',
+  created_by text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create unique index if not exists file_folders_share_token_idx on file_folders (share_token);
+
+create table if not exists folder_files (
+  id serial primary key,
+  folder_id integer not null references file_folders(id) on delete cascade,
+  file_name text not null default '',
+  url text not null default '',
+  content_type text not null default '',
+  size integer not null default 0,
+  uploaded_by text not null default '',
+  created_at timestamptz not null default now()
+);
+create index if not exists folder_files_folder_idx on folder_files (folder_id, created_at desc);
 `;
 
 /** Creates the tables on first use, so a fresh database needs no setup step. */
