@@ -428,6 +428,16 @@ export function JobModal({
 }) {
   const [customerId, setCustomerId] = useState(job?.customerId != null ? String(job.customerId) : "");
   const [creatingCustomer, setCreatingCustomer] = useState(false);
+  const [customerSearch, setCustomerSearch] = useState("");
+  const customerOptions = useMemo(
+    () => customers.map((c) => ({ id: c.id, name: customerTitle(c) })).sort((a, b) => a.name.localeCompare(b.name)),
+    [customers],
+  );
+  const visibleCustomerOptions = useMemo(() => {
+    const q = customerSearch.trim().toLowerCase();
+    if (!q) return customerOptions;
+    return customerOptions.filter((c) => c.name.toLowerCase().includes(q) || String(c.id) === customerId);
+  }, [customerOptions, customerSearch, customerId]);
   const [form, setForm] = useState({
     jobName: job?.jobName || "",
     contactName: job?.contactName || "",
@@ -501,6 +511,13 @@ export function JobModal({
 
         <label className="portal-field">
           Customer name
+          <input
+            aria-label="Search customers"
+            onChange={(e) => setCustomerSearch(e.target.value)}
+            placeholder="Search customers…"
+            type="search"
+            value={customerSearch}
+          />
           <select
             onChange={(e) => {
               if (e.target.value === "__new__") { setCreatingCustomer(true); return; }
@@ -510,7 +527,7 @@ export function JobModal({
             value={customerId}
           >
             <option value="">Select a customer…</option>
-            {customers.map((c) => <option key={c.id} value={c.id}>{customerTitle(c)}</option>)}
+            {visibleCustomerOptions.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             <option value="__new__">+ Create new customer…</option>
           </select>
         </label>
