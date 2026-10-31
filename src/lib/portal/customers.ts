@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import type { TransactionSql } from "postgres";
 import { db } from "./db";
 import { PortalError } from "./http";
@@ -53,9 +54,16 @@ function toCustomer(r: Row, emails: string[], shippingAddresses: ShippingAddress
     subscribed: Boolean(r.subscribed),
     inventoryHeld: Boolean(r.inventory_held),
     notes: str(r.notes),
+    clientId: r.client_id == null ? null : Number(r.client_id),
     createdAt: iso(r.created_at) || "",
     updatedAt: iso(r.updated_at) || "",
   };
+}
+
+function customerDisplayName(r: Row): string {
+  return r.kind === "company"
+    ? str(r.company_name) || "Unnamed company"
+    : [str(r.first_name), str(r.last_name)].filter(Boolean).join(" ") || "Unnamed customer";
 }
 
 export async function listSalesReps(): Promise<SalesRep[]> {
@@ -133,6 +141,27 @@ export async function getCustomer(id: number): Promise<Customer | null> {
     emails.map((r) => str(r.email)).filter(Boolean),
     shippingAddresses.map(toShippingAddress),
   );
+}
+
+/**
+ * Links this customer to a client (the inventory/order/login tenant), so it
+ * can have portal login credentials -- creating one, named after the
+ * customer, the first time this is called. Later calls just return the
+ * existing link.
+ */
+export async function ensureCustomerClient(customerId: number): Promise<number> {
+  const sql = await db();
+  const [row] = await sql`
+    select client_id, kind, company_name, first_name, last_name from customers where id = ${customerId}`;
+  if (!row) throw new PortalError("That customer no longer exists.", 404);
+  if (row.client_id != null) return Number(row.client_id);
+  const name = customerDisplayName(row);
+  const webhookKey = randomBytes(18).toString("base64url");
+  return sql.begin(async (tx) => {
+    const [client] = await tx`insert into clients (name, webhook_key) values (${name}, ${webhookKey}) returning id`;
+    await tx`update customers set client_id = ${client.id} where id = ${customerId}`;
+    return Number(client.id);
+  });
 }
 
 /** The customers flagged "inventory held", for the inventory screen's dropdowns. */

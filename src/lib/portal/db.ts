@@ -240,6 +240,12 @@ alter table customers add column if not exists shipping_country text not null de
 update customers set billing_line1 = billing_address where billing_line1 = '' and billing_address <> '';
 update customers set shipping_line1 = shipping_address where shipping_line1 = '' and shipping_address <> '';
 
+-- Optionally links a customer to a client (the inventory/order/login tenant),
+-- so a customer can have portal login credentials. Created on demand, the
+-- first time a login is added from the customer's page.
+alter table customers add column if not exists client_id integer references clients(id) on delete set null;
+create index if not exists customers_client_idx on customers (client_id);
+
 -- A customer can have several shipping addresses; exactly one is primary.
 create table if not exists customer_shipping_addresses (
   id serial primary key,

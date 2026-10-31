@@ -4,8 +4,24 @@ import { db } from "./db";
 import { PortalError } from "./http";
 import type { ClientSummary, PortalUser } from "./types";
 
+type Row = Record<string, unknown>;
+
 const iso = (v: unknown) => (v instanceof Date ? v.toISOString() : v ? String(v) : null);
 const newWebhookKey = () => randomBytes(18).toString("base64url");
+
+function toUser(r: Row): PortalUser {
+  return {
+    id: Number(r.id),
+    email: String(r.email),
+    name: String(r.name),
+    role: r.role as PortalUser["role"],
+    clientId: r.client_id == null ? null : Number(r.client_id),
+    mustChangePassword: Boolean(r.must_change_password),
+    isOwner: Boolean(r.is_owner),
+    lastLoginAt: iso(r.last_login_at),
+    createdAt: iso(r.created_at) || "",
+  };
+}
 
 export async function listClients(): Promise<ClientSummary[]> {
   const sql = await db();
@@ -83,17 +99,21 @@ export async function listUsers(): Promise<PortalUser[]> {
   const sql = await db();
   await ensureOwner();
   const rows = await sql`select * from users order by is_owner desc, role desc, lower(email)`;
-  return rows.map((r) => ({
-    id: r.id,
-    email: r.email,
-    name: r.name,
-    role: r.role,
-    clientId: r.client_id,
-    mustChangePassword: r.must_change_password,
-    isOwner: Boolean(r.is_owner),
-    lastLoginAt: iso(r.last_login_at),
-    createdAt: iso(r.created_at) || "",
-  }));
+  return rows.map(toUser);
+}
+
+/** A customer's own logins, for the Credentials panel on their customer page. */
+export async function listUsersByClient(clientId: number): Promise<PortalUser[]> {
+  const sql = await db();
+  const rows = await sql`select * from users where client_id = ${clientId} order by lower(email)`;
+  return rows.map(toUser);
+}
+
+/** Guards the customer-scoped credential routes against acting on a login that belongs to a different client. */
+export async function requireUserInClient(userId: number, clientId: number) {
+  const sql = await db();
+  const [row] = await sql`select client_id from users where id = ${userId}`;
+  if (!row || Number(row.client_id) !== clientId) throw new PortalError("That login doesn't belong to this customer.", 404);
 }
 
 export async function createUser(input: { email: string; name: string; role: Role; clientId: number | null }) {

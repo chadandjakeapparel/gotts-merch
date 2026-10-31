@@ -148,6 +148,8 @@ export type Customer = {
   /** Whether this business holds inventory on this customer's behalf. */
   inventoryHeld: boolean;
   notes: string;
+  /** The linked client (inventory/login tenant), if portal credentials have been set up for this customer. */
+  clientId: number | null;
   createdAt: string;
   updatedAt: string;
 };

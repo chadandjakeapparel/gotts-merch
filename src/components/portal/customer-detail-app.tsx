@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
-import type { Customer, Job, SalesRep, Task } from "@/lib/portal/types";
+import { useEffect, useMemo, useState } from "react";
+import type { Customer, Job, PortalUser, SalesRep, Task } from "@/lib/portal/types";
 import { api } from "./api";
+import { CopyField } from "./admin-app";
 import { addressSummary, CustomerModal, customerTitle } from "./customers-app";
 import { JobModal } from "./jobs-app";
 import { type StaffOption } from "./tasks-app";
@@ -39,6 +40,188 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
       <span className="portal-eyebrow">{label}</span>
       <span>{value || <span className="portal-muted">Not set</span>}</span>
     </div>
+  );
+}
+
+/** The customer's own portal logins -- lets them sign in to see their inventory and orders. */
+function CredentialsSection({ customerId }: { customerId: number }) {
+  const [loaded, setLoaded] = useState(false);
+  const [logins, setLogins] = useState<PortalUser[]>([]);
+  const [origin, setOrigin] = useState("");
+  const [error, setError] = useState("");
+  const [secret, setSecret] = useState<{ email: string; password: string } | null>(null);
+  const [newLogin, setNewLogin] = useState({ email: "", name: "" });
+  const [editingUser, setEditingUser] = useState<{ id: number; name: string } | null>(null);
+  const [confirming, setConfirming] = useState<number | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => setOrigin(window.location.origin), []);
+
+  const reload = async () => {
+    const res = await api<{ clientId: number | null; logins: PortalUser[] }>(
+      "GET",
+      `/api/portal/customers/${customerId}/credentials`,
+    );
+    setLogins(res.logins);
+    setLoaded(true);
+  };
+
+  useEffect(() => {
+    void reload();
+    // Only on mount: later refreshes are triggered by this section's own actions.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customerId]);
+
+  async function run(task: () => Promise<void>) {
+    if (busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      await task();
+      await reload();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "That didn't work. Try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="portal-panel">
+      <div className="portal-panel-head"><h2>Credentials</h2></div>
+
+      {secret ? (
+        <div className="portal-secret" role="status">
+          <p>
+            Send these to <strong>{secret.email}</strong>. The temporary password is shown only once, and they&apos;ll be
+            asked to choose their own when they first sign in.
+          </p>
+          <div className="portal-row">
+            <CopyField label="Sign-in page" value={`${origin}/portal/login`} />
+            <CopyField label="Temporary password" value={secret.password} />
+          </div>
+          <button className="portal-btn small" onClick={() => setSecret(null)} type="button">Done</button>
+        </div>
+      ) : null}
+
+      {error ? <p className="portal-msg err" role="alert">{error}</p> : null}
+
+      <form
+        className="portal-login-add"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void run(async () => {
+            const res = await api<{ email: string; password: string }>(
+              "POST",
+              `/api/portal/customers/${customerId}/credentials`,
+              newLogin,
+            );
+            setSecret(res);
+            setNewLogin({ email: "", name: "" });
+          });
+        }}
+      >
+        <label className="portal-field">
+          Email
+          <input onChange={(e) => setNewLogin({ ...newLogin, email: e.target.value })} required type="email" value={newLogin.email} />
+        </label>
+        <label className="portal-field">
+          Name
+          <input onChange={(e) => setNewLogin({ ...newLogin, name: e.target.value })} value={newLogin.name} />
+        </label>
+        <button className="portal-btn primary" disabled={busy} type="submit">Create login</button>
+      </form>
+
+      {logins.length ? (
+        <div className="portal-table-wrap">
+          <table className="portal-table compact">
+            <thead>
+              <tr><th>Email</th><th>Name</th><th>Last sign-in</th><th className="r"><span className="portal-sr">Actions</span></th></tr>
+            </thead>
+            <tbody>
+              {logins.map((u) => (
+                <tr key={u.id}>
+                  <td>{u.email}{u.mustChangePassword ? <span className="portal-pill low">Temporary password</span> : null}</td>
+                  <td>
+                    {editingUser?.id === u.id ? (
+                      <span className="portal-inline">
+                        <input autoFocus onChange={(e) => setEditingUser({ id: u.id, name: e.target.value })} value={editingUser.name} />
+                        <button
+                          className="portal-btn small primary"
+                          disabled={busy}
+                          onClick={() =>
+                            void run(async () => {
+                              await api("PATCH", `/api/portal/customers/${customerId}/credentials/${u.id}`, {
+                                action: "rename",
+                                name: editingUser.name,
+                              });
+                              setEditingUser(null);
+                            })
+                          }
+                          type="button"
+                        >
+                          Save
+                        </button>
+                        <button className="portal-btn small" onClick={() => setEditingUser(null)} type="button">Cancel</button>
+                      </span>
+                    ) : (
+                      <span className="portal-row-actions">
+                        {u.name}
+                        <button className="portal-link small" onClick={() => setEditingUser({ id: u.id, name: u.name })} type="button">Rename</button>
+                      </span>
+                    )}
+                  </td>
+                  <td>{u.lastLoginAt ? fmtDate(u.lastLoginAt) : "Never"}</td>
+                  <td className="r">
+                    {confirming === u.id ? (
+                      <span className="portal-row-actions">
+                        <button
+                          className="portal-btn small danger"
+                          disabled={busy}
+                          onClick={() =>
+                            void run(async () => {
+                              await api("DELETE", `/api/portal/customers/${customerId}/credentials/${u.id}`);
+                              setConfirming(null);
+                            })
+                          }
+                          type="button"
+                        >
+                          Remove
+                        </button>
+                        <button className="portal-btn small" onClick={() => setConfirming(null)} type="button">Keep</button>
+                      </span>
+                    ) : (
+                      <span className="portal-row-actions">
+                        <button
+                          className="portal-btn small"
+                          disabled={busy}
+                          onClick={() =>
+                            void run(async () => {
+                              const res = await api<{ email: string; password: string }>(
+                                "PATCH",
+                                `/api/portal/customers/${customerId}/credentials/${u.id}`,
+                                { action: "reset" },
+                              );
+                              setSecret(res);
+                            })
+                          }
+                          type="button"
+                        >
+                          Reset password
+                        </button>
+                        <button className="portal-btn small danger" onClick={() => setConfirming(u.id)} type="button">Remove</button>
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : loaded ? (
+        <p className="portal-muted small portal-login-add-hint">No portal logins yet for this customer.</p>
+      ) : null}
+    </section>
   );
 }
 
@@ -197,6 +380,8 @@ export function CustomerDetailApp({
           </div>
         </section>
       </div>
+
+      <CredentialsSection customerId={customer.id} />
 
       <section className="portal-panel">
         <div className="portal-panel-head"><h2>Jobs</h2></div>
