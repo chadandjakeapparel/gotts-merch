@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import type { Customer, Job, PortalUser, SalesRep, Task } from "@/lib/portal/types";
+import type { ClientSummary, Customer, Job, PortalUser, SalesRep, Task } from "@/lib/portal/types";
 import { api } from "./api";
 import { CopyField } from "./admin-app";
 import { addressSummary, CustomerModal, customerTitle } from "./customers-app";
@@ -47,6 +47,8 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
 function CredentialsSection({ customerId }: { customerId: number }) {
   const [loaded, setLoaded] = useState(false);
   const [logins, setLogins] = useState<PortalUser[]>([]);
+  const [unlinkedClients, setUnlinkedClients] = useState<ClientSummary[]>([]);
+  const [linkClientId, setLinkClientId] = useState("");
   const [origin, setOrigin] = useState("");
   const [error, setError] = useState("");
   const [secret, setSecret] = useState<{ email: string; password: string } | null>(null);
@@ -58,11 +60,12 @@ function CredentialsSection({ customerId }: { customerId: number }) {
   useEffect(() => setOrigin(window.location.origin), []);
 
   const reload = async () => {
-    const res = await api<{ clientId: number | null; logins: PortalUser[] }>(
+    const res = await api<{ clientId: number | null; logins: PortalUser[]; unlinkedClients: ClientSummary[] }>(
       "GET",
       `/api/portal/customers/${customerId}/credentials`,
     );
     setLogins(res.logins);
+    setUnlinkedClients(res.unlinkedClients);
     setLoaded(true);
   };
 
@@ -105,6 +108,36 @@ function CredentialsSection({ customerId }: { customerId: number }) {
       ) : null}
 
       {error ? <p className="portal-msg err" role="alert">{error}</p> : null}
+
+      {unlinkedClients.length ? (
+        <>
+          <form
+            className="portal-link-existing"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!linkClientId) return;
+              void run(async () => {
+                await api("POST", `/api/portal/customers/${customerId}/credentials/link`, { clientId: Number(linkClientId) });
+                setLinkClientId("");
+              });
+            }}
+          >
+            <label className="portal-field">
+              Already set up elsewhere? Link an existing login
+              <select onChange={(e) => setLinkClientId(e.target.value)} value={linkClientId}>
+                <option value="">Choose a client…</option>
+                {unlinkedClients.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name} ({c.userCount} {c.userCount === 1 ? "login" : "logins"})</option>
+                ))}
+              </select>
+            </label>
+            <button className="portal-btn" disabled={busy || !linkClientId} type="submit">Link</button>
+          </form>
+          <p className="portal-hint portal-login-add-hint">
+            Links a client set up before this page existed (e.g. from Admin → Client Logins) so its logins show up here too.
+          </p>
+        </>
+      ) : null}
 
       <form
         className="portal-login-add"

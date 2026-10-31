@@ -1,4 +1,4 @@
-import { createUser, listUsersByClient } from "@/lib/portal/accounts";
+import { createUser, listUnlinkedClients, listUsersByClient } from "@/lib/portal/accounts";
 import { ensureCustomerClient, getCustomer } from "@/lib/portal/customers";
 import { handle, int, PortalError, readJson, text } from "@/lib/portal/http";
 
@@ -8,8 +8,10 @@ export async function GET(request: Request, { params }: Params) {
   return handle(request, { staff: true }, async () => {
     const customer = await getCustomer(int((await params).id));
     if (!customer) throw new PortalError("That customer no longer exists.", 404);
-    if (customer.clientId == null) return { clientId: null, logins: [] };
-    return { clientId: customer.clientId, logins: await listUsersByClient(customer.clientId) };
+    if (customer.clientId == null) {
+      return { clientId: null, logins: [], unlinkedClients: await listUnlinkedClients() };
+    }
+    return { clientId: customer.clientId, logins: await listUsersByClient(customer.clientId), unlinkedClients: [] };
   });
 }
 

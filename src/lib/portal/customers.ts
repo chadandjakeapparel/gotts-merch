@@ -164,6 +164,19 @@ export async function ensureCustomerClient(customerId: number): Promise<number> 
   });
 }
 
+/** Links this customer to an existing, not-yet-linked client -- for mapping an older login setup onto its customer. */
+export async function linkCustomerClient(customerId: number, clientId: number) {
+  const sql = await db();
+  try {
+    const rows = await sql`update customers set client_id = ${clientId} where id = ${customerId} returning id`;
+    if (!rows.length) throw new PortalError("That customer no longer exists.", 404);
+  } catch (error) {
+    if ((error as { code?: string }).code === "23503") throw new PortalError("That client no longer exists.", 404);
+    if ((error as { code?: string }).code === "23505") throw new PortalError("That client is already linked to a different customer.", 409);
+    throw error;
+  }
+}
+
 /** The customers flagged "inventory held", for the inventory screen's dropdowns. */
 export async function listHeldCustomers(): Promise<{ id: number; name: string }[]> {
   const sql = await db();

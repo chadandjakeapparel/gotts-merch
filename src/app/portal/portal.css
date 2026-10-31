@@ -668,6 +668,17 @@
   .portal-login-add { grid-template-columns: minmax(0, 1fr); }
 }
 
+.portal-link-existing {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 10px;
+  padding: 16px;
+  background: var(--p-accent-soft);
+  border-bottom: 1px solid var(--p-line);
+}
+.portal-link-existing .portal-field { flex: 1 1 280px; }
+
 /* ---------- crm ---------- */
 .portal-crm { display: flex; flex-direction: column; gap: 18px; }
 .portal-board { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 6px; }

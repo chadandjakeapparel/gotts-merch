@@ -245,6 +245,7 @@ update customers set shipping_line1 = shipping_address where shipping_line1 = ''
 -- first time a login is added from the customer's page.
 alter table customers add column if not exists client_id integer references clients(id) on delete set null;
 create index if not exists customers_client_idx on customers (client_id);
+create unique index if not exists customers_client_unique_idx on customers (client_id) where client_id is not null;
 
 -- A customer can have several shipping addresses; exactly one is primary.
 create table if not exists customer_shipping_addresses (

@@ -23,6 +23,18 @@ function toUser(r: Row): PortalUser {
   };
 }
 
+function toClientSummary(r: Row): ClientSummary {
+  return {
+    id: Number(r.id),
+    name: String(r.name),
+    webhookKey: String(r.webhook_key),
+    itemCount: Number(r.item_count),
+    units: Number(r.units),
+    openOrders: Number(r.open_orders),
+    userCount: Number(r.user_count),
+  };
+}
+
 export async function listClients(): Promise<ClientSummary[]> {
   const sql = await db();
   const rows = await sql`
@@ -33,15 +45,22 @@ export async function listClients(): Promise<ClientSummary[]> {
       (select count(*)::int from users u where u.client_id = c.id) as user_count
     from clients c
     order by lower(c.name)`;
-  return rows.map((r) => ({
-    id: r.id,
-    name: r.name,
-    webhookKey: r.webhook_key,
-    itemCount: r.item_count,
-    units: r.units,
-    openOrders: r.open_orders,
-    userCount: r.user_count,
-  }));
+  return rows.map(toClientSummary);
+}
+
+/** Clients with no customer linked yet -- for mapping a pre-existing client (and its logins) onto a customer. */
+export async function listUnlinkedClients(): Promise<ClientSummary[]> {
+  const sql = await db();
+  const rows = await sql`
+    select c.*,
+      (select count(*)::int from items i where i.client_id = c.id) as item_count,
+      (select coalesce(sum(qty), 0)::int from items i where i.client_id = c.id) as units,
+      (select count(*)::int from orders o where o.client_id = c.id and o.status = 'open') as open_orders,
+      (select count(*)::int from users u where u.client_id = c.id) as user_count
+    from clients c
+    where not exists (select 1 from customers cu where cu.client_id = c.id)
+    order by lower(c.name)`;
+  return rows.map(toClientSummary);
 }
 
 export async function clientName(id: number) {
