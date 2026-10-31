@@ -80,6 +80,19 @@ export const customerTitle = (c: Pick<Customer, "kind" | "companyName" | "firstN
     ? c.companyName || "Unnamed company"
     : [c.firstName, c.lastName].filter(Boolean).join(" ") || "Unnamed customer";
 
+type SortKey = "name" | "type" | "email" | "phone" | "salesRep" | "subscribed";
+
+function sortValue(c: Customer, key: SortKey, repName: (id: number | null) => string): string | number {
+  switch (key) {
+    case "name": return customerTitle(c);
+    case "type": return c.kind === "company" ? "Company" : "Individual";
+    case "email": return c.emails[0] || "";
+    case "phone": return c.phone;
+    case "salesRep": return repName(c.salesRepId);
+    case "subscribed": return c.subscribed ? 1 : 0;
+  }
+}
+
 const emptyAddress = (): Address => ({ name: "", line1: "", line2: "", city: "", state: "", zip: "", country: "US" });
 
 /** An address block whose ZIP, once it looks complete, fills in the city and state for you. */
@@ -281,6 +294,7 @@ export function CustomersApp({
   const [adding, setAdding] = useState(false);
   const [importing, setImporting] = useState(false);
   const [managingReps, setManagingReps] = useState(false);
+  const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: "name", dir: 1 });
 
   const repName = useMemo(() => {
     const m = new Map(salesReps.map((r) => [r.id, r.name]));
@@ -304,20 +318,43 @@ export function CustomersApp({
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return customers;
-    return customers.filter((c) => {
-      const haystack = [
-        customerTitle(c),
-        c.pointOfContact,
-        c.phone,
-        repName(c.salesRepId),
-        ...c.emails,
-      ]
-        .join(" ")
-        .toLowerCase();
-      return haystack.includes(q);
+    const matches = !q
+      ? customers
+      : customers.filter((c) => {
+          const haystack = [
+            customerTitle(c),
+            c.pointOfContact,
+            c.phone,
+            repName(c.salesRepId),
+            ...c.emails,
+          ]
+            .join(" ")
+            .toLowerCase();
+          return haystack.includes(q);
+        });
+    return [...matches].sort((a, b) => {
+      const av = sortValue(a, sort.key, repName);
+      const bv = sortValue(b, sort.key, repName);
+      const c =
+        typeof av === "number" && typeof bv === "number"
+          ? av - bv
+          : String(av).localeCompare(String(bv), undefined, { numeric: true, sensitivity: "base" });
+      return c * sort.dir || customerTitle(a).localeCompare(customerTitle(b));
     });
-  }, [customers, query, repName]);
+  }, [customers, query, repName, sort]);
+
+  const header = (key: SortKey, text: string) => (
+    <th aria-sort={sort.key === key ? (sort.dir > 0 ? "ascending" : "descending") : "none"}>
+      <button
+        className="portal-sort"
+        onClick={() => setSort((s) => (s.key === key ? { key, dir: s.dir === 1 ? -1 : 1 } : { key, dir: 1 }))}
+        type="button"
+      >
+        {text}
+        {sort.key === key ? (sort.dir > 0 ? " ▲" : " ▼") : ""}
+      </button>
+    </th>
+  );
 
   return (
     <div className="portal-crm">
@@ -349,12 +386,12 @@ export function CustomersApp({
         <table className="portal-table">
           <thead>
             <tr>
-              <th>Name</th>
-              <th>Type</th>
-              <th>Email</th>
-              <th>Phone</th>
-              <th>Sales rep</th>
-              <th>Subscribed</th>
+              {header("name", "Name")}
+              {header("type", "Type")}
+              {header("email", "Email")}
+              {header("phone", "Phone")}
+              {header("salesRep", "Sales rep")}
+              {header("subscribed", "Subscribed")}
             </tr>
           </thead>
           <tbody>
