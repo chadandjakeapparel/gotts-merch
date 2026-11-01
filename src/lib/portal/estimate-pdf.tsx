@@ -1,4 +1,5 @@
 import { Document, Page, Path, StyleSheet, Svg, Text, View } from "@react-pdf/renderer";
+import type { BusinessAddress, BusinessInfo } from "./business-info";
 import { estimateTotals } from "./estimates";
 import type { Estimate, Lead } from "./types";
 
@@ -44,6 +45,9 @@ const styles = StyleSheet.create({
   notes: { marginTop: 24, paddingTop: 12, borderTopWidth: 1, borderTopColor: LINE },
   notesLabel: { fontSize: 8, fontFamily: "Helvetica-Bold", color: MUTED, letterSpacing: 1, marginBottom: 4, textTransform: "uppercase" },
   notesBody: { fontSize: 9.5, color: INK, lineHeight: 1.4 },
+  remit: { marginTop: 16, padding: 12, backgroundColor: "#f3f6fb", borderWidth: 1, borderColor: LINE, maxWidth: 260 },
+  remitLabel: { fontSize: 8, fontFamily: "Helvetica-Bold", color: NAVY, letterSpacing: 1, marginBottom: 4, textTransform: "uppercase" },
+  remitValue: { fontSize: 9.5, color: INK, marginBottom: 1 },
   footer: { position: "absolute", bottom: 28, left: 48, right: 48, borderTopWidth: 1, borderTopColor: LINE, paddingTop: 10, textAlign: "center" },
   footerText: { fontSize: 8.5, color: MUTED },
 });
@@ -68,12 +72,21 @@ const STATUS_LABEL: Record<Estimate["status"], string> = {
 const fmtDate = (value: string | null) =>
   value ? new Date(value).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : "";
 
+/** "123 Main St", "Suite 4", "Austin, TX 78701" -- skipping any blank parts. */
+function addressLines(a: BusinessAddress): string[] {
+  const cityStateZip = [a.city, [a.state, a.zip].filter(Boolean).join(" ")].filter(Boolean).join(", ");
+  return [a.line1, a.line2, cityStateZip].filter(Boolean);
+}
+
 /** A traditional printable estimate: letterhead, bill-to, line items, totals, notes. */
-export function EstimatePdfDocument({ estimate, lead }: { estimate: Estimate; lead: Lead }) {
+export function EstimatePdfDocument({ estimate, lead, business }: { estimate: Estimate; lead: Lead; business: BusinessInfo }) {
   const { subtotal, tax, total } = estimateTotals(estimate);
   const billName = lead.companyName || lead.contactName || "Customer";
   const estimateNumber = `EST-${String(estimate.id).padStart(5, "0")}`;
   const date = fmtDate(estimate.sentAt || estimate.createdAt);
+  const businessName = business.businessName || "Gotts Merch";
+  const businessEmail = business.email || "hello@gottsmerch.com";
+  const remitLines = addressLines(business.remitAddress);
 
   return (
     <Document title={`${estimateNumber} - ${billName}`}>
@@ -103,8 +116,13 @@ export function EstimatePdfDocument({ estimate, lead }: { estimate: Estimate; le
           </View>
           <View style={styles.infoBlock}>
             <Text style={styles.infoLabel}>Prepared by</Text>
-            <Text style={styles.infoValue}>Gotts Merch</Text>
-            <Text style={styles.infoValue}>hello@gottsmerch.com</Text>
+            <Text style={styles.infoValue}>{businessName}</Text>
+            {addressLines(business.address).map((line) => (
+              <Text key={line} style={styles.infoValue}>{line}</Text>
+            ))}
+            {business.phone ? <Text style={styles.infoValue}>{business.phone}</Text> : null}
+            <Text style={styles.infoValue}>{businessEmail}</Text>
+            {business.ein ? <Text style={styles.infoValue}>EIN {business.ein}</Text> : null}
             <Text style={styles.infoValue}>Status: {STATUS_LABEL[estimate.status]}</Text>
           </View>
         </View>
@@ -150,9 +168,19 @@ export function EstimatePdfDocument({ estimate, lead }: { estimate: Estimate; le
           </View>
         ) : null}
 
+        {remitLines.length ? (
+          <View style={styles.remit}>
+            <Text style={styles.remitLabel}>Remit payment (checks) to</Text>
+            <Text style={styles.remitValue}>{businessName}</Text>
+            {remitLines.map((line) => (
+              <Text key={line} style={styles.remitValue}>{line}</Text>
+            ))}
+          </View>
+        ) : null}
+
         <View fixed style={styles.footer}>
           <Text style={styles.footerText}>Thank you for the opportunity to work with you.</Text>
-          <Text style={styles.footerText}>Questions? Reach us at hello@gottsmerch.com</Text>
+          <Text style={styles.footerText}>Questions? Reach us at {businessEmail}</Text>
         </View>
       </Page>
     </Document>

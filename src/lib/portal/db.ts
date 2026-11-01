@@ -404,6 +404,34 @@ select
   '["Apparel (polos, aprons, chef coats, rain jackets)","Menus, print & tabletop (menu jackets, coasters, napkins, matchboxes, stickers)","Drinkware & to-go (cups, sleeves, stirrers, to-go bags)","Pens & retail merchandise","Not sure yet"]'::jsonb
 where not exists (select 1 from quote_section);
 
+-- Business/corporation letterhead details -- used on estimate PDFs and
+-- wherever else the portal needs them. Single row (id is always 1).
+create table if not exists business_info (
+  id integer primary key default 1,
+  business_name text not null default '',
+  address_line1 text not null default '',
+  address_line2 text not null default '',
+  city text not null default '',
+  state text not null default '',
+  zip text not null default '',
+  email text not null default '',
+  phone text not null default '',
+  ein text not null default '',
+  remit_line1 text not null default '',
+  remit_line2 text not null default '',
+  remit_city text not null default '',
+  remit_state text not null default '',
+  remit_zip text not null default '',
+  updated_at timestamptz not null default now(),
+  constraint business_info_single_row check (id = 1)
+);
+
+-- Seeds the row with what's already known from the codebase; staff fill in
+-- the rest (address, phone, EIN, remit-to) from the admin page.
+insert into business_info (id, business_name, email)
+select 1, 'Gotts Merch', 'hello@gottsmerch.com'
+where not exists (select 1 from business_info);
+
 -- Tasks: assignable from the Tasks page, a CRM lead, or a Job Board job.
 -- Deleting a lead/job takes its tasks with it (same as lead_activities);
 -- deleting a staff login just clears who it was assigned to/by.
