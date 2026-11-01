@@ -192,6 +192,17 @@ export async function listHeldCustomers(): Promise<{ id: number; name: string }[
   }));
 }
 
+/**
+ * Whether the customer linked to this client holds inventory with us --
+ * gates the Inventory tab on their /portal page. Defaults to true when no
+ * customer is linked yet, so pre-existing logins keep working.
+ */
+export async function inventoryHeldForClient(clientId: number): Promise<boolean> {
+  const sql = await db();
+  const [row] = await sql`select inventory_held from customers where client_id = ${clientId}`;
+  return row ? Boolean(row.inventory_held) : true;
+}
+
 export type CustomerInput = {
   kind: CustomerKind;
   companyName: string;

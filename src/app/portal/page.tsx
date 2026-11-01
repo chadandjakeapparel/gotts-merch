@@ -3,7 +3,7 @@ import Link from "next/link";
 import { PortalApp } from "@/components/portal/portal-app";
 import { PortalHeader } from "@/components/portal/portal-header";
 import { clientName, listClients } from "@/lib/portal/accounts";
-import { listHeldCustomers } from "@/lib/portal/customers";
+import { inventoryHeldForClient, listHeldCustomers } from "@/lib/portal/customers";
 import { getState } from "@/lib/portal/data";
 import { requireUser, toViewer } from "@/lib/portal/session";
 import type { ClientSummary, PortalState } from "@/lib/portal/types";
@@ -63,6 +63,7 @@ export default async function PortalPage({
     console.error("[portal]", error);
     loadError = "The inventory couldn't be loaded. Refresh the page to try again.";
   }
+  const inventoryHeld = await inventoryHeldForClient(clientId);
 
   return (
     <PortalApp
@@ -71,6 +72,7 @@ export default async function PortalPage({
       clients={clients}
       heldCustomers={heldCustomers}
       initialState={state}
+      inventoryHeld={inventoryHeld}
       key={clientId}
       loadError={loadError}
       viewer={viewer}

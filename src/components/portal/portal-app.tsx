@@ -167,6 +167,7 @@ export function PortalApp({
   clientId,
   clientName,
   initialState,
+  inventoryHeld,
   loadError,
 }: {
   viewer: Viewer;
@@ -177,6 +178,8 @@ export function PortalApp({
   clientId: number;
   clientName: string;
   initialState: PortalState;
+  /** Whether the customer linked to this client holds inventory with us -- hides the Inventory tab when false. */
+  inventoryHeld: boolean;
   loadError: string;
 }) {
   const admin = viewer.role === "staff";
@@ -187,7 +190,7 @@ export function PortalApp({
   );
   const [data, setData] = useState(initialState);
   const [error, setError] = useState(loadError);
-  const [tab, setTab] = useState<Tab>("inventory");
+  const [tab, setTab] = useState<Tab>(inventoryHeld ? "inventory" : "orders");
   const [modal, setModal] = useState<Modal>(null);
   const [toast, setToast] = useState("");
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
@@ -262,7 +265,7 @@ export function PortalApp({
       <main className="portal-main">
         <div className="portal-title-row">
           <div>
-            <span className="portal-eyebrow">{admin ? "Viewing client" : "Inventory held for"}</span>
+            <span className="portal-eyebrow">{admin ? "Viewing client" : inventoryHeld ? "Inventory held for" : "Your account"}</span>
             <h1>{clientName}</h1>
           </div>
           <div className="portal-updated">
@@ -273,30 +276,38 @@ export function PortalApp({
         {error ? <p className="portal-msg err" role="alert">{error}</p> : null}
 
         <section aria-label="Totals" className="portal-summary">
-          <div><span className="portal-eyebrow">Units on hand</span><strong>{count.format(totals.units)}</strong></div>
-          <div><span className="portal-eyebrow">Inventory value</span><strong>{currency.format(totals.value)}</strong></div>
+          {inventoryHeld ? (
+            <>
+              <div><span className="portal-eyebrow">Units on hand</span><strong>{count.format(totals.units)}</strong></div>
+              <div><span className="portal-eyebrow">Inventory value</span><strong>{currency.format(totals.value)}</strong></div>
+            </>
+          ) : null}
           <div>
             <span className="portal-eyebrow">Open orders</span>
             <strong>{count.format(totals.openOrders)}</strong>
             <span className="portal-muted small">{count.format(totals.openUnits)} units waiting to ship</span>
           </div>
-          <div>
-            <span className="portal-eyebrow">Low or out of stock</span>
-            <strong className={totals.low ? "warn" : ""}>{count.format(totals.low)}</strong>
-            <span className="portal-muted small">
-              {count.format(threshold)} units or fewer{" "}
-              <button className="portal-link small" onClick={() => setModal({ kind: "lowStock", threshold })} type="button">Edit</button>
-            </span>
-          </div>
+          {inventoryHeld ? (
+            <div>
+              <span className="portal-eyebrow">Low or out of stock</span>
+              <strong className={totals.low ? "warn" : ""}>{count.format(totals.low)}</strong>
+              <span className="portal-muted small">
+                {count.format(threshold)} units or fewer{" "}
+                <button className="portal-link small" onClick={() => setModal({ kind: "lowStock", threshold })} type="button">Edit</button>
+              </span>
+            </div>
+          ) : null}
         </section>
 
         <nav aria-label="Sections" className="portal-tabs" role="tablist">
           {(
-            [
-              ["inventory", "Inventory", data.items.length],
-              ["orders", "Orders", totals.openOrders],
-              ["history", "Stock history", null],
-            ] as const
+            inventoryHeld
+              ? ([
+                  ["inventory", "Inventory", data.items.length],
+                  ["orders", "Orders", totals.openOrders],
+                  ["history", "Stock history", null],
+                ] as const)
+              : ([["orders", "Orders", totals.openOrders]] as const)
           ).map(([key, text, n]) => (
             <button aria-selected={tab === key} key={key} onClick={() => setTab(key)} role="tab" type="button">
               {text}
@@ -306,11 +317,11 @@ export function PortalApp({
           ))}
         </nav>
 
-        {tab === "inventory" ? (
+        {tab === "inventory" && inventoryHeld ? (
           <InventoryTab admin={admin} heldCustomers={heldCustomers} items={data.items} setModal={setModal} threshold={threshold} />
         ) : null}
         {tab === "orders" ? <OrdersTab admin={admin} items={data.items} mutate={mutate} orders={data.orders} setModal={setModal} /> : null}
-        {tab === "history" ? <HistoryTab moves={data.moves} /> : null}
+        {tab === "history" && inventoryHeld ? <HistoryTab moves={data.moves} /> : null}
       </main>
 
       {modal ? (
