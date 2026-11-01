@@ -1,6 +1,7 @@
 import { parseContactMethod, type LeadInput } from "./crm";
 import type { CustomerInput } from "./customers";
 import type { ItemInput, OrderInput } from "./data";
+import type { EstimateInput } from "./estimates";
 import type { JobInput } from "./jobs";
 import type { TaskInput } from "./tasks";
 import type { Address } from "./types";
@@ -83,6 +84,19 @@ export function toJobInput(body: Record<string, unknown>): JobInput {
     productionFacility: text(body.productionFacility, 200),
     salesOrderNumber: text(body.salesOrderNumber, 80),
     invoiceNumber: text(body.invoiceNumber, 80),
+    notes: text(body.notes, 2000),
+  };
+}
+
+export function toEstimateInput(body: Record<string, unknown>): EstimateInput {
+  const lineItems = Array.isArray(body.lineItems) ? body.lineItems : [];
+  const tax = money(body.tax);
+  return {
+    lineItems: lineItems.map((li) => {
+      const l = (li && typeof li === "object" ? li : {}) as Record<string, unknown>;
+      return { description: text(l.description, 300), quantity: int(l.quantity), unitPrice: money(l.unitPrice) };
+    }),
+    tax: Number.isFinite(tax) && tax >= 0 ? tax : 0,
     notes: text(body.notes, 2000),
   };
 }

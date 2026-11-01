@@ -82,7 +82,7 @@ export type ContactMethod = "email" | "phone" | "text";
 
 export type LeadActivity = {
   id: number;
-  kind: "note" | "call" | "email" | "meeting" | "status";
+  kind: "note" | "call" | "email" | "meeting" | "status" | "estimate";
   body: string;
   createdBy: string;
   createdAt: string;
@@ -190,10 +190,35 @@ export type Job = {
   salesOrderNumber: string;
   invoiceNumber: string;
   notes: string;
+  /** Set when this job was auto-created from an approved estimate. */
+  estimateId: number | null;
   createdAt: string;
   updatedAt: string;
   activities: JobActivity[];
   files: JobFile[];
+};
+
+export type EstimateStatus = "draft" | "sent" | "approved" | "changes_requested";
+
+export type EstimateLineItem = {
+  id: number;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+};
+
+export type Estimate = {
+  id: number;
+  leadId: number;
+  status: EstimateStatus;
+  lineItems: EstimateLineItem[];
+  tax: number;
+  notes: string;
+  createdBy: string;
+  sentAt: string | null;
+  approvedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type FolderFile = {

@@ -347,9 +347,12 @@ export function JobsApp({
                       </div>
                       <div className="portal-card-foot">
                         <span className="portal-muted small">Created {fmtCreatedDate(j.createdAt)}</span>
-                        {j.files.length ? (
-                          <span className="portal-pill">{j.files.length} file{j.files.length === 1 ? "" : "s"}</span>
-                        ) : null}
+                        <span className="portal-row-actions">
+                          {j.estimateId != null ? <span className="portal-pill ok">From estimate</span> : null}
+                          {j.files.length ? (
+                            <span className="portal-pill">{j.files.length} file{j.files.length === 1 ? "" : "s"}</span>
+                          ) : null}
+                        </span>
                       </div>
                       <span className="portal-job-tip">
                         <strong>{j.jobName || "Untitled job"}</strong>

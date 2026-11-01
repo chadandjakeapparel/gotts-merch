@@ -61,6 +61,7 @@ function toJob(r: Row, activities: JobActivity[], files: JobFile[]): Job {
     salesOrderNumber: str(r.sales_order_number),
     invoiceNumber: str(r.invoice_number),
     notes: str(r.notes),
+    estimateId: r.estimate_id == null ? null : num(r.estimate_id),
     createdAt: iso(r.created_at) || "",
     updatedAt: iso(r.updated_at) || "",
     activities,
@@ -122,6 +123,8 @@ export type JobInput = {
   salesOrderNumber: string;
   invoiceNumber: string;
   notes: string;
+  /** Set internally when this job is auto-created from an approved estimate -- never from client input. */
+  estimateId?: number | null;
 };
 
 function requireJob(input: JobInput) {
@@ -190,11 +193,12 @@ export async function createJob(input: JobInput, createdBy: string): Promise<num
     const [row] = await sql`
       insert into jobs (
         customer_id, job_name, contact_name, in_hand_date, goods_ordered, po_numbers,
-        decoration_type, quantity, production_facility, sales_order_number, invoice_number, notes
+        decoration_type, quantity, production_facility, sales_order_number, invoice_number, notes, estimate_id
       ) values (
         ${input.customerId}, ${input.jobName}, ${input.contactName}, ${input.inHandDate || null},
         ${input.goodsOrdered}, ${input.poNumbers}, ${input.decorationType}, ${input.quantity},
-        ${input.productionFacility}, ${input.salesOrderNumber}, ${input.invoiceNumber}, ${input.notes}
+        ${input.productionFacility}, ${input.salesOrderNumber}, ${input.invoiceNumber}, ${input.notes},
+        ${input.estimateId ?? null}
       ) returning id`;
     const id = Number(row.id);
     await sql`insert into job_activities (job_id, kind, body, created_by) values (${id}, 'status', 'Job created', ${createdBy})`;

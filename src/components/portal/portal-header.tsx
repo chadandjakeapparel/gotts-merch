@@ -12,6 +12,7 @@ export type PortalNavKey =
   | "customers"
   | "tasks"
   | "files"
+  | "estimates"
   | "designer-products"
   | "designs"
   | "quote"
@@ -109,6 +110,7 @@ export function PortalHeader({
           ) : (
             <>
               <Link aria-current={current === "inventory" ? "page" : undefined} href={inventoryHref}>Inventory</Link>
+              <Link aria-current={current === "estimates" ? "page" : undefined} href="/portal/estimates">Estimates</Link>
               <Link aria-current={current === "account" ? "page" : undefined} href="/portal/account">My account</Link>
             </>
           )}

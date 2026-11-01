@@ -37,7 +37,7 @@ export function parseContactMethod(value: unknown): ContactMethod {
   return (CONTACT_METHODS as string[]).includes(s) ? (s as ContactMethod) : "email";
 }
 
-const ACTIVITY_KINDS: LeadActivity["kind"][] = ["note", "call", "email", "meeting", "status"];
+const ACTIVITY_KINDS: LeadActivity["kind"][] = ["note", "call", "email", "meeting", "status", "estimate"];
 export function parseActivityKind(value: unknown): LeadActivity["kind"] {
   const s = String(value ?? "note");
   return (ACTIVITY_KINDS as string[]).includes(s) ? (s as LeadActivity["kind"]) : "note";
@@ -168,6 +168,26 @@ export async function setLeadStatus(
         insert into lead_activities (lead_id, kind, body, created_by) values (${id}, 'status', ${`Status changed to ${label}`}, ${createdBy})`;
     }
     return { clientId, changed };
+  });
+}
+
+/**
+ * Links this lead to a client (the inventory/order/login tenant), creating
+ * one if it doesn't have one yet -- used when sending an estimate, ahead of
+ * "Won", so the customer can sign in and review it. Reused by setLeadStatus
+ * when the lead is later marked Won (no second client is created).
+ */
+export async function ensureLeadClient(id: number): Promise<number> {
+  const sql = await db();
+  const [lead] = await sql`select client_id, company_name, contact_name from leads where id = ${id}`;
+  if (!lead) throw new PortalError("That lead no longer exists.", 404);
+  if (lead.client_id != null) return Number(lead.client_id);
+  const name = str(lead.company_name) || str(lead.contact_name) || "New client";
+  const webhookKey = randomBytes(18).toString("base64url");
+  return sql.begin(async (tx) => {
+    const [row] = await tx`insert into clients (name, webhook_key) values (${name}, ${webhookKey}) returning id`;
+    await tx`update leads set client_id = ${row.id} where id = ${id}`;
+    return Number(row.id);
   });
 }
 

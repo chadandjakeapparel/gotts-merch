@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import type { ContactMethod, Lead, LeadActivity, LeadStatus, Task } from "@/lib/portal/types";
+import type { ContactMethod, Estimate, Lead, LeadActivity, LeadStatus, Task } from "@/lib/portal/types";
+import { CopyField } from "./admin-app";
 import { api } from "./api";
 import { type StaffOption, TasksSection } from "./tasks-app";
 
@@ -30,6 +31,26 @@ const ACTIVITY_KINDS: { key: LeadActivity["kind"]; label: string }[] = [
   { key: "email", label: "Email" },
   { key: "meeting", label: "Meeting" },
 ];
+
+const ACTIVITY_LABELS: Record<LeadActivity["kind"], string> = {
+  note: "Note",
+  call: "Call",
+  email: "Email",
+  meeting: "Meeting",
+  status: "Stage change",
+  estimate: "Estimate",
+};
+
+const ESTIMATE_STATUS_LABEL: Record<Estimate["status"], string> = {
+  draft: "Draft",
+  sent: "Sent for approval",
+  approved: "Approved",
+  changes_requested: "Changes requested",
+};
+
+function emptyEstimateLine() {
+  return { description: "", quantity: "1", unitPrice: "" };
+}
 
 function fmtDate(value: string, withTime = false) {
   if (!value) return "";
@@ -387,6 +408,7 @@ function LeadModal({
       ) : null}
       <label className="portal-field">Notes<textarea onChange={set("notes")} rows={3} value={form.notes} /></label>
       {error ? <p className="portal-msg err" role="alert">{error}</p> : null}
+      {lead ? <EstimateSection lead={lead} onStatusChanged={setStatus} /> : null}
       {lead ? (
         <TasksSection
           currentUserName={currentUserName}
@@ -398,6 +420,189 @@ function LeadModal({
       ) : null}
       {lead ? <ActivityFeed lead={lead} onAdded={onSaved} /> : null}
     </ModalFrame>
+  );
+}
+
+/**
+ * Builds and sends a lead's estimate for the customer to approve from
+ * their portal, and shows where it stands once sent. No email goes out in
+ * v1 -- staff hand over the one-time login themselves, the same way the
+ * Credentials panel already works.
+ */
+function EstimateSection({ lead, onStatusChanged }: { lead: Lead; onStatusChanged: (status: LeadStatus) => void }) {
+  const [estimate, setEstimate] = useState<Estimate | null>(null);
+  const [loaded, setLoaded] = useState(false);
+  const [lines, setLines] = useState([emptyEstimateLine()]);
+  const [tax, setTax] = useState("0");
+  const [notes, setNotes] = useState("");
+  const [origin, setOrigin] = useState("");
+  const [credentials, setCredentials] = useState<{ email: string; password: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => setOrigin(window.location.origin), []);
+
+  const load = async () => {
+    const res = await api<{ estimate: Estimate | null }>("GET", `/api/portal/crm/leads/${lead.id}/estimate`);
+    setEstimate(res.estimate);
+    if (res.estimate) {
+      setLines(
+        res.estimate.lineItems.length
+          ? res.estimate.lineItems.map((li) => ({
+              description: li.description,
+              quantity: String(li.quantity),
+              unitPrice: String(li.unitPrice),
+            }))
+          : [emptyEstimateLine()],
+      );
+      setTax(String(res.estimate.tax));
+      setNotes(res.estimate.notes);
+    }
+    setLoaded(true);
+  };
+
+  useEffect(() => {
+    void load();
+    // Only on mount: later refreshes are triggered by this section's own actions.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lead.id]);
+
+  async function run(task: () => Promise<void>) {
+    if (busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      await task();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "That didn't work. Try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const locked = estimate?.status === "approved";
+  const subtotal = lines.reduce((sum, l) => sum + (Number(l.quantity) || 0) * (Number(l.unitPrice) || 0), 0);
+  const total = subtotal + (Number(tax) || 0);
+
+  function draftBody() {
+    return {
+      lineItems: lines.filter((l) => l.description.trim()).map((l) => ({ ...l, quantity: Number(l.quantity), unitPrice: Number(l.unitPrice) })),
+      tax: Number(tax) || 0,
+      notes,
+    };
+  }
+
+  function saveDraft() {
+    void run(async () => {
+      await api("PUT", `/api/portal/crm/leads/${lead.id}/estimate`, draftBody());
+      await load();
+    });
+  }
+
+  function send() {
+    void run(async () => {
+      await api("PUT", `/api/portal/crm/leads/${lead.id}/estimate`, draftBody());
+      const res = await api<{ clientId: number; credentials: { email: string; password: string } | null }>(
+        "POST",
+        `/api/portal/crm/leads/${lead.id}/estimate/send`,
+      );
+      if (res.credentials) setCredentials(res.credentials);
+      onStatusChanged("proposal");
+      await load();
+    });
+  }
+
+  if (!loaded) return null;
+
+  return (
+    <section className="portal-panel">
+      <div className="portal-panel-head">
+        <h2>Estimate</h2>
+        {estimate ? (
+          <span className={`portal-pill${estimate.status === "approved" ? " ok" : estimate.status === "changes_requested" ? " low" : ""}`}>
+            {ESTIMATE_STATUS_LABEL[estimate.status]}
+          </span>
+        ) : null}
+      </div>
+      <div className="portal-panel-body">
+        {estimate?.status === "changes_requested" ? (
+          <p className="portal-msg warn">The customer requested changes -- see Conversation history below. Update the line items and send again.</p>
+        ) : null}
+
+        {credentials ? (
+          <div className="portal-secret" role="status">
+            <p>
+              Send these to <strong>{credentials.email}</strong> so they can review and approve the estimate. The temporary
+              password is shown only once.
+            </p>
+            <div className="portal-row">
+              <CopyField label="Sign-in page" value={`${origin}/portal/login`} />
+              <CopyField label="Temporary password" value={credentials.password} />
+            </div>
+            <button className="portal-btn small" onClick={() => setCredentials(null)} type="button">Done</button>
+          </div>
+        ) : null}
+
+        {error ? <p className="portal-msg err" role="alert">{error}</p> : null}
+
+        {lines.map((l, i) => (
+          <div className="portal-row" key={i}>
+            <label className="portal-field">
+              Description
+              <input
+                disabled={locked}
+                onChange={(e) => setLines(lines.map((x, j) => (j === i ? { ...x, description: e.target.value } : x)))}
+                value={l.description}
+              />
+            </label>
+            <label className="portal-field">
+              Qty
+              <input
+                disabled={locked}
+                min={1}
+                onChange={(e) => setLines(lines.map((x, j) => (j === i ? { ...x, quantity: e.target.value } : x)))}
+                type="number"
+                value={l.quantity}
+              />
+            </label>
+            <label className="portal-field">
+              Unit price ($)
+              <input
+                disabled={locked}
+                min={0}
+                onChange={(e) => setLines(lines.map((x, j) => (j === i ? { ...x, unitPrice: e.target.value } : x)))}
+                step={0.01}
+                type="number"
+                value={l.unitPrice}
+              />
+            </label>
+            {!locked && lines.length > 1 ? (
+              <button aria-label="Remove line" className="portal-btn small danger" onClick={() => setLines(lines.filter((_, j) => j !== i))} type="button">
+                Remove
+              </button>
+            ) : null}
+          </div>
+        ))}
+        {!locked ? (
+          <button className="portal-btn small" onClick={() => setLines([...lines, emptyEstimateLine()])} type="button">Add line item</button>
+        ) : null}
+
+        <div className="portal-row">
+          <label className="portal-field">Tax ($)<input disabled={locked} min={0} onChange={(e) => setTax(e.target.value)} step={0.01} type="number" value={tax} /></label>
+          <div className="portal-copy"><span className="portal-eyebrow">Total</span><span>{currency.format(total)}</span></div>
+        </div>
+        <label className="portal-field">Notes for the customer<textarea disabled={locked} onChange={(e) => setNotes(e.target.value)} rows={2} value={notes} /></label>
+
+        {!locked ? (
+          <div className="portal-row-actions">
+            <button className="portal-btn" disabled={busy} onClick={saveDraft} type="button">Save draft</button>
+            <button className="portal-btn primary" disabled={busy} onClick={send} type="button">
+              {estimate && estimate.status !== "draft" ? "Send updated estimate" : "Send for approval"}
+            </button>
+          </div>
+        ) : null}
+      </div>
+    </section>
   );
 }
 
@@ -417,7 +622,7 @@ function ActivityFeed({ lead, onAdded }: { lead: Lead; onAdded: () => Promise<vo
           lead.activities.map((a) => (
             <div className="portal-activity" key={a.id}>
               <div className="portal-activity-head">
-                <span>{a.kind === "status" ? "Stage change" : ACTIVITY_KINDS.find((k) => k.key === a.kind)?.label || "Note"} · {a.createdBy}</span>
+                <span>{ACTIVITY_LABELS[a.kind]} · {a.createdBy}</span>
                 <span>{fmtDate(a.createdAt, true)}</span>
               </div>
               <p>{a.body}</p>

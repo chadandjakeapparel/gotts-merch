@@ -456,6 +456,37 @@ create table if not exists folder_files (
   created_at timestamptz not null default now()
 );
 create index if not exists folder_files_folder_idx on folder_files (folder_id, created_at desc);
+
+-- Estimates: one per lead, built by staff and sent for the customer to
+-- approve or request changes on from their portal. Approving moves the
+-- lead to Won and creates a Job Board job from the line items.
+create table if not exists estimates (
+  id serial primary key,
+  lead_id integer not null references leads(id) on delete cascade,
+  status text not null default 'draft'
+    check (status in ('draft', 'sent', 'approved', 'changes_requested')),
+  tax numeric(12, 2) not null default 0,
+  notes text not null default '',
+  created_by text not null default '',
+  sent_at timestamptz,
+  approved_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create unique index if not exists estimates_lead_unique_idx on estimates (lead_id);
+
+create table if not exists estimate_line_items (
+  id serial primary key,
+  estimate_id integer not null references estimates(id) on delete cascade,
+  description text not null default '',
+  quantity integer not null default 1,
+  unit_price numeric(12, 2) not null default 0,
+  sort_order integer not null default 0
+);
+create index if not exists estimate_line_items_estimate_idx on estimate_line_items (estimate_id, sort_order);
+
+alter table jobs add column if not exists estimate_id integer references estimates(id) on delete set null;
+create index if not exists jobs_estimate_idx on jobs (estimate_id);
 `;
 
 /** Creates the tables on first use, so a fresh database needs no setup step. */
