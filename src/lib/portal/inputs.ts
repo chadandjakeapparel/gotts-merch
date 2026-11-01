@@ -90,13 +90,18 @@ export function toJobInput(body: Record<string, unknown>): JobInput {
 
 export function toEstimateInput(body: Record<string, unknown>): EstimateInput {
   const lineItems = Array.isArray(body.lineItems) ? body.lineItems : [];
-  const tax = money(body.tax);
+  const taxRate = money(body.taxRate);
   return {
     lineItems: lineItems.map((li) => {
       const l = (li && typeof li === "object" ? li : {}) as Record<string, unknown>;
-      return { description: text(l.description, 300), quantity: int(l.quantity), unitPrice: money(l.unitPrice) };
+      return {
+        description: text(l.description, 300),
+        quantity: int(l.quantity),
+        unitPrice: money(l.unitPrice),
+        taxable: Boolean(l.taxable),
+      };
     }),
-    tax: Number.isFinite(tax) && tax >= 0 ? tax : 0,
+    taxRate: Number.isFinite(taxRate) && taxRate >= 0 ? taxRate : 0,
     notes: text(body.notes, 2000),
   };
 }

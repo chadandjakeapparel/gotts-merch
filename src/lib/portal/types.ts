@@ -205,6 +205,7 @@ export type EstimateLineItem = {
   description: string;
   quantity: number;
   unitPrice: number;
+  taxable: boolean;
 };
 
 export type Estimate = {
@@ -212,7 +213,8 @@ export type Estimate = {
   leadId: number;
   status: EstimateStatus;
   lineItems: EstimateLineItem[];
-  tax: number;
+  /** Sales tax percentage applied to taxable line items' amounts. */
+  taxRate: number;
   notes: string;
   createdBy: string;
   sentAt: string | null;

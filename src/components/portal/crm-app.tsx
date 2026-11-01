@@ -49,7 +49,7 @@ const ESTIMATE_STATUS_LABEL: Record<Estimate["status"], string> = {
 };
 
 function emptyEstimateLine() {
-  return { description: "", quantity: "1", unitPrice: "" };
+  return { description: "", quantity: "1", unitPrice: "", taxable: true };
 }
 
 function fmtDate(value: string, withTime = false) {
@@ -433,7 +433,7 @@ function EstimateSection({ lead, onStatusChanged }: { lead: Lead; onStatusChange
   const [estimate, setEstimate] = useState<Estimate | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [lines, setLines] = useState([emptyEstimateLine()]);
-  const [tax, setTax] = useState("0");
+  const [taxRate, setTaxRate] = useState("0");
   const [notes, setNotes] = useState("");
   const [origin, setOrigin] = useState("");
   const [credentials, setCredentials] = useState<{ email: string; password: string } | null>(null);
@@ -452,10 +452,11 @@ function EstimateSection({ lead, onStatusChanged }: { lead: Lead; onStatusChange
               description: li.description,
               quantity: String(li.quantity),
               unitPrice: String(li.unitPrice),
+              taxable: li.taxable,
             }))
           : [emptyEstimateLine()],
       );
-      setTax(String(res.estimate.tax));
+      setTaxRate(String(res.estimate.taxRate));
       setNotes(res.estimate.notes);
     }
     setLoaded(true);
@@ -481,13 +482,18 @@ function EstimateSection({ lead, onStatusChanged }: { lead: Lead; onStatusChange
   }
 
   const locked = estimate?.status === "approved";
-  const subtotal = lines.reduce((sum, l) => sum + (Number(l.quantity) || 0) * (Number(l.unitPrice) || 0), 0);
-  const total = subtotal + (Number(tax) || 0);
+  const lineAmount = (l: (typeof lines)[number]) => (Number(l.quantity) || 0) * (Number(l.unitPrice) || 0);
+  const subtotal = lines.reduce((sum, l) => sum + lineAmount(l), 0);
+  const taxableSubtotal = lines.filter((l) => l.taxable).reduce((sum, l) => sum + lineAmount(l), 0);
+  const taxAmount = taxableSubtotal * ((Number(taxRate) || 0) / 100);
+  const total = subtotal + taxAmount;
 
   function draftBody() {
     return {
-      lineItems: lines.filter((l) => l.description.trim()).map((l) => ({ ...l, quantity: Number(l.quantity), unitPrice: Number(l.unitPrice) })),
-      tax: Number(tax) || 0,
+      lineItems: lines
+        .filter((l) => l.description.trim())
+        .map((l) => ({ ...l, quantity: Number(l.quantity), unitPrice: Number(l.unitPrice) })),
+      taxRate: Number(taxRate) || 0,
       notes,
     };
   }
@@ -576,6 +582,15 @@ function EstimateSection({ lead, onStatusChanged }: { lead: Lead; onStatusChange
                 value={l.unitPrice}
               />
             </label>
+            <label className="portal-check">
+              <input
+                checked={l.taxable}
+                disabled={locked}
+                onChange={(e) => setLines(lines.map((x, j) => (j === i ? { ...x, taxable: e.target.checked } : x)))}
+                type="checkbox"
+              />
+              Taxable
+            </label>
             {!locked && lines.length > 1 ? (
               <button aria-label="Remove line" className="portal-btn small danger" onClick={() => setLines(lines.filter((_, j) => j !== i))} type="button">
                 Remove
@@ -588,19 +603,31 @@ function EstimateSection({ lead, onStatusChanged }: { lead: Lead; onStatusChange
         ) : null}
 
         <div className="portal-row">
-          <label className="portal-field">Tax ($)<input disabled={locked} min={0} onChange={(e) => setTax(e.target.value)} step={0.01} type="number" value={tax} /></label>
+          <label className="portal-field">
+            Tax rate (%)
+            <input disabled={locked} min={0} max={100} onChange={(e) => setTaxRate(e.target.value)} step={0.01} type="number" value={taxRate} />
+          </label>
+          <div className="portal-copy"><span className="portal-eyebrow">Subtotal</span><span>{currency.format(subtotal)}</span></div>
+          <div className="portal-copy"><span className="portal-eyebrow">Tax</span><span>{currency.format(taxAmount)}</span></div>
           <div className="portal-copy"><span className="portal-eyebrow">Total</span><span>{currency.format(total)}</span></div>
         </div>
         <label className="portal-field">Notes for the customer<textarea disabled={locked} onChange={(e) => setNotes(e.target.value)} rows={2} value={notes} /></label>
 
-        {!locked ? (
-          <div className="portal-row-actions">
-            <button className="portal-btn" disabled={busy} onClick={saveDraft} type="button">Save draft</button>
-            <button className="portal-btn primary" disabled={busy} onClick={send} type="button">
-              {estimate && estimate.status !== "draft" ? "Send updated estimate" : "Send for approval"}
-            </button>
-          </div>
-        ) : null}
+        <div className="portal-row-actions">
+          {estimate ? (
+            <a className="portal-btn" href={`/api/portal/crm/leads/${lead.id}/estimate/pdf`} rel="noreferrer" target="_blank">
+              Export PDF
+            </a>
+          ) : null}
+          {!locked ? (
+            <>
+              <button className="portal-btn" disabled={busy} onClick={saveDraft} type="button">Save draft</button>
+              <button className="portal-btn primary" disabled={busy} onClick={send} type="button">
+                {estimate && estimate.status !== "draft" ? "Send updated estimate" : "Send for approval"}
+              </button>
+            </>
+          ) : null}
+        </div>
       </div>
     </section>
   );

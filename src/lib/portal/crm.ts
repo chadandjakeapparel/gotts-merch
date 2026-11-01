@@ -75,6 +75,15 @@ function toLead(r: Row, activities: LeadActivity[]): Lead {
   };
 }
 
+/** A single lead, for the estimate PDF's "Bill To" details. */
+export async function getLead(id: number): Promise<Lead | null> {
+  const sql = await db();
+  const [row] = await sql`select * from leads where id = ${id}`;
+  if (!row) return null;
+  const activities = await sql`select * from lead_activities where lead_id = ${id} order by created_at desc`;
+  return toLead(row, activities.map(toActivity));
+}
+
 export async function listLeads(): Promise<Lead[]> {
   const sql = await db();
   const [leads, activities] = await Promise.all([

@@ -68,7 +68,9 @@ export function EstimateReviewApp({ initialEstimate, loadError }: { initialEstim
   }
 
   const subtotal = estimate.lineItems.reduce((sum, li) => sum + li.quantity * li.unitPrice, 0);
-  const total = subtotal + estimate.tax;
+  const taxableSubtotal = estimate.lineItems.filter((li) => li.taxable).reduce((sum, li) => sum + li.quantity * li.unitPrice, 0);
+  const tax = taxableSubtotal * (estimate.taxRate / 100);
+  const total = subtotal + tax;
   const copy = STATUS_COPY[estimate.status];
   const canAct = estimate.status === "sent";
 
@@ -87,21 +89,22 @@ export function EstimateReviewApp({ initialEstimate, loadError }: { initialEstim
 
         <div className="portal-table-wrap">
           <table className="portal-table">
-            <thead><tr><th>Description</th><th className="r">Qty</th><th className="r">Unit price</th><th className="r">Line total</th></tr></thead>
+            <thead><tr><th>Description</th><th className="r">Qty</th><th className="r">Unit price</th><th className="r">Taxable</th><th className="r">Line total</th></tr></thead>
             <tbody>
               {estimate.lineItems.map((li) => (
                 <tr key={li.id}>
                   <td>{li.description}</td>
                   <td className="r">{li.quantity}</td>
                   <td className="r">{currency.format(li.unitPrice)}</td>
+                  <td className="r">{li.taxable ? "Yes" : "No"}</td>
                   <td className="r">{currency.format(li.quantity * li.unitPrice)}</td>
                 </tr>
               ))}
             </tbody>
             <tfoot>
-              <tr><td colSpan={3}>Subtotal</td><td className="r">{currency.format(subtotal)}</td></tr>
-              <tr><td colSpan={3}>Tax</td><td className="r">{currency.format(estimate.tax)}</td></tr>
-              <tr><td colSpan={3}>Total</td><td className="r">{currency.format(total)}</td></tr>
+              <tr><td colSpan={4}>Subtotal</td><td className="r">{currency.format(subtotal)}</td></tr>
+              <tr><td colSpan={4}>Tax ({estimate.taxRate}%)</td><td className="r">{currency.format(tax)}</td></tr>
+              <tr><td colSpan={4}>Total</td><td className="r">{currency.format(total)}</td></tr>
             </tfoot>
           </table>
         </div>

@@ -12,7 +12,13 @@ const num = (v: unknown) => Number(v) || 0;
 const str = (v: unknown) => (v == null ? "" : String(v));
 
 function toLineItem(r: Row): EstimateLineItem {
-  return { id: num(r.id), description: str(r.description), quantity: num(r.quantity), unitPrice: num(r.unit_price) };
+  return {
+    id: num(r.id),
+    description: str(r.description),
+    quantity: num(r.quantity),
+    unitPrice: num(r.unit_price),
+    taxable: Boolean(r.taxable),
+  };
 }
 
 function toEstimate(r: Row, lineItems: EstimateLineItem[]): Estimate {
@@ -21,7 +27,7 @@ function toEstimate(r: Row, lineItems: EstimateLineItem[]): Estimate {
     leadId: num(r.lead_id),
     status: r.status as EstimateStatus,
     lineItems,
-    tax: num(r.tax),
+    taxRate: num(r.tax_rate),
     notes: str(r.notes),
     createdBy: str(r.created_by),
     sentAt: iso(r.sent_at),
@@ -31,10 +37,14 @@ function toEstimate(r: Row, lineItems: EstimateLineItem[]): Estimate {
   };
 }
 
-/** Subtotal, tax, and grand total for an estimate's line items. */
+/** Subtotal, taxable base, tax, and grand total -- tax applies only to line items marked taxable. */
 export function estimateTotals(estimate: Estimate) {
   const subtotal = estimate.lineItems.reduce((sum, li) => sum + li.quantity * li.unitPrice, 0);
-  return { subtotal, tax: estimate.tax, total: subtotal + estimate.tax };
+  const taxableSubtotal = estimate.lineItems
+    .filter((li) => li.taxable)
+    .reduce((sum, li) => sum + li.quantity * li.unitPrice, 0);
+  const tax = Math.round(taxableSubtotal * (estimate.taxRate / 100) * 100) / 100;
+  return { subtotal, taxableSubtotal, tax, total: subtotal + tax };
 }
 
 /** The one estimate for a lead, for staff building or reviewing it in the CRM. */
@@ -57,8 +67,8 @@ export async function getEstimateForClient(clientId: number): Promise<Estimate |
   return toEstimate(row, lineItems.map(toLineItem));
 }
 
-export type EstimateLineItemInput = { description: string; quantity: number; unitPrice: number };
-export type EstimateInput = { lineItems: EstimateLineItemInput[]; tax: number; notes: string };
+export type EstimateLineItemInput = { description: string; quantity: number; unitPrice: number; taxable: boolean };
+export type EstimateInput = { lineItems: EstimateLineItemInput[]; taxRate: number; notes: string };
 
 function requireEstimate(input: EstimateInput) {
   if (!input.lineItems.length) throw new PortalError("Add at least one line item.");
@@ -70,6 +80,9 @@ function requireEstimate(input: EstimateInput) {
     if (!Number.isFinite(li.unitPrice) || li.unitPrice < 0) {
       throw new PortalError("Unit prices can't be negative.");
     }
+  }
+  if (!Number.isFinite(input.taxRate) || input.taxRate < 0 || input.taxRate > 100) {
+    throw new PortalError("Tax rate must be between 0 and 100.");
   }
 }
 
@@ -91,18 +104,19 @@ export async function saveEstimateDraft(leadId: number, input: EstimateInput, cr
     let id: number;
     if (existing) {
       id = Number(existing.id);
-      await tx`update estimates set tax = ${input.tax}, notes = ${input.notes}, updated_at = now() where id = ${id}`;
+      await tx`update estimates set tax_rate = ${input.taxRate}, notes = ${input.notes}, updated_at = now() where id = ${id}`;
       await tx`delete from estimate_line_items where estimate_id = ${id}`;
     } else {
       const [row] = await tx`
-        insert into estimates (lead_id, tax, notes, created_by) values (${leadId}, ${input.tax}, ${input.notes}, ${createdBy}) returning id`;
+        insert into estimates (lead_id, tax_rate, notes, created_by)
+        values (${leadId}, ${input.taxRate}, ${input.notes}, ${createdBy}) returning id`;
       id = Number(row.id);
     }
     let sortOrder = 0;
     for (const li of input.lineItems) {
       await tx`
-        insert into estimate_line_items (estimate_id, description, quantity, unit_price, sort_order)
-        values (${id}, ${li.description}, ${li.quantity}, ${li.unitPrice}, ${sortOrder++})`;
+        insert into estimate_line_items (estimate_id, description, quantity, unit_price, taxable, sort_order)
+        values (${id}, ${li.description}, ${li.quantity}, ${li.unitPrice}, ${li.taxable}, ${sortOrder++})`;
     }
     return id;
   });

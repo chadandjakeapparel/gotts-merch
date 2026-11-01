@@ -465,7 +465,7 @@ create table if not exists estimates (
   lead_id integer not null references leads(id) on delete cascade,
   status text not null default 'draft'
     check (status in ('draft', 'sent', 'approved', 'changes_requested')),
-  tax numeric(12, 2) not null default 0,
+  tax_rate numeric(5, 2) not null default 0,
   notes text not null default '',
   created_by text not null default '',
   sent_at timestamptz,
@@ -481,12 +481,18 @@ create table if not exists estimate_line_items (
   description text not null default '',
   quantity integer not null default 1,
   unit_price numeric(12, 2) not null default 0,
+  taxable boolean not null default true,
   sort_order integer not null default 0
 );
 create index if not exists estimate_line_items_estimate_idx on estimate_line_items (estimate_id, sort_order);
 
 alter table jobs add column if not exists estimate_id integer references estimates(id) on delete set null;
 create index if not exists jobs_estimate_idx on jobs (estimate_id);
+
+-- Pre-existing databases created before tax moved from a flat dollar amount
+-- to a rate applied per taxable line item.
+alter table estimates add column if not exists tax_rate numeric(5, 2) not null default 0;
+alter table estimate_line_items add column if not exists taxable boolean not null default true;
 `;
 
 /** Creates the tables on first use, so a fresh database needs no setup step. */
