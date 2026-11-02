@@ -485,6 +485,23 @@ create table if not exists folder_files (
 );
 create index if not exists folder_files_folder_idx on folder_files (folder_id, created_at desc);
 
+-- The share password in the clear, alongside the hash already used to
+-- check it -- this gates a read-only link, not an account, so staff being
+-- able to view and re-share the code outweighs one-way hashing it.
+alter table file_folders add column if not exists share_password text not null default '';
+
+-- Feedback left by whoever's viewing a shared folder; visible to staff on
+-- the folder's own page, never echoed back on the public share page.
+create table if not exists folder_feedback (
+  id serial primary key,
+  folder_id integer not null references file_folders(id) on delete cascade,
+  name text not null default '',
+  email text not null default '',
+  message text not null default '',
+  created_at timestamptz not null default now()
+);
+create index if not exists folder_feedback_folder_idx on folder_feedback (folder_id, created_at desc);
+
 -- Estimates: one per lead, built by staff and sent for the customer to
 -- approve or request changes on from their portal. Approving moves the
 -- lead to Won and creates a Job Board job from the line items.

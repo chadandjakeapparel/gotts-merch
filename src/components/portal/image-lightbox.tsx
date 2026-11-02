@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export type LightboxFile = { id: number; fileName: string; url: string; contentType: string };
 
@@ -10,7 +10,11 @@ export function isImageFile(contentType: string) {
   return IMAGE_TYPES.has(contentType);
 }
 
-/** A full-screen image viewer with arrow-key/button navigation between the other images in the same list. */
+/**
+ * A full-screen image viewer with arrow-key/button navigation, plus a
+ * collapsible strip of thumbnails for every other image in the same list
+ * below the one that's open.
+ */
 export function ImageLightbox({
   files,
   index,
@@ -23,6 +27,7 @@ export function ImageLightbox({
   onNavigate: (nextIndex: number) => void;
 }) {
   const file = files[index];
+  const [othersOpen, setOthersOpen] = useState(files.length > 1);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -49,8 +54,10 @@ export function ImageLightbox({
           ‹
         </button>
       ) : null}
-      {/* eslint-disable-next-line @next/next/no-img-element -- a remote blob image of unknown intrinsic size */}
-      <img alt={file.fileName} className="portal-lightbox-img" src={file.url} />
+      <div className="portal-lightbox-stage">
+        {/* eslint-disable-next-line @next/next/no-img-element -- a remote blob image of unknown intrinsic size */}
+        <img alt={file.fileName} className="portal-lightbox-img" src={file.url} />
+      </div>
       {files.length > 1 ? (
         <button
           aria-label="Next image"
@@ -65,6 +72,31 @@ export function ImageLightbox({
         {file.fileName}
         {files.length > 1 ? ` · ${index + 1} / ${files.length}` : ""}
       </div>
+      {files.length > 1 ? (
+        <div className="portal-lightbox-accordion" onMouseDown={(e) => e.stopPropagation()}>
+          <button
+            aria-expanded={othersOpen}
+            className="portal-lightbox-accordion-toggle"
+            onClick={() => setOthersOpen((open) => !open)}
+            type="button"
+          >
+            <span aria-hidden="true">{othersOpen ? "▾" : "▸"}</span> Other images in this folder ({files.length - 1})
+          </button>
+          {othersOpen ? (
+            <div className="portal-lightbox-thumbs">
+              {files.map((f, i) =>
+                i === index ? null : (
+                  <button className="portal-lightbox-thumb" key={f.id} onClick={() => onNavigate(i)} type="button">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- a remote blob image of unknown intrinsic size */}
+                    <img alt={f.fileName} src={f.url} />
+                    <span>{f.fileName}</span>
+                  </button>
+                ),
+              )}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

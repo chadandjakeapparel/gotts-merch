@@ -1,7 +1,7 @@
 import { hashPassword, verifyPassword } from "./auth";
 import { db } from "./db";
 import { PortalError } from "./http";
-import type { FileFolder, FolderFile, FolderPathEntry } from "./types";
+import type { FileFolder, FolderFeedback, FolderFile, FolderPathEntry } from "./types";
 
 type Row = Record<string, unknown>;
 
@@ -21,7 +21,17 @@ function toFile(r: Row): FolderFile {
   };
 }
 
-function toFolder(r: Row, files: FolderFile[]): FileFolder {
+function toFeedback(r: Row): FolderFeedback {
+  return {
+    id: num(r.id),
+    name: str(r.name),
+    email: str(r.email),
+    message: str(r.message),
+    createdAt: iso(r.created_at) || "",
+  };
+}
+
+function toFolder(r: Row, files: FolderFile[], feedback: FolderFeedback[]): FileFolder {
   return {
     id: num(r.id),
     name: str(r.name),
@@ -31,10 +41,12 @@ function toFolder(r: Row, files: FolderFile[]): FileFolder {
     shareTitle: str(r.share_title),
     shareExternally: Boolean(r.share_externally),
     hasSharePassword: Boolean(str(r.share_password_hash)),
+    sharePassword: str(r.share_password),
     createdBy: str(r.created_by),
     createdAt: iso(r.created_at) || "",
     updatedAt: iso(r.updated_at) || "",
     files,
+    feedback,
   };
 }
 
@@ -77,19 +89,21 @@ export async function listFolders(parentId: number | null): Promise<FileFolder[]
     const id = num(r.folder_id);
     byFolder.set(id, [...(byFolder.get(id) || []), toFile(r)]);
   }
-  return folders.map((r) => toFolder(r, byFolder.get(num(r.id)) || []));
+  // Feedback isn't shown on the folder list/table, so it's not worth fetching here.
+  return folders.map((r) => toFolder(r, byFolder.get(num(r.id)) || [], []));
 }
 
 export async function getFolder(id: number): Promise<FileFolder | null> {
   const sql = await db();
-  const [[row], files] = await Promise.all([
+  const [[row], files, feedback] = await Promise.all([
     sql`
       select f.*, (select count(*)::int from file_folders c where c.parent_folder_id = f.id) as subfolder_count
       from file_folders f where f.id = ${id}`,
     sql`select * from folder_files where folder_id = ${id} order by created_at desc`,
+    sql`select * from folder_feedback where folder_id = ${id} order by created_at desc`,
   ]);
   if (!row) return null;
-  return toFolder(row, files.map(toFile));
+  return toFolder(row, files.map(toFile), feedback.map(toFeedback));
 }
 
 /** The folder's ancestry, root-first, ending with the folder itself -- for breadcrumb navigation. */
@@ -157,11 +171,13 @@ export async function setFolderSharing(id: number, input: FolderSharingInput) {
   const [conflict] = await sql`select id from file_folders where share_token = ${slug} and id <> ${id}`;
   if (conflict) throw new PortalError("That link is already taken -- try a different one.");
 
-  const passwordHash = input.password.trim() ? await hashPassword(input.password.trim()) : null;
+  const newPassword = input.password.trim() || null;
+  const passwordHash = newPassword ? await hashPassword(newPassword) : null;
   await sql`
     update file_folders set
       share_externally = ${input.shareExternally},
       share_password_hash = coalesce(${passwordHash}, share_password_hash),
+      share_password = coalesce(${newPassword}, share_password),
       share_token = ${slug},
       share_title = ${input.shareTitle},
       updated_at = now()
@@ -208,5 +224,19 @@ export async function unlockSharedFolder(token: string, password: string): Promi
   if (!row || !row.share_externally || !str(row.share_password_hash)) return null;
   if (!(await verifyPassword(password, str(row.share_password_hash)))) return null;
   const files = await sql`select * from folder_files where folder_id = ${row.id} order by created_at desc`;
-  return toFolder(row, files.map(toFile));
+  // Feedback is staff-only -- never surfaced back through the public share page.
+  return toFolder(row, files.map(toFile), []);
+}
+
+export type FolderFeedbackInput = { name: string; email: string; message: string };
+
+/** For the public share page: leaves feedback on a shared, externally-visible folder. */
+export async function addFolderFeedback(token: string, input: FolderFeedbackInput): Promise<void> {
+  if (!input.message.trim()) throw new PortalError("Write a message before sending.");
+  const sql = await db();
+  const [row] = await sql`select id from file_folders where share_token = ${token} and share_externally`;
+  if (!row) throw new PortalError("That shared folder no longer exists.", 404);
+  await sql`
+    insert into folder_feedback (folder_id, name, email, message)
+    values (${row.id}, ${input.name}, ${input.email}, ${input.message})`;
 }

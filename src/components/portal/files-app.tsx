@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { Fragment, useEffect, useMemo, useState } from "react";
-import type { FileFolder, FolderFile, FolderPathEntry } from "@/lib/portal/types";
+import type { FileFolder, FolderFeedback, FolderFile, FolderPathEntry } from "@/lib/portal/types";
 import { api } from "./api";
+import { CopyField } from "./admin-app";
 import { ImageLightbox, isImageFile } from "./image-lightbox";
 
 const count = new Intl.NumberFormat("en-US");
@@ -297,6 +298,8 @@ export function FolderDetailApp({
 
       <FolderFilesSection folder={folder} onChanged={reload} />
 
+      {folder.shareExternally ? <FeedbackSection feedback={folder.feedback} /> : null}
+
       {addingSubfolder ? (
         <NewFolderModal close={() => setAddingSubfolder(false)} onSaved={reload} parentFolderId={folder.id} />
       ) : null}
@@ -309,7 +312,6 @@ function SharingSettings({ folder, onChanged }: { folder: FileFolder; onChanged:
   const [shareToken, setShareToken] = useState(folder.shareToken);
   const [shareTitle, setShareTitle] = useState(folder.shareTitle);
   const [password, setPassword] = useState("");
-  const [copied, setCopied] = useState(false);
   const [origin, setOrigin] = useState("");
   const { busy, error, setError, submit } = useSubmit(onChanged);
 
@@ -357,28 +359,12 @@ function SharingSettings({ folder, onChanged }: { folder: FileFolder; onChanged:
               Page title
               <input onChange={(e) => setShareTitle(e.target.value)} placeholder={folder.name} value={shareTitle} />
             </label>
+            {folder.sharePassword ? <CopyField label="Current password" value={folder.sharePassword} /> : null}
             <label className="portal-field">
               {folder.hasSharePassword ? "New password (leave blank to keep the current one)" : "Password"}
               <input autoComplete="off" onChange={(e) => setPassword(e.target.value)} type="text" value={password} />
             </label>
-            <label className="portal-field">
-              Share link
-              <div className="portal-inline">
-                <input className="portal-mono" readOnly value={shareUrl} />
-                <button
-                  className="portal-btn small"
-                  onClick={() => {
-                    void navigator.clipboard.writeText(shareUrl).then(() => {
-                      setCopied(true);
-                      setTimeout(() => setCopied(false), 1500);
-                    });
-                  }}
-                  type="button"
-                >
-                  {copied ? "Copied" : "Copy"}
-                </button>
-              </div>
-            </label>
+            <CopyField label="Share link" value={shareUrl} />
             <p className="portal-hint">Anyone with this link and the password can view and download these files.</p>
           </>
         ) : null}
@@ -479,61 +465,114 @@ function FolderFilesSection({ folder, onChanged }: { folder: FileFolder; onChang
         </label>
         {error ? <p className="portal-msg err" role="alert">{error}</p> : null}
         {folder.files.length ? (
-          <ul className="portal-file-list">
-            {folder.files.map((f) =>
-              renamingId === f.id ? (
-                <li key={f.id}>
-                  <input
-                    autoFocus
-                    onChange={(e) => setRenameDraft(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") void renameFile(f);
-                      if (e.key === "Escape") setRenamingId(null);
-                    }}
-                    value={renameDraft}
-                  />
-                  <button onClick={() => void renameFile(f)} type="button">Save</button>
-                  <button onClick={() => setRenamingId(null)} type="button">Cancel</button>
-                </li>
-              ) : (
-                <li key={f.id}>
-                  {isImageFile(f.contentType) ? (
-                    <button
-                      className="portal-file-name"
-                      onClick={() => setLightboxIndex(imageFiles.findIndex((img) => img.id === f.id))}
-                      type="button"
-                    >
-                      {f.fileName}
-                    </button>
-                  ) : (
-                    <a href={f.url} rel="noreferrer" target="_blank">{f.fileName}</a>
-                  )}
-                  <span className="portal-muted small">{fmtFileSize(f.size)}</span>
-                  <button
-                    aria-label={`Rename ${f.fileName}`}
-                    onClick={() => { setRenamingId(f.id); setRenameDraft(f.fileName); }}
-                    type="button"
-                  >
-                    Rename
-                  </button>
-                  <button
-                    aria-label={`Remove ${f.fileName}`}
-                    disabled={removingId === f.id}
-                    onClick={() => void removeFile(f)}
-                    type="button"
-                  >
-                    Remove
-                  </button>
-                </li>
-              ),
-            )}
-          </ul>
+          <div className="portal-table-wrap">
+            <table className="portal-table portal-file-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Uploaded by</th>
+                  <th>Uploaded</th>
+                  <th className="r">Size</th>
+                  <th><span className="portal-sr">Actions</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                {folder.files.map((f) => (
+                  <tr key={f.id}>
+                    {renamingId === f.id ? (
+                      <td colSpan={5}>
+                        <span className="portal-inline">
+                          <input
+                            autoFocus
+                            onChange={(e) => setRenameDraft(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") void renameFile(f);
+                              if (e.key === "Escape") setRenamingId(null);
+                            }}
+                            value={renameDraft}
+                          />
+                          <button className="portal-btn small primary" onClick={() => void renameFile(f)} type="button">Save</button>
+                          <button className="portal-btn small" onClick={() => setRenamingId(null)} type="button">Cancel</button>
+                        </span>
+                      </td>
+                    ) : (
+                      <>
+                        <td>
+                          {isImageFile(f.contentType) ? (
+                            <button
+                              className="portal-file-name"
+                              onClick={() => setLightboxIndex(imageFiles.findIndex((img) => img.id === f.id))}
+                              type="button"
+                            >
+                              {f.fileName}
+                            </button>
+                          ) : (
+                            <a href={f.url} rel="noreferrer" target="_blank">{f.fileName}</a>
+                          )}
+                        </td>
+                        <td className="portal-muted">{f.uploadedBy || "—"}</td>
+                        <td className="portal-muted">{fmtDate(f.createdAt)}</td>
+                        <td className="r portal-muted">{fmtFileSize(f.size)}</td>
+                        <td className="r">
+                          <span className="portal-row-actions">
+                            <button
+                              className="portal-btn small"
+                              aria-label={`Rename ${f.fileName}`}
+                              onClick={() => { setRenamingId(f.id); setRenameDraft(f.fileName); }}
+                              type="button"
+                            >
+                              Rename
+                            </button>
+                            <button
+                              className="portal-btn small danger"
+                              aria-label={`Remove ${f.fileName}`}
+                              disabled={removingId === f.id}
+                              onClick={() => void removeFile(f)}
+                              type="button"
+                            >
+                              Remove
+                            </button>
+                          </span>
+                        </td>
+                      </>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : (
           <p className="portal-muted small">No files yet.</p>
         )}
         {lightboxIndex !== null ? (
           <ImageLightbox files={imageFiles} index={lightboxIndex} onClose={() => setLightboxIndex(null)} onNavigate={setLightboxIndex} />
         ) : null}
+      </div>
+    </section>
+  );
+}
+
+/** Feedback left by whoever's viewing this folder's public share link. */
+function FeedbackSection({ feedback }: { feedback: FolderFeedback[] }) {
+  return (
+    <section className="portal-panel">
+      <div className="portal-panel-head"><h2>Feedback</h2></div>
+      <div className="portal-panel-body">
+        {feedback.length ? (
+          <div className="portal-activity-list">
+            {feedback.map((f) => (
+              <div className="portal-activity" key={f.id}>
+                <div className="portal-activity-head">
+                  <span>{f.name || "Someone"}{f.email ? ` · ${f.email}` : ""}</span>
+                  <span>{fmtDate(f.createdAt)}</span>
+                </div>
+                <p>{f.message}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="portal-muted small">No feedback left on this folder&apos;s share page yet.</p>
+        )}
       </div>
     </section>
   );

@@ -257,12 +257,23 @@ export type FileFolder = {
   shareToken: string;
   shareTitle: string;
   shareExternally: boolean;
-  /** Whether a share password has been set -- the hash itself is never sent to the client. */
+  /** Whether a share password has been set. */
   hasSharePassword: boolean;
+  /** The share password in the clear, so staff can view and re-share it -- this is an access code for a read-only link, not a login credential. */
+  sharePassword: string;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
   files: FolderFile[];
+  feedback: FolderFeedback[];
+};
+
+export type FolderFeedback = {
+  id: number;
+  name: string;
+  email: string;
+  message: string;
+  createdAt: string;
 };
 
 /** A folder's ancestry, root-first, for breadcrumb navigation. */

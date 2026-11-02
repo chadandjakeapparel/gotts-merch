@@ -21,6 +21,87 @@ function fmtFileSize(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function fmtDate(value: string) {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+function useFeedbackForm(token: string) {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [sent, setSent] = useState(false);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!message.trim() || busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      const response = await fetch(`/api/files/${token}/feedback`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, message }),
+      });
+      const data = (await response.json()) as { ok: boolean; error?: string };
+      if (!data.ok) throw new Error(data.error || "That didn't send. Try again.");
+      setSent(true);
+      setMessage("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "That didn't send. Try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return { name, setName, email, setEmail, message, setMessage, busy, error, sent, setSent, submit };
+}
+
+/** A feedback form at the bottom of the share page -- kept simple, no reply flow, just a note staff can read. */
+function FeedbackForm({ token }: { token: string }) {
+  const form = useFeedbackForm(token);
+
+  if (form.sent) {
+    return (
+      <section className="portal-panel portal-feedback">
+        <div className="portal-panel-head"><h2>Thanks!</h2></div>
+        <div className="portal-panel-body">
+          <p className="portal-msg ok">Your feedback was sent.</p>
+          <button className="portal-btn small" onClick={() => form.setSent(false)} type="button">Send another note</button>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="portal-panel portal-feedback">
+      <div className="portal-panel-head"><h2>Leave feedback</h2></div>
+      <form onSubmit={form.submit}>
+        <div className="portal-panel-body">
+          <div className="portal-row">
+            <label className="portal-field">Name<input onChange={(e) => form.setName(e.target.value)} value={form.name} /></label>
+            <label className="portal-field">Email<input onChange={(e) => form.setEmail(e.target.value)} type="email" value={form.email} /></label>
+          </div>
+          <label className="portal-field">
+            Message
+            <textarea onChange={(e) => form.setMessage(e.target.value)} rows={3} value={form.message} />
+          </label>
+          {form.error ? <p className="portal-msg err" role="alert">{form.error}</p> : null}
+          <span className="portal-row-actions">
+            <button className="portal-btn primary" disabled={form.busy || !form.message.trim()} type="submit">
+              {form.busy ? "Sending…" : "Send feedback"}
+            </button>
+          </span>
+        </div>
+      </form>
+    </section>
+  );
+}
+
 export function ShareFolderApp({ token, logoUrl, brandName }: { token: string; logoUrl: string; brandName: string }) {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -80,7 +161,7 @@ export function ShareFolderApp({ token, logoUrl, brandName }: { token: string; l
   }
 
   return (
-    <div className="portal-crm portal-share-gate">
+    <div className="portal-crm portal-share-files">
       <div className="portal-share-brand">
         <LogoMark brandName={brandName} logoUrl={logoUrl} size={44} />
       </div>
@@ -91,33 +172,46 @@ export function ShareFolderApp({ token, logoUrl, brandName }: { token: string; l
         </div>
       </div>
       {folder.files.length ? (
-        <ul className="portal-file-list">
-          {folder.files.map((f) =>
-            isImageFile(f.contentType) ? (
-              <li key={f.id}>
-                <button
-                  className="portal-file-name"
-                  onClick={() => setLightboxIndex(imageFiles.findIndex((img) => img.id === f.id))}
-                  type="button"
-                >
-                  {f.fileName}
-                </button>
-                <span className="portal-muted small">{fmtFileSize(f.size)}</span>
-              </li>
-            ) : (
-              <li key={f.id}>
-                <a href={f.url} rel="noreferrer" target="_blank">{f.fileName}</a>
-                <span className="portal-muted small">{fmtFileSize(f.size)}</span>
-              </li>
-            ),
-          )}
-        </ul>
+        <div className="portal-table-wrap">
+          <table className="portal-table portal-file-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Uploaded</th>
+                <th className="r">Size</th>
+              </tr>
+            </thead>
+            <tbody>
+              {folder.files.map((f) => (
+                <tr key={f.id}>
+                  <td>
+                    {isImageFile(f.contentType) ? (
+                      <button
+                        className="portal-file-name"
+                        onClick={() => setLightboxIndex(imageFiles.findIndex((img) => img.id === f.id))}
+                        type="button"
+                      >
+                        {f.fileName}
+                      </button>
+                    ) : (
+                      <a href={f.url} rel="noreferrer" target="_blank">{f.fileName}</a>
+                    )}
+                  </td>
+                  <td className="portal-muted">{fmtDate(f.createdAt)}</td>
+                  <td className="r portal-muted">{fmtFileSize(f.size)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       ) : (
         <p className="portal-muted small">No files in this folder yet.</p>
       )}
       {lightboxIndex !== null ? (
         <ImageLightbox files={imageFiles} index={lightboxIndex} onClose={() => setLightboxIndex(null)} onNavigate={setLightboxIndex} />
       ) : null}
+
+      <FeedbackForm token={token} />
     </div>
   );
 }
