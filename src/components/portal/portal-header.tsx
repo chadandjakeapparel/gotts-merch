@@ -64,7 +64,6 @@ export function PortalHeader({
     ["designer-products", "/portal/designer-products", "Designer Products"],
     ["quote", "/portal/quote", "Get a Quote"],
     ["inventory", inventoryHref, "Inventory"],
-    ["items", "/portal/items", "Items"],
     ["account", "/portal/account", "My Account"],
     ["designs", "/portal/designs", "Saved Designs"],
   ];
@@ -84,6 +83,7 @@ export function PortalHeader({
               <Link aria-current={current === "customers" ? "page" : undefined} href="/portal/customers">Customers</Link>
               <Link aria-current={current === "tasks" ? "page" : undefined} href="/portal/tasks">Tasks</Link>
               <Link aria-current={current === "files" ? "page" : undefined} href="/portal/files">Files</Link>
+              <Link aria-current={current === "items" ? "page" : undefined} href="/portal/items">Items</Link>
               <div className="portal-nav-dropdown" ref={menuRef}>
                 <button
                   aria-expanded={menuOpen}
