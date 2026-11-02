@@ -202,6 +202,9 @@ export type EstimateStatus = "draft" | "sent" | "approved" | "changes_requested"
 
 export type EstimateLineItem = {
   id: number;
+  /** The catalog item's name -- shown in bold on the printed estimate. */
+  itemName: string;
+  /** Free-text detail -- shown in italics, indented under the item name. */
   description: string;
   quantity: number;
   unitPrice: number;

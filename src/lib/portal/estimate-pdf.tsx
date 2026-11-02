@@ -30,6 +30,8 @@ const styles = StyleSheet.create({
   tableHeadCell: { padding: 7, fontSize: 8.5, fontFamily: "Helvetica-Bold", color: "#ffffff", textTransform: "uppercase", letterSpacing: 0.5 },
   tableRow: { flexDirection: "row", borderTopWidth: 1, borderTopColor: LINE },
   tableCell: { padding: 7, fontSize: 9.5 },
+  tableItemName: { fontFamily: "Helvetica-Bold", fontSize: 9.5 },
+  tableItemDesc: { fontFamily: "Helvetica-Oblique", fontSize: 8.5, color: MUTED, marginTop: 2, marginLeft: 10 },
   colDesc: { flex: 3 },
   colQty: { flex: 0.7, textAlign: "right" },
   colPrice: { flex: 1, textAlign: "right" },
@@ -129,7 +131,7 @@ export function EstimatePdfDocument({ estimate, lead, business }: { estimate: Es
 
         <View style={styles.table}>
           <View style={styles.tableHeadRow}>
-            <Text style={[styles.tableHeadCell, styles.colDesc]}>Description</Text>
+            <Text style={[styles.tableHeadCell, styles.colDesc]}></Text>
             <Text style={[styles.tableHeadCell, styles.colQty]}>Qty</Text>
             <Text style={[styles.tableHeadCell, styles.colPrice]}>Unit price</Text>
             <Text style={[styles.tableHeadCell, styles.colTax]}>Taxable</Text>
@@ -137,7 +139,10 @@ export function EstimatePdfDocument({ estimate, lead, business }: { estimate: Es
           </View>
           {estimate.lineItems.map((li) => (
             <View key={li.id} style={styles.tableRow}>
-              <Text style={[styles.tableCell, styles.colDesc]}>{li.description}</Text>
+              <View style={[styles.tableCell, styles.colDesc]}>
+                <Text style={styles.tableItemName}>{li.itemName}</Text>
+                {li.description ? <Text style={styles.tableItemDesc}>{li.description}</Text> : null}
+              </View>
               <Text style={[styles.tableCell, styles.colQty]}>{li.quantity}</Text>
               <Text style={[styles.tableCell, styles.colPrice]}>{currency(li.unitPrice)}</Text>
               <Text style={[styles.tableCell, styles.colTax]}>{li.taxable ? "Yes" : "No"}</Text>

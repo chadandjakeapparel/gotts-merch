@@ -506,6 +506,7 @@ create unique index if not exists estimates_lead_unique_idx on estimates (lead_i
 create table if not exists estimate_line_items (
   id serial primary key,
   estimate_id integer not null references estimates(id) on delete cascade,
+  item_name text not null default '',
   description text not null default '',
   quantity integer not null default 1,
   unit_price numeric(12, 2) not null default 0,
@@ -521,6 +522,21 @@ create index if not exists jobs_estimate_idx on jobs (estimate_id);
 -- to a rate applied per taxable line item.
 alter table estimates add column if not exists tax_rate numeric(5, 2) not null default 0;
 alter table estimate_line_items add column if not exists taxable boolean not null default true;
+
+-- Pre-existing databases created before a line item's catalog-matched name
+-- and its free-text description became separate fields -- what was called
+-- "description" was really the item name, so carry its values over rather
+-- than losing them.
+do $$
+begin
+  if exists (select 1 from information_schema.columns where table_name = 'estimate_line_items' and column_name = 'description')
+    and not exists (select 1 from information_schema.columns where table_name = 'estimate_line_items' and column_name = 'item_name')
+  then
+    alter table estimate_line_items rename column description to item_name;
+  end if;
+end $$;
+alter table estimate_line_items add column if not exists item_name text not null default '';
+alter table estimate_line_items add column if not exists description text not null default '';
 
 -- Catalog items: a master product list (name/number, display name, type,
 -- vendor) managed from /portal/items -- independent of any client's own

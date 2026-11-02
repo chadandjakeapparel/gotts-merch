@@ -96,7 +96,8 @@ export function toEstimateInput(body: Record<string, unknown>): EstimateInput {
     lineItems: lineItems.map((li) => {
       const l = (li && typeof li === "object" ? li : {}) as Record<string, unknown>;
       return {
-        description: text(l.description, 300),
+        itemName: text(l.itemName, 300),
+        description: text(l.description, 2000),
         quantity: int(l.quantity),
         unitPrice: money(l.unitPrice),
         taxable: Boolean(l.taxable),

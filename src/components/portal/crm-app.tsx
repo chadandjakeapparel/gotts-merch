@@ -49,7 +49,7 @@ const ESTIMATE_STATUS_LABEL: Record<Estimate["status"], string> = {
 };
 
 function emptyEstimateLine() {
-  return { description: "", quantity: "1", unitPrice: "", taxable: true };
+  return { itemName: "", description: "", quantity: "1", unitPrice: "", taxable: true };
 }
 
 function fmtDate(value: string, withTime = false) {
@@ -423,8 +423,8 @@ function LeadModal({
   );
 }
 
-/** An estimate line's description field: typing searches the item catalog, and picking a match fills it in. */
-function ItemDescriptionField({
+/** An estimate line's item name field: typing searches the item catalog, and picking a match fills it in. */
+function ItemNameField({
   value,
   onChange,
   onPick,
@@ -520,6 +520,7 @@ function EstimateSection({ lead, onStatusChanged }: { lead: Lead; onStatusChange
       setLines(
         res.estimate.lineItems.length
           ? res.estimate.lineItems.map((li) => ({
+              itemName: li.itemName,
               description: li.description,
               quantity: String(li.quantity),
               unitPrice: String(li.unitPrice),
@@ -562,7 +563,7 @@ function EstimateSection({ lead, onStatusChanged }: { lead: Lead; onStatusChange
   function draftBody() {
     return {
       lineItems: lines
-        .filter((l) => l.description.trim())
+        .filter((l) => l.itemName.trim())
         .map((l) => ({ ...l, quantity: Number(l.quantity), unitPrice: Number(l.unitPrice) })),
       taxRate: Number(taxRate) || 0,
       notes,
@@ -625,19 +626,24 @@ function EstimateSection({ lead, onStatusChanged }: { lead: Lead; onStatusChange
         {lines.map((l, i) => (
           <div className="portal-row" key={i}>
             <label className="portal-field">
-              Description
-              <ItemDescriptionField
+              Item name
+              <ItemNameField
                 disabled={locked}
-                onChange={(description) => setLines(lines.map((x, j) => (j === i ? { ...x, description } : x)))}
+                onChange={(itemName) => setLines(lines.map((x, j) => (j === i ? { ...x, itemName } : x)))}
                 onPick={(item) =>
                   setLines(
-                    lines.map((x, j) =>
-                      j === i
-                        ? { ...x, description: [item.itemNumber, item.displayName].filter(Boolean).join(" — ") }
-                        : x,
-                    ),
+                    lines.map((x, j) => (j === i ? { ...x, itemName: item.displayName || item.itemNumber } : x)),
                   )
                 }
+                value={l.itemName}
+              />
+            </label>
+            <label className="portal-field">
+              Description
+              <textarea
+                disabled={locked}
+                onChange={(e) => setLines(lines.map((x, j) => (j === i ? { ...x, description: e.target.value } : x)))}
+                rows={2}
                 value={l.description}
               />
             </label>

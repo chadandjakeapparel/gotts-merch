@@ -14,6 +14,7 @@ const str = (v: unknown) => (v == null ? "" : String(v));
 function toLineItem(r: Row): EstimateLineItem {
   return {
     id: num(r.id),
+    itemName: str(r.item_name),
     description: str(r.description),
     quantity: num(r.quantity),
     unitPrice: num(r.unit_price),
@@ -67,13 +68,13 @@ export async function getEstimateForClient(clientId: number): Promise<Estimate |
   return toEstimate(row, lineItems.map(toLineItem));
 }
 
-export type EstimateLineItemInput = { description: string; quantity: number; unitPrice: number; taxable: boolean };
+export type EstimateLineItemInput = { itemName: string; description: string; quantity: number; unitPrice: number; taxable: boolean };
 export type EstimateInput = { lineItems: EstimateLineItemInput[]; taxRate: number; notes: string };
 
 function requireEstimate(input: EstimateInput) {
   if (!input.lineItems.length) throw new PortalError("Add at least one line item.");
   for (const li of input.lineItems) {
-    if (!li.description.trim()) throw new PortalError("Give every line item a description.");
+    if (!li.itemName.trim()) throw new PortalError("Give every line item a name.");
     if (!Number.isInteger(li.quantity) || li.quantity <= 0) {
       throw new PortalError("Quantities must be whole numbers greater than 0.");
     }
@@ -115,8 +116,8 @@ export async function saveEstimateDraft(leadId: number, input: EstimateInput, cr
     let sortOrder = 0;
     for (const li of input.lineItems) {
       await tx`
-        insert into estimate_line_items (estimate_id, description, quantity, unit_price, taxable, sort_order)
-        values (${id}, ${li.description}, ${li.quantity}, ${li.unitPrice}, ${li.taxable}, ${sortOrder++})`;
+        insert into estimate_line_items (estimate_id, item_name, description, quantity, unit_price, taxable, sort_order)
+        values (${id}, ${li.itemName}, ${li.description}, ${li.quantity}, ${li.unitPrice}, ${li.taxable}, ${sortOrder++})`;
     }
     return id;
   });

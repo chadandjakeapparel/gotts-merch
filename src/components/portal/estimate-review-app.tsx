@@ -89,11 +89,14 @@ export function EstimateReviewApp({ initialEstimate, loadError }: { initialEstim
 
         <div className="portal-table-wrap">
           <table className="portal-table">
-            <thead><tr><th>Description</th><th className="r">Qty</th><th className="r">Unit price</th><th className="r">Taxable</th><th className="r">Line total</th></tr></thead>
+            <thead><tr><th></th><th className="r">Qty</th><th className="r">Unit price</th><th className="r">Taxable</th><th className="r">Line total</th></tr></thead>
             <tbody>
               {estimate.lineItems.map((li) => (
                 <tr key={li.id}>
-                  <td>{li.description}</td>
+                  <td>
+                    <strong>{li.itemName}</strong>
+                    {li.description ? <div className="portal-estimate-item-desc">{li.description}</div> : null}
+                  </td>
                   <td className="r">{li.quantity}</td>
                   <td className="r">{currency.format(li.unitPrice)}</td>
                   <td className="r">{li.taxable ? "Yes" : "No"}</td>
