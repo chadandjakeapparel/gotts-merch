@@ -311,6 +311,12 @@ export async function updateCustomer(id: number, input: CustomerInput) {
   }
 }
 
+export async function updateCustomerNotes(id: number, notes: string) {
+  const sql = await db();
+  const rows = await sql`update customers set notes = ${notes}, updated_at = now() where id = ${id} returning id`;
+  if (!rows.length) throw new PortalError("That customer no longer exists.", 404);
+}
+
 export async function deleteCustomer(id: number) {
   const sql = await db();
   await sql`delete from customers where id = ${id}`;

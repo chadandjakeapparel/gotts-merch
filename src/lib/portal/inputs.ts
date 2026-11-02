@@ -67,7 +67,7 @@ export function toCustomerInput(body: Record<string, unknown>): CustomerInput {
     salesRepId: salesRepId != null && Number.isFinite(salesRepId) ? salesRepId : null,
     subscribed: Boolean(body.subscribed),
     inventoryHeld: Boolean(body.inventoryHeld),
-    notes: text(body.notes, 2000),
+    notes: text(body.notes, 10000),
   };
 }
 

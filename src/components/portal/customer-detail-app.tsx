@@ -258,6 +258,56 @@ function CredentialsSection({ customerId }: { customerId: number }) {
   );
 }
 
+/** A freeform scratchpad for this customer -- staff's running notes, saved on demand. */
+function NotesSection({ customerId, initialNotes }: { customerId: number; initialNotes: string }) {
+  const [notes, setNotes] = useState(initialNotes);
+  const [saved, setSaved] = useState(initialNotes);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [justSaved, setJustSaved] = useState(false);
+  const dirty = notes !== saved;
+
+  async function save() {
+    if (busy || !dirty) return;
+    setBusy(true);
+    setError("");
+    try {
+      await api("PATCH", `/api/portal/customers/${customerId}/notes`, { notes });
+      setSaved(notes);
+      setJustSaved(true);
+      setTimeout(() => setJustSaved(false), 2000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't save that note. Try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="portal-panel">
+      <div className="portal-panel-head"><h2>Notes</h2></div>
+      <div className="portal-panel-body">
+        <label className="portal-field portal-sr" htmlFor="customer-notes">Notes</label>
+        <textarea
+          className="portal-notes-box"
+          id="customer-notes"
+          onChange={(e) => setNotes(e.target.value)}
+          placeholder="Anything worth remembering about this customer -- preferences, history, reminders…"
+          rows={12}
+          value={notes}
+        />
+        {error ? <p className="portal-msg err" role="alert">{error}</p> : null}
+        <span className="portal-row-actions">
+          <button className="portal-btn primary" disabled={busy || !dirty} onClick={() => void save()} type="button">
+            {busy ? "Saving…" : "Save notes"}
+          </button>
+          {justSaved ? <span className="portal-msg ok">Saved</span> : null}
+        </span>
+      </div>
+    </section>
+  );
+}
+
 export function CustomerDetailApp({
   customer,
   initialJobs,
@@ -391,7 +441,6 @@ export function CustomerDetailApp({
             <Field label="Phone" value={customer.phone} />
             <Field label="Email" value={customer.emails.length ? customer.emails.join(", ") : ""} />
             <Field label="Inventory held" value={customer.inventoryHeld ? "Yes" : "No"} />
-            <Field label="Notes" value={customer.notes} />
           </div>
         </section>
 
@@ -486,6 +535,8 @@ export function CustomerDetailApp({
           </table>
         </div>
       </section>
+
+      <NotesSection customerId={customer.id} initialNotes={customer.notes} />
 
       {editing ? (
         <CustomerModal

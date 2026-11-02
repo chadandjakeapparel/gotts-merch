@@ -126,6 +126,7 @@
   font-size: 13px;
   font-weight: 700;
 }
+.portal-notes-box { min-height: 220px; font-family: inherit; }
 .portal-row { display: flex; flex-wrap: wrap; gap: 12px; }
 .portal-row > * { flex: 1 1 180px; }
 
