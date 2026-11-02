@@ -1,4 +1,5 @@
 import { renderToBuffer } from "@react-pdf/renderer";
+import { getSiteContent } from "@/lib/content";
 import { getUser } from "@/lib/portal/auth";
 import { getBusinessInfo } from "@/lib/portal/business-info";
 import { getLead } from "@/lib/portal/crm";
@@ -15,11 +16,16 @@ export async function GET(request: Request, { params }: Params) {
   if (user.role !== "staff") return new Response("Your account can't export estimates.", { status: 403 });
 
   const id = int((await params).id);
-  const [estimate, lead, business] = await Promise.all([getEstimateForLead(id), getLead(id), getBusinessInfo()]);
+  const [estimate, lead, business, site] = await Promise.all([
+    getEstimateForLead(id),
+    getLead(id),
+    getBusinessInfo(),
+    getSiteContent(),
+  ]);
   if (!estimate || !lead) return new Response("That estimate no longer exists.", { status: 404 });
   if (!estimate.lineItems.length) return new Response("Add at least one line item before exporting.", { status: 400 });
 
-  const buffer = await renderToBuffer(EstimatePdfDocument({ estimate, lead, business }));
+  const buffer = await renderToBuffer(EstimatePdfDocument({ estimate, lead, business, logoUrl: site.logoUrl }));
   const fileName = `Estimate-EST-${String(estimate.id).padStart(5, "0")}.pdf`;
   return new Response(new Uint8Array(buffer), {
     headers: {

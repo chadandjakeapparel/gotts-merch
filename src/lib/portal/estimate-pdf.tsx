@@ -1,4 +1,4 @@
-import { Document, Page, Path, StyleSheet, Svg, Text, View } from "@react-pdf/renderer";
+import { Document, Image, Page, Path, StyleSheet, Svg, Text, View } from "@react-pdf/renderer";
 import type { BusinessAddress, BusinessInfo } from "./business-info";
 import { estimateTotals } from "./estimates";
 import type { Estimate, Lead } from "./types";
@@ -16,6 +16,7 @@ const styles = StyleSheet.create({
   page: { paddingTop: 48, paddingBottom: 64, paddingHorizontal: 48, fontSize: 10, color: INK, fontFamily: "Helvetica" },
   headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 },
   brandRow: { flexDirection: "row", alignItems: "center" },
+  logoImage: { width: 32, height: 32, objectFit: "contain" },
   brandName: { fontSize: 17, fontFamily: "Helvetica-Bold", color: NAVY, marginLeft: 10 },
   brandNameAccent: { color: BLUE },
   docTitle: { fontSize: 20, fontFamily: "Helvetica-Bold", color: NAVY, textAlign: "right" },
@@ -54,8 +55,13 @@ const styles = StyleSheet.create({
   footerText: { fontSize: 8.5, color: MUTED },
 });
 
-/** The logo's own two paths (src/components/logo.tsx), ported to react-pdf's SVG primitives. */
-function LogoMark() {
+/**
+ * The site's default "G" mark (src/components/logo.tsx), ported to
+ * react-pdf's SVG primitives -- shown only when no logo has been uploaded
+ * in the admin site editor's Brand section, same fallback the live site
+ * itself uses.
+ */
+function FallbackLogoMark() {
   return (
     <Svg height={26} viewBox="0 0 48 48" width={26}>
       <Path d="M24 4a20 20 0 1 0 20 20h-9a11 11 0 1 1-3.1-13.9" fill="none" stroke={NAVY} strokeLinecap="round" strokeWidth={7} />
@@ -81,7 +87,18 @@ function addressLines(a: BusinessAddress): string[] {
 }
 
 /** A traditional printable estimate: letterhead, bill-to, line items, totals, notes. */
-export function EstimatePdfDocument({ estimate, lead, business }: { estimate: Estimate; lead: Lead; business: BusinessInfo }) {
+export function EstimatePdfDocument({
+  estimate,
+  lead,
+  business,
+  logoUrl,
+}: {
+  estimate: Estimate;
+  lead: Lead;
+  business: BusinessInfo;
+  /** The logo uploaded in the admin site editor's Brand section, if any -- falls back to the default mark when blank. */
+  logoUrl?: string;
+}) {
   const { subtotal, tax, total } = estimateTotals(estimate);
   const billName = lead.companyName || lead.contactName || "Customer";
   const estimateNumber = `EST-${String(estimate.id).padStart(5, "0")}`;
@@ -95,7 +112,12 @@ export function EstimatePdfDocument({ estimate, lead, business }: { estimate: Es
       <Page size="LETTER" style={styles.page}>
         <View style={styles.headerRow}>
           <View style={styles.brandRow}>
-            <LogoMark />
+            {logoUrl ? (
+              // eslint-disable-next-line jsx-a11y/alt-text -- react-pdf's Image renders into a PDF, not the DOM; it has no alt prop.
+              <Image src={logoUrl} style={styles.logoImage} />
+            ) : (
+              <FallbackLogoMark />
+            )}
             <Text style={styles.brandName}>
               Gotts<Text style={styles.brandNameAccent}> Merch</Text>
             </Text>
