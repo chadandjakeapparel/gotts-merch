@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export type LightboxFile = { id: number; fileName: string; url: string; contentType: string };
 
@@ -12,8 +12,11 @@ export function isImageFile(contentType: string) {
 
 /**
  * A full-screen image viewer with arrow-key/button navigation, plus a
- * collapsible strip of thumbnails for every other image in the same list
- * below the one that's open.
+ * collapsible strip of thumbnails for every image in the same list. The
+ * strip keeps every thumbnail in place and just highlights the current one,
+ * instead of dropping it out of the grid -- otherwise selecting a thumbnail
+ * makes the grid reflow as the old thumbnail reappears and the new one
+ * vanishes, which reads as the image "replacing" rather than rotating.
  */
 export function ImageLightbox({
   files,
@@ -27,7 +30,12 @@ export function ImageLightbox({
   onNavigate: (nextIndex: number) => void;
 }) {
   const file = files[index];
-  const [othersOpen, setOthersOpen] = useState(files.length > 1);
+  const [thumbsOpen, setThumbsOpen] = useState(files.length > 1);
+  const activeThumbRef = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    activeThumbRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [index]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -56,7 +64,7 @@ export function ImageLightbox({
       ) : null}
       <div className="portal-lightbox-stage">
         {/* eslint-disable-next-line @next/next/no-img-element -- a remote blob image of unknown intrinsic size */}
-        <img alt={file.fileName} className="portal-lightbox-img" src={file.url} />
+        <img alt={file.fileName} className="portal-lightbox-img" key={file.id} src={file.url} />
       </div>
       {files.length > 1 ? (
         <button
@@ -75,24 +83,32 @@ export function ImageLightbox({
       {files.length > 1 ? (
         <div className="portal-lightbox-accordion" onMouseDown={(e) => e.stopPropagation()}>
           <button
-            aria-expanded={othersOpen}
+            aria-expanded={thumbsOpen}
             className="portal-lightbox-accordion-toggle"
-            onClick={() => setOthersOpen((open) => !open)}
+            onClick={() => setThumbsOpen((open) => !open)}
             type="button"
           >
-            <span aria-hidden="true">{othersOpen ? "▾" : "▸"}</span> Other images in this folder ({files.length - 1})
+            <span aria-hidden="true">{thumbsOpen ? "▾" : "▸"}</span> Images in this folder ({files.length})
           </button>
-          {othersOpen ? (
+          {thumbsOpen ? (
             <div className="portal-lightbox-thumbs">
-              {files.map((f, i) =>
-                i === index ? null : (
-                  <button className="portal-lightbox-thumb" key={f.id} onClick={() => onNavigate(i)} type="button">
+              {files.map((f, i) => {
+                const active = i === index;
+                return (
+                  <button
+                    aria-current={active}
+                    className={`portal-lightbox-thumb${active ? " active" : ""}`}
+                    key={f.id}
+                    onClick={() => onNavigate(i)}
+                    ref={active ? activeThumbRef : undefined}
+                    type="button"
+                  >
                     {/* eslint-disable-next-line @next/next/no-img-element -- a remote blob image of unknown intrinsic size */}
                     <img alt={f.fileName} src={f.url} />
                     <span>{f.fileName}</span>
                   </button>
-                ),
-              )}
+                );
+              })}
             </div>
           ) : null}
         </div>

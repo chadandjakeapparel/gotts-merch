@@ -354,6 +354,11 @@
   border-radius: 4px;
   object-fit: contain;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  animation: portalLightboxFade 0.18s ease;
+}
+@keyframes portalLightboxFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 .portal-lightbox-close,
 .portal-lightbox-nav {
@@ -414,6 +419,13 @@
   color: rgba(255, 255, 255, 0.75);
   cursor: pointer;
   text-align: left;
+  opacity: 0.65;
+  transition: opacity 0.15s;
+}
+.portal-lightbox-thumb:hover { opacity: 0.9; }
+.portal-lightbox-thumb.active {
+  opacity: 1;
+  color: #fff;
 }
 .portal-lightbox-thumb img {
   width: 110px;
@@ -421,8 +433,12 @@
   border-radius: 4px;
   object-fit: cover;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  transition: outline-color 0.15s;
 }
-.portal-lightbox-thumb:hover img { outline: 2px solid rgba(255, 255, 255, 0.6); }
+.portal-lightbox-thumb:hover img { outline-color: rgba(255, 255, 255, 0.6); }
+.portal-lightbox-thumb.active img { outline-color: #fff; }
 .portal-lightbox-thumb span {
   overflow: hidden;
   font-size: 11px;
