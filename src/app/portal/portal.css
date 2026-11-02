@@ -437,6 +437,7 @@
 .portal-table.compact td { padding: 7px 12px; font-size: 14px; }
 .portal-table tr.unmatched td { background: var(--p-warn-soft); }
 .portal-estimate-item-desc { margin: 3px 0 0 14px; font-size: 13px; font-style: italic; color: var(--p-muted); }
+.portal-estimate-item-attrs { margin: 3px 0 0 14px; font-size: 13px; color: var(--p-muted); }
 .portal-sort { padding: 0; border: 0; background: none; color: inherit; font: inherit; letter-spacing: inherit; text-transform: inherit; cursor: pointer; }
 .portal-tag { padding: 2px 7px; border: 1px dashed var(--p-line); border-radius: 3px; font-family: var(--p-mono); font-size: 13px; white-space: nowrap; }
 .portal-color { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }

@@ -16,6 +16,8 @@ function toLineItem(r: Row): EstimateLineItem {
     id: num(r.id),
     itemName: str(r.item_name),
     description: str(r.description),
+    color: str(r.color),
+    size: str(r.size),
     quantity: num(r.quantity),
     unitPrice: num(r.unit_price),
     taxable: Boolean(r.taxable),
@@ -68,7 +70,15 @@ export async function getEstimateForClient(clientId: number): Promise<Estimate |
   return toEstimate(row, lineItems.map(toLineItem));
 }
 
-export type EstimateLineItemInput = { itemName: string; description: string; quantity: number; unitPrice: number; taxable: boolean };
+export type EstimateLineItemInput = {
+  itemName: string;
+  description: string;
+  color: string;
+  size: string;
+  quantity: number;
+  unitPrice: number;
+  taxable: boolean;
+};
 export type EstimateInput = { lineItems: EstimateLineItemInput[]; taxRate: number; notes: string };
 
 function requireEstimate(input: EstimateInput) {
@@ -116,8 +126,10 @@ export async function saveEstimateDraft(leadId: number, input: EstimateInput, cr
     let sortOrder = 0;
     for (const li of input.lineItems) {
       await tx`
-        insert into estimate_line_items (estimate_id, item_name, description, quantity, unit_price, taxable, sort_order)
-        values (${id}, ${li.itemName}, ${li.description}, ${li.quantity}, ${li.unitPrice}, ${li.taxable}, ${sortOrder++})`;
+        insert into estimate_line_items (estimate_id, item_name, description, color, size, quantity, unit_price, taxable, sort_order)
+        values (
+          ${id}, ${li.itemName}, ${li.description}, ${li.color}, ${li.size}, ${li.quantity}, ${li.unitPrice}, ${li.taxable}, ${sortOrder++}
+        )`;
     }
     return id;
   });

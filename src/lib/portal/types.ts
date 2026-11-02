@@ -206,6 +206,8 @@ export type EstimateLineItem = {
   itemName: string;
   /** Free-text detail -- shown in italics, indented under the item name. */
   description: string;
+  color: string;
+  size: string;
   quantity: number;
   unitPrice: number;
   taxable: boolean;

@@ -508,6 +508,8 @@ create table if not exists estimate_line_items (
   estimate_id integer not null references estimates(id) on delete cascade,
   item_name text not null default '',
   description text not null default '',
+  color text not null default '',
+  size text not null default '',
   quantity integer not null default 1,
   unit_price numeric(12, 2) not null default 0,
   taxable boolean not null default true,
@@ -537,6 +539,8 @@ begin
 end $$;
 alter table estimate_line_items add column if not exists item_name text not null default '';
 alter table estimate_line_items add column if not exists description text not null default '';
+alter table estimate_line_items add column if not exists color text not null default '';
+alter table estimate_line_items add column if not exists size text not null default '';
 
 -- Catalog items: a master product list (name/number, display name, type,
 -- vendor) managed from /portal/items -- independent of any client's own

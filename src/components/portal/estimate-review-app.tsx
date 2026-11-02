@@ -95,6 +95,11 @@ export function EstimateReviewApp({ initialEstimate, loadError }: { initialEstim
                 <tr key={li.id}>
                   <td>
                     <strong>{li.itemName}</strong>
+                    {li.color || li.size ? (
+                      <div className="portal-estimate-item-attrs">
+                        {[li.color && `Color: ${li.color}`, li.size && `Size: ${li.size}`].filter(Boolean).join("   ")}
+                      </div>
+                    ) : null}
                     {li.description ? <div className="portal-estimate-item-desc">{li.description}</div> : null}
                   </td>
                   <td className="r">{li.quantity}</td>

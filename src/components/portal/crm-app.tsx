@@ -49,7 +49,7 @@ const ESTIMATE_STATUS_LABEL: Record<Estimate["status"], string> = {
 };
 
 function emptyEstimateLine() {
-  return { itemName: "", description: "", quantity: "1", unitPrice: "", taxable: true };
+  return { itemName: "", description: "", color: "", size: "", quantity: "1", unitPrice: "", taxable: true };
 }
 
 function fmtDate(value: string, withTime = false) {
@@ -522,6 +522,8 @@ function EstimateSection({ lead, onStatusChanged }: { lead: Lead; onStatusChange
           ? res.estimate.lineItems.map((li) => ({
               itemName: li.itemName,
               description: li.description,
+              color: li.color,
+              size: li.size,
               quantity: String(li.quantity),
               unitPrice: String(li.unitPrice),
               taxable: li.taxable,
@@ -645,6 +647,22 @@ function EstimateSection({ lead, onStatusChanged }: { lead: Lead; onStatusChange
                 onChange={(e) => setLines(lines.map((x, j) => (j === i ? { ...x, description: e.target.value } : x)))}
                 rows={2}
                 value={l.description}
+              />
+            </label>
+            <label className="portal-field">
+              Color
+              <input
+                disabled={locked}
+                onChange={(e) => setLines(lines.map((x, j) => (j === i ? { ...x, color: e.target.value } : x)))}
+                value={l.color}
+              />
+            </label>
+            <label className="portal-field">
+              Size
+              <input
+                disabled={locked}
+                onChange={(e) => setLines(lines.map((x, j) => (j === i ? { ...x, size: e.target.value } : x)))}
+                value={l.size}
               />
             </label>
             <label className="portal-field">

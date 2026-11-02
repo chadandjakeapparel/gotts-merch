@@ -98,6 +98,8 @@ export function toEstimateInput(body: Record<string, unknown>): EstimateInput {
       return {
         itemName: text(l.itemName, 300),
         description: text(l.description, 2000),
+        color: text(l.color, 80),
+        size: text(l.size, 40),
         quantity: int(l.quantity),
         unitPrice: money(l.unitPrice),
         taxable: Boolean(l.taxable),

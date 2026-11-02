@@ -32,6 +32,7 @@ const styles = StyleSheet.create({
   tableRow: { flexDirection: "row", borderTopWidth: 1, borderTopColor: LINE },
   tableCell: { padding: 7, fontSize: 9.5 },
   tableItemName: { fontFamily: "Helvetica-Bold", fontSize: 9.5 },
+  tableItemAttrs: { fontSize: 8.5, color: MUTED, marginTop: 2, marginLeft: 10 },
   tableItemDesc: { fontFamily: "Helvetica-Oblique", fontSize: 8.5, color: MUTED, marginTop: 2, marginLeft: 10 },
   colDesc: { flex: 3 },
   colQty: { flex: 0.7, textAlign: "right" },
@@ -163,6 +164,11 @@ export function EstimatePdfDocument({
             <View key={li.id} style={styles.tableRow}>
               <View style={[styles.tableCell, styles.colDesc]}>
                 <Text style={styles.tableItemName}>{li.itemName}</Text>
+                {li.color || li.size ? (
+                  <Text style={styles.tableItemAttrs}>
+                    {[li.color && `Color: ${li.color}`, li.size && `Size: ${li.size}`].filter(Boolean).join("   ")}
+                  </Text>
+                ) : null}
                 {li.description ? <Text style={styles.tableItemDesc}>{li.description}</Text> : null}
               </View>
               <Text style={[styles.tableCell, styles.colQty]}>{li.quantity}</Text>
