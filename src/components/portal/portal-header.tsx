@@ -17,6 +17,7 @@ export type PortalNavKey =
   | "designs"
   | "quote"
   | "business-info"
+  | "items"
   | "account";
 
 export function PortalHeader({
@@ -63,6 +64,7 @@ export function PortalHeader({
     ["designer-products", "/portal/designer-products", "Designer Products"],
     ["quote", "/portal/quote", "Get a Quote"],
     ["inventory", inventoryHref, "Inventory"],
+    ["items", "/portal/items", "Items"],
     ["account", "/portal/account", "My Account"],
     ["designs", "/portal/designs", "Saved Designs"],
   ];

@@ -521,6 +521,24 @@ create index if not exists jobs_estimate_idx on jobs (estimate_id);
 -- to a rate applied per taxable line item.
 alter table estimates add column if not exists tax_rate numeric(5, 2) not null default 0;
 alter table estimate_line_items add column if not exists taxable boolean not null default true;
+
+-- Catalog items: a master product list (name/number, display name, type,
+-- vendor) managed from /portal/items -- independent of any client's own
+-- stock inventory -- used to autocomplete estimate line item descriptions.
+-- Expected to hold many thousands of rows, imported from a spreadsheet.
+create table if not exists catalog_items (
+  id serial primary key,
+  item_number text not null,
+  display_name text not null default '',
+  item_type text not null default '',
+  primary_vendor text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create unique index if not exists catalog_items_number_key on catalog_items (item_number);
+create index if not exists catalog_items_type_idx on catalog_items (item_type);
+create index if not exists catalog_items_vendor_idx on catalog_items (primary_vendor);
+create index if not exists catalog_items_display_name_idx on catalog_items (lower(display_name));
 `;
 
 /** Creates the tables on first use, so a fresh database needs no setup step. */

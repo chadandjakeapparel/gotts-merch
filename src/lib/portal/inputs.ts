@@ -1,3 +1,4 @@
+import type { CatalogItemInput } from "./catalog-items";
 import { parseContactMethod, type LeadInput } from "./crm";
 import type { CustomerInput } from "./customers";
 import type { ItemInput, OrderInput } from "./data";
@@ -103,6 +104,15 @@ export function toEstimateInput(body: Record<string, unknown>): EstimateInput {
     }),
     taxRate: Number.isFinite(taxRate) && taxRate >= 0 ? taxRate : 0,
     notes: text(body.notes, 2000),
+  };
+}
+
+export function toCatalogItemInput(body: Record<string, unknown>): CatalogItemInput {
+  return {
+    itemNumber: text(body.itemNumber, 120),
+    displayName: text(body.displayName, 300),
+    itemType: text(body.itemType, 120),
+    primaryVendor: text(body.primaryVendor, 200),
   };
 }
 

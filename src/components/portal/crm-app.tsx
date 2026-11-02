@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import type { ContactMethod, Estimate, Lead, LeadActivity, LeadStatus, Task } from "@/lib/portal/types";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { CatalogItem, ContactMethod, Estimate, Lead, LeadActivity, LeadStatus, Task } from "@/lib/portal/types";
 import { CopyField } from "./admin-app";
 import { api } from "./api";
 import { type StaffOption, TasksSection } from "./tasks-app";
@@ -423,6 +423,77 @@ function LeadModal({
   );
 }
 
+/** An estimate line's description field: typing searches the item catalog, and picking a match fills it in. */
+function ItemDescriptionField({
+  value,
+  onChange,
+  onPick,
+  disabled,
+}: {
+  value: string;
+  onChange: (text: string) => void;
+  onPick: (item: CatalogItem) => void;
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [matches, setMatches] = useState<CatalogItem[]>([]);
+  const boxRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open || value.trim().length < 2) {
+      setMatches([]);
+      return;
+    }
+    const t = window.setTimeout(() => {
+      void api<{ items: CatalogItem[] }>("GET", `/api/portal/catalog-items?q=${encodeURIComponent(value.trim())}&limit=8`)
+        .then((res) => setMatches(res.items))
+        .catch(() => setMatches([]));
+    }, 200);
+    return () => window.clearTimeout(t);
+  }, [value, open]);
+
+  useEffect(() => {
+    if (!open) return;
+    function onPointerDown(e: MouseEvent) {
+      if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onPointerDown);
+    return () => document.removeEventListener("mousedown", onPointerDown);
+  }, [open]);
+
+  return (
+    <div className="portal-combobox" ref={boxRef}>
+      <input
+        disabled={disabled}
+        onChange={(e) => {
+          onChange(e.target.value);
+          setOpen(true);
+        }}
+        onFocus={() => setOpen(true)}
+        value={value}
+      />
+      {open && matches.length ? (
+        <div className="portal-combobox__menu" role="listbox">
+          {matches.map((m) => (
+            <button
+              className="portal-combobox__option"
+              key={m.id}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                onPick(m);
+                setOpen(false);
+              }}
+              type="button"
+            >
+              <strong>{m.itemNumber}</strong>{m.displayName ? ` — ${m.displayName}` : ""}
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 /**
  * Builds and sends a lead's estimate for the customer to approve from
  * their portal, and shows where it stands once sent. No email goes out in
@@ -555,9 +626,18 @@ function EstimateSection({ lead, onStatusChanged }: { lead: Lead; onStatusChange
           <div className="portal-row" key={i}>
             <label className="portal-field">
               Description
-              <input
+              <ItemDescriptionField
                 disabled={locked}
-                onChange={(e) => setLines(lines.map((x, j) => (j === i ? { ...x, description: e.target.value } : x)))}
+                onChange={(description) => setLines(lines.map((x, j) => (j === i ? { ...x, description } : x)))}
+                onPick={(item) =>
+                  setLines(
+                    lines.map((x, j) =>
+                      j === i
+                        ? { ...x, description: [item.itemNumber, item.displayName].filter(Boolean).join(" — ") }
+                        : x,
+                    ),
+                  )
+                }
                 value={l.description}
               />
             </label>

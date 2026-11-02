@@ -223,6 +223,17 @@ export type Estimate = {
   updatedAt: string;
 };
 
+/** A master product record, independent of any client's own stock inventory -- used to autocomplete estimate line items. */
+export type CatalogItem = {
+  id: number;
+  itemNumber: string;
+  displayName: string;
+  itemType: string;
+  primaryVendor: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type FolderFile = {
   id: number;
   fileName: string;
