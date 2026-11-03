@@ -34,6 +34,7 @@ export function SiteFooter({ content }: { content: SiteContent }) {
             <Link href="/#faq">FAQ</Link>
             <Link href="/#quote">Get a Quote</Link>
             <Link href="/blog">Blog</Link>
+            <Link href="/jobs">Careers</Link>
             <Link href="/get-to-know-us">Get to Know Us</Link>
           </nav>
         </div>

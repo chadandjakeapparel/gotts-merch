@@ -576,6 +576,104 @@ create unique index if not exists catalog_items_number_key on catalog_items (ite
 create index if not exists catalog_items_type_idx on catalog_items (item_type);
 create index if not exists catalog_items_vendor_idx on catalog_items (primary_vendor);
 create index if not exists catalog_items_display_name_idx on catalog_items (lower(display_name));
+
+-- Wrapped in "table didn't exist yet" rather than plain "create table if not
+-- exists" so the starter posting below is inserted exactly once, the moment
+-- the table is first created -- never reappearing after someone deletes it.
+do $$
+begin
+  if to_regclass('public.job_postings') is null then
+    create table job_postings (
+      id serial primary key,
+      title text not null default '',
+      location text not null default '',
+      employment_type text not null default '',
+      summary text not null default '',
+      description text not null default '',
+      requirements text not null default '',
+      compensation text not null default '',
+      benefits text not null default '',
+      apply_url text not null default '',
+      status text not null default 'not_live' check (status in ('live', 'not_live')),
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now()
+    );
+    create index job_postings_status_idx on job_postings (status, updated_at desc);
+
+    insert into job_postings (
+      title, location, employment_type, summary, description, requirements, compensation, benefits, status
+    ) values (
+      'Account Executive', '', 'Full-time',
+      $jpseed$Join HALO's sales team as an Account Executive, building and growing client relationships while delivering creative promotional brand solutions.$jpseed$,
+      $jpseed$We are HALO! We connect people and brands to create unforgettable, meaningful, and lasting experiences that build brand engagement and loyalty for our over 60,000 clients globally, including over 100 of the Fortune 500. Our nearly 2,000 employees and 1,000 Account Executives located in 40+ sales offices across the United States are the reason HALO is #1 in our $25B industry.
+
+HALO is looking for an Account Executive with 5+ years of proactive B2B sales experience to join an existing dynamic team! You will be tasked with learning and understanding our portfolio of projects, our capabilities and competitive advantages, generating meetings and penetrate new business with existing clients. You will also be responsible for developing, managing, and growing existing client accounts while meeting sales targets and expectations. Last but not least, you must exhibit high levels of professionalism and establish excellent customer relationships, manage client projects and deliver creative promotional brand solutions.
+
+Note: this is a requisition created to help source external candidates for future opportunities. While HALO does not have any openings for this role at the moment, we are looking to proactively source for when the business need arises.
+
+## Responsibilities
+
+## Prospecting and Proactive Sales
+
+- Identify new markets and business opportunities with existing clients
+- Meet or exceed annual sales and gross profit goals
+
+## Client and Project Management
+
+- Develop and maintain strong client relationships
+- Provide ongoing written and verbal communication throughout projects with both clients and internal support teams
+- Handle challenges or obstacles with clients and/or vendors
+- Understand and utilize all internal support resources and processes to mitigate project risk and maximize profits
+
+## Sales Team Leadership
+
+- Work closely with your support team to manage project workflow ensuring all project components are on task, on time and on budget
+- Provide managerial support, leadership and clear direction on all projects
+- Consistently demonstrate and convey a positive attitude, strong work ethic, trustworthiness and empathy
+
+## More About HALO
+
+At HALO, we energize our clients' brands and amplify their stories to capture the attention of those who matter most. That's why over 60,000 small- and mid-sized businesses partner with us, making us the global leader in the branded merchandise industry.
+
+- Career Advancement: At HALO, we're passionate about promoting from within. Internal promotions have been key to our exponential growth over the past few years. With so many industry leaders at HALO, you'll have the opportunity to accelerate your career by learning from their experience, insights, and skills. Plus, you'll gain access to HALO's influential global network, leadership opportunities, and diverse perspectives.
+- Culture: We love working here, and we're confident you will too. At HALO, you'll experience a culture of ingenuity, inclusion, and relentless determination. We push the limits of possibility and imagination by staying curious, humble, and bold breaking through yesterday's limits. Diversity fuels our creativity, and we thrive when each of us contributes to an inclusive environment based on respect, dignity, and equity. We hold ourselves to a high standard of excellence with a commitment to results and supporting one another with accountability, transparency, and dependability.
+- Recognition: At HALO, your success is our success. You can count on us to celebrate your wins. Colleagues across the company will join in recognizing your milestones and nominating you for awards. Over time, you'll accumulate recognition that can be converted into gift cards, trips, concert tickets, and merchandise from your favorite brands.
+- Flexibility: Many of our roles offer hybrid work options, and we pride ourselves on flexible schedules that help you balance professional and personal demands. We believe that supporting our customers is a top priority and trust that you and your manager will collaborate to create a schedule that achieves this goal.
+
+## How to Apply
+
+Click Apply above to submit your application. A resume is optional. Once you've submitted your application, you'll receive a confirmation email.
+
+## Application Deadline
+
+Applications are reviewed and processed only when there is a specific need or opportunity, rather than on a fixed schedule or at a set deadline. Because they are reviewed on an as-needed basis, a job posting will be removed once the position has been filled or is no longer available.
+
+HALO is an equal opportunity employer. We celebrate diversity and are committed to creating an inclusive environment for all employees. We insist on an environment of mutual respect where equal employment opportunities are available to all applicants without regard to race, color, religion, sex, pregnancy (including childbirth, lactation and related medical conditions), national origin, age, physical and mental disability, marital status, sexual orientation, gender identity, gender expression, genetic information (including characteristics and testing), military and veteran status, and any other characteristic protected by applicable law. Inclusion is a core value at HALO and we seek to recruit, develop and retain the most talented people.
+
+HALO participates in E-Verify. Please see the following notices in English and Spanish for important information: [E-Verify Participation](https://www.e-verify.gov/sites/default/files/everify/posters/EVerifyParticipationPoster.pdf) and [Right to Work](https://www.e-verify.gov/sites/default/files/everify/posters/IER_RightToWorkPoster%20Eng_Es.pdf).
+
+HALO is committed to working with and providing reasonable accommodations to individuals with disabilities. If you need reasonable accommodation because of a disability for any part of the employment process, including the online application and/or overall selection process, you may email us at {{inquiryEmail}}.$jpseed$,
+      $jpseed$- Bachelor's degree (BA) in marketing, communications, business or related field, or equivalent combination of experience and education
+- 5+ years' experience in a creative B2B sales role
+- Proficient in Microsoft applications (Word, Excel, Outlook and PowerPoint)
+- Established prospecting and presentation skills and account management experience
+- Some experience in or exposure to the promotional products industry is a major plus
+- Excellent oral, written and interpersonal communication skills
+- Strong business math experience
+- Detail oriented, exceptional organizational skills and the ability to deliver under deadlines with a high level of accuracy
+- Strong work ethic that supports working independently, under minimal supervision as well as the ability to work effectively in a collaborative team environment with a dynamic range of people
+- Ability to handle sensitive situations with tact and well-reasoned judgment
+- Proven ability to provide outstanding client service
+- Curious, flexible with a positive "can do" attitude
+- Ability to effectively provide, receive and respond positively to constructive feedback
+- Willing to proactively seek out information, training and other resources needed to facilitate continual professional development necessary to be successful in this position
+- Must be able to travel up to 6x a year$jpseed$,
+      $jpseed$This position has a salary range of $60,000-$80,000, determined by an existing book of business brought to HALO or based on account(s) HALO plans to assign once employed. In addition to a competitive base salary, this role offers biweekly commission payments ranging from 9%-35% based on gross margin achieved. This range is a general guideline reflecting a broad spectrum of US labor markets; compensation decisions also account for the scope of the role, your experience, location, education, key skills, and internal and external market data.$jpseed$,
+      $jpseed$At HALO, we offer benefits that support all aspects of your life, helping you find a work-life balance that's right for you. Our comprehensive benefits include nationwide coverage for Medical, Dental, Vision, Life, and Disability insurance, along with additional Voluntary Benefits. Prepare for your financial future with our 401(k) Retirement Savings Plan, Health Savings Accounts (HSA), and Flexible Spending Accounts (FSA).$jpseed$,
+      'not_live'
+    );
+  end if;
+end $$;
 `;
 
 /** Creates the tables on first use, so a fresh database needs no setup step. */

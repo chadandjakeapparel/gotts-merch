@@ -4,8 +4,9 @@ import type { CustomerInput } from "./customers";
 import type { ItemInput, OrderInput } from "./data";
 import type { EstimateInput } from "./estimates";
 import type { JobInput } from "./jobs";
+import type { JobPostingInput } from "./job-postings";
 import type { TaskInput } from "./tasks";
-import type { Address } from "./types";
+import type { Address, JobPostingStatus } from "./types";
 import { int, money, PortalError, text } from "./http";
 
 export function toTaskInput(body: Record<string, unknown>): TaskInput {
@@ -68,6 +69,22 @@ export function toCustomerInput(body: Record<string, unknown>): CustomerInput {
     subscribed: Boolean(body.subscribed),
     inventoryHeld: Boolean(body.inventoryHeld),
     notes: text(body.notes, 10000),
+  };
+}
+
+export function toJobPostingInput(body: Record<string, unknown>): JobPostingInput {
+  const status: JobPostingStatus = body.status === "live" ? "live" : "not_live";
+  return {
+    title: text(body.title, 200),
+    location: text(body.location, 200),
+    employmentType: text(body.employmentType, 80),
+    summary: text(body.summary, 500),
+    description: text(body.description, 20000),
+    requirements: text(body.requirements, 20000),
+    compensation: text(body.compensation, 2000),
+    benefits: text(body.benefits, 20000),
+    applyUrl: text(body.applyUrl, 500),
+    status,
   };
 }
 

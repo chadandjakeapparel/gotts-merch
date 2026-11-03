@@ -1,10 +1,17 @@
 import type { MetadataRoute } from "next";
 import { getSiteContent } from "@/lib/content";
+import { listLiveJobPostings } from "@/lib/portal/job-postings";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = process.env.NEXT_PUBLIC_SITE_URL || "https://gottsmerch.com";
   const content = await getSiteContent();
   const now = new Date();
+  let jobPostings: Awaited<ReturnType<typeof listLiveJobPostings>> = [];
+  try {
+    jobPostings = await listLiveJobPostings();
+  } catch (error) {
+    console.error("[sitemap]", error);
+  }
 
   return [
     { url: base, lastModified: now, changeFrequency: "weekly", priority: 1 },
@@ -34,5 +41,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         changeFrequency: "monthly" as const,
         priority: 0.5,
       })),
+    { url: `${base}/jobs`, lastModified: now, changeFrequency: "weekly", priority: 0.6 },
+    ...jobPostings.map((job) => ({
+      url: `${base}/jobs/${job.id}`,
+      lastModified: new Date(job.updatedAt || now),
+      changeFrequency: "weekly" as const,
+      priority: 0.4,
+    })),
   ];
 }

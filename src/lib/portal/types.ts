@@ -239,6 +239,26 @@ export type CatalogItem = {
   updatedAt: string;
 };
 
+export type JobPostingStatus = "live" | "not_live";
+
+export type JobPosting = {
+  id: number;
+  title: string;
+  location: string;
+  employmentType: string;
+  summary: string;
+  /** The main body -- responsibilities, "about us," etc. Plain text; blank lines separate paragraphs, lines starting with "* " render as a bullet. */
+  description: string;
+  requirements: string;
+  compensation: string;
+  benefits: string;
+  /** Where "Apply" sends candidates; blank hides the button. */
+  applyUrl: string;
+  status: JobPostingStatus;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type FolderFile = {
   id: number;
   fileName: string;
