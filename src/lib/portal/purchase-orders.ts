@@ -29,12 +29,12 @@ function toLine(r: Row): PurchaseOrderLine {
   };
 }
 
-function toPurchaseOrder(r: Row, lines: PurchaseOrderLine[]): PurchaseOrder {
+function toPurchaseOrder(r: Row, lines: PurchaseOrderLine[], jobIds: number[]): PurchaseOrder {
   return {
     id: num(r.id),
     poNumber: num(r.po_number),
     vendorId: r.vendor_id == null ? null : num(r.vendor_id),
-    jobId: r.job_id == null ? null : num(r.job_id),
+    jobIds,
     status: r.status as PurchaseOrderStatus,
     notes: str(r.notes),
     lines,
@@ -45,25 +45,32 @@ function toPurchaseOrder(r: Row, lines: PurchaseOrderLine[]): PurchaseOrder {
 
 export async function listPurchaseOrders(): Promise<PurchaseOrder[]> {
   const sql = await db();
-  const [orders, lines] = await Promise.all([
+  const [orders, lines, jobLinks] = await Promise.all([
     sql`select * from purchase_orders order by po_number desc`,
     sql`select * from purchase_order_lines order by purchase_order_id, sort_order`,
+    sql`select * from purchase_order_jobs order by purchase_order_id, job_id`,
   ]);
   const linesByOrder = new Map<number, PurchaseOrderLine[]>();
   for (const r of lines) {
     const id = Number(r.purchase_order_id);
     linesByOrder.set(id, [...(linesByOrder.get(id) || []), toLine(r)]);
   }
-  return orders.map((r) => toPurchaseOrder(r, linesByOrder.get(Number(r.id)) || []));
+  const jobIdsByOrder = new Map<number, number[]>();
+  for (const r of jobLinks) {
+    const id = Number(r.purchase_order_id);
+    jobIdsByOrder.set(id, [...(jobIdsByOrder.get(id) || []), Number(r.job_id)]);
+  }
+  return orders.map((r) => toPurchaseOrder(r, linesByOrder.get(Number(r.id)) || [], jobIdsByOrder.get(Number(r.id)) || []));
 }
 
 export async function getPurchaseOrder(id: number): Promise<PurchaseOrder | null> {
   const sql = await db();
-  const [[row], lines] = await Promise.all([
+  const [[row], lines, jobLinks] = await Promise.all([
     sql`select * from purchase_orders where id = ${id}`,
     sql`select * from purchase_order_lines where purchase_order_id = ${id} order by sort_order`,
+    sql`select job_id from purchase_order_jobs where purchase_order_id = ${id} order by job_id`,
   ]);
-  return row ? toPurchaseOrder(row, lines.map(toLine)) : null;
+  return row ? toPurchaseOrder(row, lines.map(toLine), jobLinks.map((r) => Number(r.job_id))) : null;
 }
 
 export type PurchaseOrderLineInput = {
@@ -77,7 +84,8 @@ export type PurchaseOrderLineInput = {
 
 export type PurchaseOrderInput = {
   vendorId: number | null;
-  jobId: number | null;
+  /** The jobs/sales orders this purchase order covers -- can be more than one when goods are ordered together. */
+  jobIds: number[];
   status: PurchaseOrderStatus;
   notes: string;
   lines: PurchaseOrderLineInput[];
@@ -89,7 +97,7 @@ function requirePurchaseOrder(input: PurchaseOrderInput) {
 
 function asFkError(error: unknown) {
   if ((error as { code?: string }).code !== "23503") return error;
-  return new PortalError("Choose a valid vendor and job.", 400);
+  return new PortalError("Choose a valid vendor and job(s).", 400);
 }
 
 async function replaceLines(tx: TransactionSql, purchaseOrderId: number, lines: PurchaseOrderLineInput[]) {
@@ -102,17 +110,26 @@ async function replaceLines(tx: TransactionSql, purchaseOrderId: number, lines: 
   }
 }
 
+async function replaceJobs(tx: TransactionSql, purchaseOrderId: number, jobIds: number[]) {
+  await tx`delete from purchase_order_jobs where purchase_order_id = ${purchaseOrderId}`;
+  const unique = [...new Set(jobIds)];
+  for (const jobId of unique) {
+    await tx`insert into purchase_order_jobs (purchase_order_id, job_id) values (${purchaseOrderId}, ${jobId})`;
+  }
+}
+
 export async function createPurchaseOrder(input: PurchaseOrderInput): Promise<number> {
   requirePurchaseOrder(input);
   const sql = await db();
   try {
     return await sql.begin(async (tx) => {
       const [row] = await tx`
-        insert into purchase_orders (po_number, vendor_id, job_id, status, notes)
-        values (nextval('purchase_order_number_seq'), ${input.vendorId}, ${input.jobId}, ${input.status}, ${input.notes})
+        insert into purchase_orders (po_number, vendor_id, status, notes)
+        values (nextval('purchase_order_number_seq'), ${input.vendorId}, ${input.status}, ${input.notes})
         returning id`;
       const id = Number(row.id);
       await replaceLines(tx, id, input.lines);
+      await replaceJobs(tx, id, input.jobIds);
       return id;
     });
   } catch (error) {
@@ -127,11 +144,11 @@ export async function updatePurchaseOrder(id: number, input: PurchaseOrderInput)
     await sql.begin(async (tx) => {
       const rows = await tx`
         update purchase_orders set
-          vendor_id = ${input.vendorId}, job_id = ${input.jobId}, status = ${input.status}, notes = ${input.notes},
-          updated_at = now()
+          vendor_id = ${input.vendorId}, status = ${input.status}, notes = ${input.notes}, updated_at = now()
         where id = ${id} returning id`;
       if (!rows.length) throw new PortalError("That purchase order no longer exists.", 404);
       await replaceLines(tx, id, input.lines);
+      await replaceJobs(tx, id, input.jobIds);
     });
   } catch (error) {
     throw asFkError(error);

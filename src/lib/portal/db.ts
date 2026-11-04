@@ -726,6 +726,20 @@ create table if not exists purchase_order_lines (
   sort_order integer not null default 0
 );
 create index if not exists purchase_order_lines_po_idx on purchase_order_lines (purchase_order_id, sort_order);
+
+-- A purchase order can now cover goods for more than one job (one vendor
+-- order split across jobs), so the links move from the single job_id
+-- column above to this join table; job_id itself is left in place rather
+-- than dropped, and this one-time copy carries over anything already set.
+create table if not exists purchase_order_jobs (
+  purchase_order_id integer not null references purchase_orders(id) on delete cascade,
+  job_id integer not null references jobs(id) on delete cascade,
+  primary key (purchase_order_id, job_id)
+);
+create index if not exists purchase_order_jobs_job_idx on purchase_order_jobs (job_id);
+insert into purchase_order_jobs (purchase_order_id, job_id)
+  select id, job_id from purchase_orders where job_id is not null
+  on conflict do nothing;
 `;
 
 /** Creates the tables on first use, so a fresh database needs no setup step. */

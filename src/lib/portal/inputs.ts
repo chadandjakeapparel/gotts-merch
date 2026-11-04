@@ -89,14 +89,14 @@ const PURCHASE_ORDER_STATUSES: PurchaseOrderStatus[] = ["draft", "sent", "receiv
 
 export function toPurchaseOrderInput(body: Record<string, unknown>): PurchaseOrderInput {
   const vendorId = body.vendorId == null || body.vendorId === "" ? null : int(body.vendorId);
-  const jobId = body.jobId == null || body.jobId === "" ? null : int(body.jobId);
+  const jobIds = Array.isArray(body.jobIds) ? body.jobIds : [];
   const lines = Array.isArray(body.lines) ? body.lines : [];
   const status = PURCHASE_ORDER_STATUSES.includes(body.status as PurchaseOrderStatus)
     ? (body.status as PurchaseOrderStatus)
     : "draft";
   return {
     vendorId: vendorId != null && Number.isFinite(vendorId) ? vendorId : null,
-    jobId: jobId != null && Number.isFinite(jobId) ? jobId : null,
+    jobIds: jobIds.map((j) => int(j)).filter((j) => Number.isFinite(j)),
     status,
     notes: text(body.notes, 2000),
     lines: lines.map((l) => {

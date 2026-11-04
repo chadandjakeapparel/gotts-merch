@@ -103,7 +103,7 @@ export function PurchaseOrdersApp({
   };
 
   const vendorName = (id: number | null) => vendors.find((v) => v.id === id)?.name || "";
-  const jobFor = (id: number | null) => jobs.find((j) => j.id === id) || null;
+  const jobsFor = (ids: number[]) => ids.map((id) => jobs.find((j) => j.id === id)).filter((j): j is Job => Boolean(j));
   const selected = selectedId ? purchaseOrders.find((p) => p.id === selectedId) || null : null;
 
   return (
@@ -136,14 +136,20 @@ export function PurchaseOrdersApp({
           <tbody>
             {purchaseOrders.length ? (
               purchaseOrders.map((po) => {
-                const job = jobFor(po.jobId);
+                const linkedJobs = jobsFor(po.jobIds);
                 return (
                   <tr key={po.id}>
                     <td>
                       <button className="portal-link" onClick={() => setSelectedId(po.id)} type="button">PO #{po.poNumber}</button>
                     </td>
                     <td>{vendorName(po.vendorId) || <span className="portal-muted">No vendor</span>}</td>
-                    <td>{job ? jobLabel(job, customers) : <span className="portal-muted">Not linked</span>}</td>
+                    <td>
+                      {linkedJobs.length ? (
+                        linkedJobs.map((j) => (j.salesOrderNumber ? `SO #${j.salesOrderNumber}` : `Job #${j.id}`)).join(", ")
+                      ) : (
+                        <span className="portal-muted">Not linked</span>
+                      )}
+                    </td>
                     <td><span className={`portal-badge${po.status === "received" ? " ok" : ""}`}>{STATUS_LABEL[po.status]}</span></td>
                     <td className="r">{money.format(poTotal(po))}</td>
                     <td>{fmtDate(po.updatedAt)}</td>
@@ -200,7 +206,7 @@ function PurchaseOrderModal({
   onSaved: () => Promise<void>;
 }) {
   const [vendorId, setVendorId] = useState(purchaseOrder?.vendorId != null ? String(purchaseOrder.vendorId) : "");
-  const [jobId, setJobId] = useState(purchaseOrder?.jobId != null ? String(purchaseOrder.jobId) : "");
+  const [jobIds, setJobIds] = useState<number[]>(purchaseOrder?.jobIds || []);
   const [status, setStatus] = useState<PurchaseOrderStatus>(purchaseOrder?.status || "draft");
   const [notes, setNotes] = useState(purchaseOrder?.notes || "");
   const [lines, setLines] = useState<LineForm[]>(
@@ -228,7 +234,7 @@ function PurchaseOrderModal({
     if (!vendorId) return setError("Choose a vendor for this purchase order.");
     const payload = {
       vendorId: Number(vendorId),
-      jobId: jobId ? Number(jobId) : null,
+      jobIds,
       status,
       notes,
       lines: lines
@@ -295,12 +301,39 @@ function PurchaseOrderModal({
         </label>
       </div>
       <label className="portal-field">
-        Sales order (optional)
-        <select onChange={(e) => setJobId(e.target.value)} value={jobId}>
-          <option value="">Not linked to a specific order</option>
-          {jobs.map((j) => <option key={j.id} value={j.id}>{jobLabel(j, customers)}</option>)}
+        Sales orders (optional — select every job this PO is ordering goods for)
+        <select
+          onChange={(e) => {
+            const id = Number(e.target.value);
+            if (id) setJobIds((current) => (current.includes(id) ? current : [...current, id]));
+            e.target.value = "";
+          }}
+          value=""
+        >
+          <option value="">Add a sales order…</option>
+          {jobs.filter((j) => !jobIds.includes(j.id)).map((j) => <option key={j.id} value={j.id}>{jobLabel(j, customers)}</option>)}
         </select>
       </label>
+      {jobIds.length ? (
+        <p className="portal-chips">
+          {jobIds.map((id) => {
+            const job = jobs.find((j) => j.id === id);
+            return (
+              <span className="portal-pill ok" key={id}>
+                {job ? jobLabel(job, customers) : `Job #${id}`}{" "}
+                <button
+                  aria-label="Remove this sales order"
+                  className="portal-pill-remove"
+                  onClick={() => setJobIds(jobIds.filter((x) => x !== id))}
+                  type="button"
+                >
+                  ×
+                </button>
+              </span>
+            );
+          })}
+        </p>
+      ) : null}
 
       <div className="portal-lines">
         {lines.map((l, i) => (

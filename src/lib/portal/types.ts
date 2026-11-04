@@ -227,8 +227,8 @@ export type PurchaseOrder = {
   /** Auto-assigned, sequential -- shown to vendors as "PO #<poNumber>". */
   poNumber: number;
   vendorId: number | null;
-  /** The job (sales order) this purchase order is sourcing goods for, if any. */
-  jobId: number | null;
+  /** The job(s)/sales order(s) this purchase order is sourcing goods for -- more than one when goods are ordered together for several jobs at once. */
+  jobIds: number[];
   status: PurchaseOrderStatus;
   notes: string;
   lines: PurchaseOrderLine[];
