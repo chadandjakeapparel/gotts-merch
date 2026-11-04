@@ -174,6 +174,17 @@ export type JobFile = {
   createdAt: string;
 };
 
+export type JobLineItem = {
+  id: number;
+  itemName: string;
+  description: string;
+  color: string;
+  size: string;
+  quantity: number;
+  unitPrice: number;
+  taxable: boolean;
+};
+
 export type Job = {
   id: number;
   customerId: number | null;
@@ -192,6 +203,9 @@ export type Job = {
   notes: string;
   /** Set when this job was auto-created from an approved estimate. */
   estimateId: number | null;
+  /** Carried over from the estimate on approval, or built up directly on the job; same shape as an estimate's. */
+  lineItems: JobLineItem[];
+  taxRate: number;
   createdAt: string;
   updatedAt: string;
   activities: JobActivity[];

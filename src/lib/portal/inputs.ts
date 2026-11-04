@@ -132,6 +132,8 @@ export function toJobPostingInput(body: Record<string, unknown>): JobPostingInpu
 
 export function toJobInput(body: Record<string, unknown>): JobInput {
   const customerId = body.customerId == null || body.customerId === "" ? null : int(body.customerId);
+  const lineItems = Array.isArray(body.lineItems) ? body.lineItems : [];
+  const taxRate = money(body.taxRate);
   return {
     customerId: customerId != null && Number.isFinite(customerId) ? customerId : null,
     jobName: text(body.jobName, 200),
@@ -145,6 +147,19 @@ export function toJobInput(body: Record<string, unknown>): JobInput {
     salesOrderNumber: text(body.salesOrderNumber, 80),
     invoiceNumber: text(body.invoiceNumber, 80),
     notes: text(body.notes, 2000),
+    lineItems: lineItems.map((li) => {
+      const l = (li && typeof li === "object" ? li : {}) as Record<string, unknown>;
+      return {
+        itemName: text(l.itemName, 300),
+        description: text(l.description, 2000),
+        color: text(l.color, 80),
+        size: text(l.size, 40),
+        quantity: int(l.quantity),
+        unitPrice: money(l.unitPrice),
+        taxable: Boolean(l.taxable),
+      };
+    }),
+    taxRate: Number.isFinite(taxRate) && taxRate >= 0 ? taxRate : 0,
   };
 }
 

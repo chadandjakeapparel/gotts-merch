@@ -1,12 +1,18 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { Customer, Job, JobActivity, JobStatus, SalesRep, Task } from "@/lib/portal/types";
+import type { CatalogItem, Customer, Job, JobActivity, JobStatus, SalesRep, Task } from "@/lib/portal/types";
 import { api } from "./api";
+import { ItemNameField } from "./crm-app";
 import { CustomerModal, customerTitle } from "./customers-app";
 import { type StaffOption, TasksSection } from "./tasks-app";
 
 const count = new Intl.NumberFormat("en-US");
+const currency = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
+
+function emptyJobLine() {
+  return { itemName: "", description: "", color: "", size: "", quantity: "1", unitPrice: "", taxable: true };
+}
 
 const STAGES: { key: JobStatus; label: string }[] = [
   { key: "pending", label: "Pending" },
@@ -73,11 +79,13 @@ function ModalFrame({
   children,
   footer,
   close,
+  wide,
 }: {
   title: string;
   children: React.ReactNode;
   footer: React.ReactNode;
   close: () => void;
+  wide?: boolean;
 }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && close();
@@ -86,7 +94,7 @@ function ModalFrame({
   }, [close]);
   return (
     <div className="portal-scrim" onMouseDown={(e) => e.target === e.currentTarget && close()}>
-      <div aria-modal="true" className="portal-modal" role="dialog">
+      <div aria-modal="true" className={`portal-modal${wide ? " portal-modal-xwide" : ""}`} role="dialog">
         <div className="portal-modal-head"><h2>{title}</h2></div>
         <div className="portal-modal-body">{children}</div>
         <div className="portal-modal-foot">{footer}</div>
@@ -546,12 +554,32 @@ export function JobModal({
   });
   const [goodsOrdered, setGoodsOrdered] = useState(job?.goodsOrdered || false);
   const [status, setStatus] = useState<JobStatus>(job?.status || "pending");
+  const [lines, setLines] = useState(
+    job?.lineItems.length
+      ? job.lineItems.map((li) => ({
+          itemName: li.itemName,
+          description: li.description,
+          color: li.color,
+          size: li.size,
+          quantity: String(li.quantity),
+          unitPrice: String(li.unitPrice),
+          taxable: li.taxable,
+        }))
+      : [emptyJobLine()],
+  );
+  const [taxRate, setTaxRate] = useState(String(job?.taxRate ?? 0));
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const { busy, error, setError, submit } = useSubmit(async () => {
     await onSaved();
     close();
   });
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setForm({ ...form, [k]: e.target.value });
+
+  const lineAmount = (l: (typeof lines)[number]) => (Number(l.quantity) || 0) * (Number(l.unitPrice) || 0);
+  const subtotal = lines.reduce((sum, l) => sum + lineAmount(l), 0);
+  const taxableSubtotal = lines.filter((l) => l.taxable).reduce((sum, l) => sum + lineAmount(l), 0);
+  const taxAmount = taxableSubtotal * ((Number(taxRate) || 0) / 100);
+  const total = subtotal + taxAmount;
 
   async function handleCustomerCreated() {
     const before = new Set(customers.map((c) => c.id));
@@ -569,6 +597,10 @@ export function JobModal({
       customerId,
       ...form,
       goodsOrdered,
+      lineItems: lines
+        .filter((l) => l.itemName.trim())
+        .map((l) => ({ ...l, quantity: Number(l.quantity), unitPrice: Number(l.unitPrice) })),
+      taxRate: Number(taxRate) || 0,
     };
     if (job) body.status = status;
     void submit(() => (job ? api("PATCH", `/api/portal/jobs/${job.id}`, body) : api("POST", "/api/portal/jobs", body)));
@@ -603,6 +635,7 @@ export function JobModal({
           </>
         }
         title={job ? (job.jobName || "Untitled job") : "New job"}
+        wide
       >
         {job ? <p className="portal-muted small">Created {fmtCreatedDate(job.createdAt)}</p> : null}
 
@@ -677,6 +710,99 @@ export function JobModal({
         <label className="portal-field">Notes<textarea onChange={set("notes")} rows={3} value={form.notes} /></label>
 
         {error ? <p className="portal-msg err" role="alert">{error}</p> : null}
+
+        <section className="portal-panel">
+          <div className="portal-panel-head"><h2>Line items</h2></div>
+          <div className="portal-panel-body">
+            {lines.map((l, i) => (
+              <div className="portal-row" key={i}>
+                <label className="portal-field">
+                  Item name
+                  <ItemNameField
+                    onChange={(itemName) => setLines(lines.map((x, j) => (j === i ? { ...x, itemName } : x)))}
+                    onPick={(item: CatalogItem) =>
+                      setLines(lines.map((x, j) => (j === i ? { ...x, itemName: item.displayName || item.itemNumber } : x)))
+                    }
+                    value={l.itemName}
+                  />
+                </label>
+                <label className="portal-field">
+                  Description
+                  <textarea
+                    onChange={(e) => setLines(lines.map((x, j) => (j === i ? { ...x, description: e.target.value } : x)))}
+                    rows={2}
+                    value={l.description}
+                  />
+                </label>
+                <label className="portal-field">
+                  Color
+                  <input
+                    onChange={(e) => setLines(lines.map((x, j) => (j === i ? { ...x, color: e.target.value } : x)))}
+                    value={l.color}
+                  />
+                </label>
+                <label className="portal-field">
+                  Size
+                  <input
+                    onChange={(e) => setLines(lines.map((x, j) => (j === i ? { ...x, size: e.target.value } : x)))}
+                    value={l.size}
+                  />
+                </label>
+                <label className="portal-field">
+                  Qty
+                  <input
+                    min={1}
+                    onChange={(e) => setLines(lines.map((x, j) => (j === i ? { ...x, quantity: e.target.value } : x)))}
+                    type="number"
+                    value={l.quantity}
+                  />
+                </label>
+                <label className="portal-field">
+                  Unit price ($)
+                  <input
+                    min={0}
+                    onChange={(e) => setLines(lines.map((x, j) => (j === i ? { ...x, unitPrice: e.target.value } : x)))}
+                    step={0.01}
+                    type="number"
+                    value={l.unitPrice}
+                  />
+                </label>
+                <label className="portal-check">
+                  <input
+                    checked={l.taxable}
+                    onChange={(e) => setLines(lines.map((x, j) => (j === i ? { ...x, taxable: e.target.checked } : x)))}
+                    type="checkbox"
+                  />
+                  Taxable
+                </label>
+                {lines.length > 1 ? (
+                  <button aria-label="Remove line" className="portal-btn small danger" onClick={() => setLines(lines.filter((_, j) => j !== i))} type="button">
+                    Remove
+                  </button>
+                ) : null}
+              </div>
+            ))}
+            <button className="portal-btn small" onClick={() => setLines([...lines, emptyJobLine()])} type="button">Add line item</button>
+
+            <div className="portal-row">
+              <label className="portal-field">
+                Tax rate (%)
+                <input max={100} min={0} onChange={(e) => setTaxRate(e.target.value)} step={0.01} type="number" value={taxRate} />
+              </label>
+              <div className="portal-copy"><span className="portal-eyebrow">Subtotal</span><span>{currency.format(subtotal)}</span></div>
+              <div className="portal-copy"><span className="portal-eyebrow">Tax</span><span>{currency.format(taxAmount)}</span></div>
+              <div className="portal-copy"><span className="portal-eyebrow">Total</span><span>{currency.format(total)}</span></div>
+            </div>
+
+            {job ? (
+              <div className="portal-row-actions">
+                <a className="portal-btn" href={`/api/portal/jobs/${job.id}/pdf`} rel="noreferrer" target="_blank">
+                  Export Sales Order PDF
+                </a>
+              </div>
+            ) : null}
+          </div>
+        </section>
 
         {job ? (
           <TasksSection

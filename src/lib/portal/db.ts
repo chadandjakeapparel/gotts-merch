@@ -176,6 +176,12 @@ create table if not exists lead_activities (
 );
 create index if not exists lead_activities_lead_idx on lead_activities (lead_id, created_at desc);
 
+-- 'estimate' activities (sent/approved) were added to the app's LeadActivity
+-- type after this table's check constraint shipped, so existing databases
+-- never got it -- logging one 500s until this runs.
+alter table lead_activities drop constraint if exists lead_activities_kind_check;
+alter table lead_activities add constraint lead_activities_kind_check check (kind in ('note', 'call', 'email', 'meeting', 'status', 'estimate'));
+
 create table if not exists login_lockouts (
   id text primary key,
   failed_attempts integer not null default 0,
@@ -338,6 +344,25 @@ create table if not exists job_files (
   created_at timestamptz not null default now()
 );
 create index if not exists job_files_job_idx on job_files (job_id, created_at desc);
+
+alter table jobs add column if not exists tax_rate numeric(5, 2) not null default 0;
+
+-- A job's own line items -- carried over from its estimate on approval
+-- (same shape as estimate_line_items), and editable from there on so the
+-- Job Board has the real order detail without cross-referencing the CRM.
+create table if not exists job_line_items (
+  id serial primary key,
+  job_id integer not null references jobs(id) on delete cascade,
+  item_name text not null default '',
+  description text not null default '',
+  color text not null default '',
+  size text not null default '',
+  quantity integer not null default 1,
+  unit_price numeric(12, 2) not null default 0,
+  taxable boolean not null default true,
+  sort_order integer not null default 0
+);
+create index if not exists job_line_items_job_idx on job_line_items (job_id, sort_order);
 
 -- Products offered in /custom-designer, managed from /admin/designer-products.
 -- A blank image_url falls back to the built-in SVG named by "placeholder", so

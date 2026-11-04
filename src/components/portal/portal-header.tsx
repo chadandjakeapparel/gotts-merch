@@ -9,6 +9,7 @@ export type PortalNavKey =
   | "admin"
   | "crm"
   | "jobs"
+  | "kpis"
   | "customers"
   | "tasks"
   | "files"
@@ -85,6 +86,7 @@ export function PortalHeader({
             <>
               <Link aria-current={current === "crm" ? "page" : undefined} href="/portal/crm">CRM</Link>
               <Link aria-current={current === "jobs" ? "page" : undefined} href="/portal/jobs">Job Board</Link>
+              <Link aria-current={current === "kpis" ? "page" : undefined} href="/portal/kpis">KPIs</Link>
               <Link aria-current={current === "customers" ? "page" : undefined} href="/portal/customers">Customers</Link>
               <Link aria-current={current === "tasks" ? "page" : undefined} href="/portal/tasks">Tasks</Link>
               <Link aria-current={current === "files" ? "page" : undefined} href="/portal/files">Files</Link>

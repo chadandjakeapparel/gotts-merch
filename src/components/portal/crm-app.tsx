@@ -424,7 +424,7 @@ function LeadModal({
 }
 
 /** An estimate line's item name field: typing searches the item catalog, and picking a match fills it in. */
-function ItemNameField({
+export function ItemNameField({
   value,
   onChange,
   onPick,
