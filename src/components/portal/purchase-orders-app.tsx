@@ -25,6 +25,11 @@ function poTotal(po: Pick<PurchaseOrder, "lines">) {
   return po.lines.reduce((sum, l) => sum + l.quantity * l.unitCost, 0);
 }
 
+/** The number staff and vendors see -- the stored po_number is a plain sequential integer; "GM" is a display-only prefix. */
+function poLabel(poNumber: number) {
+  return `GM${poNumber}`;
+}
+
 function useSubmit(onDone: () => Promise<void>) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -140,7 +145,7 @@ export function PurchaseOrdersApp({
                 return (
                   <tr key={po.id}>
                     <td>
-                      <button className="portal-link" onClick={() => setSelectedId(po.id)} type="button">PO #{po.poNumber}</button>
+                      <button className="portal-link" onClick={() => setSelectedId(po.id)} type="button">PO #{poLabel(po.poNumber)}</button>
                     </td>
                     <td>{vendorName(po.vendorId) || <span className="portal-muted">No vendor</span>}</td>
                     <td>
@@ -282,7 +287,7 @@ function PurchaseOrderModal({
           <button className="portal-btn primary" disabled={busy} onClick={save} type="button">{purchaseOrder ? "Save" : "Create purchase order"}</button>
         </>
       }
-      title={purchaseOrder ? `PO #${purchaseOrder.poNumber}` : "New purchase order"}
+      title={purchaseOrder ? `PO #${poLabel(purchaseOrder.poNumber)}` : "New purchase order"}
       wide
     >
       <div className="portal-row">

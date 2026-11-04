@@ -224,7 +224,7 @@ export type PurchaseOrderLine = {
 
 export type PurchaseOrder = {
   id: number;
-  /** Auto-assigned, sequential -- shown to vendors as "PO #<poNumber>". */
+  /** Auto-assigned, sequential -- shown to vendors as "PO #GM<poNumber>" (the GM prefix is display-only). */
   poNumber: number;
   vendorId: number | null;
   /** The job(s)/sales order(s) this purchase order is sourcing goods for -- more than one when goods are ordered together for several jobs at once. */
