@@ -304,6 +304,9 @@ create index if not exists jobs_customer_idx on jobs (customer_id);
 alter table jobs add column if not exists notes text not null default '';
 alter table jobs add column if not exists sales_order_number text not null default '';
 alter table jobs add column if not exists invoice_number text not null default '';
+-- Backs the auto-assigned Sales Order Number: a new job gets the next value
+-- unless it's given one explicitly (e.g. importing legacy data).
+create sequence if not exists sales_order_number_seq;
 
 create table if not exists job_activities (
   id serial primary key,
@@ -674,6 +677,55 @@ HALO is committed to working with and providing reasonable accommodations to ind
     );
   end if;
 end $$;
+
+create table if not exists vendors (
+  id serial primary key,
+  name text not null default '',
+  contact_name text not null default '',
+  email text not null default '',
+  phone text not null default '',
+  address_name text not null default '',
+  address_line1 text not null default '',
+  address_line2 text not null default '',
+  address_city text not null default '',
+  address_state text not null default '',
+  address_zip text not null default '',
+  address_country text not null default 'US',
+  notes text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists vendors_name_idx on vendors (lower(name));
+
+create sequence if not exists purchase_order_number_seq;
+
+create table if not exists purchase_orders (
+  id serial primary key,
+  po_number integer not null default 0,
+  vendor_id integer references vendors(id) on delete set null,
+  job_id integer references jobs(id) on delete set null,
+  status text not null default 'draft' check (status in ('draft', 'sent', 'received', 'cancelled')),
+  notes text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create unique index if not exists purchase_orders_number_key on purchase_orders (po_number);
+create index if not exists purchase_orders_vendor_idx on purchase_orders (vendor_id);
+create index if not exists purchase_orders_job_idx on purchase_orders (job_id);
+create index if not exists purchase_orders_status_idx on purchase_orders (status);
+
+create table if not exists purchase_order_lines (
+  id serial primary key,
+  purchase_order_id integer not null references purchase_orders(id) on delete cascade,
+  item_name text not null default '',
+  description text not null default '',
+  color text not null default '',
+  size text not null default '',
+  quantity integer not null default 0,
+  unit_cost numeric(10, 2) not null default 0,
+  sort_order integer not null default 0
+);
+create index if not exists purchase_order_lines_po_idx on purchase_order_lines (purchase_order_id, sort_order);
 `;
 
 /** Creates the tables on first use, so a fresh database needs no setup step. */

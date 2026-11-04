@@ -190,6 +190,10 @@ export async function createJob(input: JobInput, createdBy: string): Promise<num
   requireJob(input);
   const sql = await db();
   try {
+    // A blank Sales Order Number gets the next one off the shared counter,
+    // so every job is numbered without staff having to track it themselves;
+    // one given explicitly (e.g. importing older jobs) is kept as-is.
+    const salesOrderNumber = input.salesOrderNumber.trim();
     const [row] = await sql`
       insert into jobs (
         customer_id, job_name, contact_name, in_hand_date, goods_ordered, po_numbers,
@@ -197,8 +201,9 @@ export async function createJob(input: JobInput, createdBy: string): Promise<num
       ) values (
         ${input.customerId}, ${input.jobName}, ${input.contactName}, ${input.inHandDate || null},
         ${input.goodsOrdered}, ${input.poNumbers}, ${input.decorationType}, ${input.quantity},
-        ${input.productionFacility}, ${input.salesOrderNumber}, ${input.invoiceNumber}, ${input.notes},
-        ${input.estimateId ?? null}
+        ${input.productionFacility},
+        ${salesOrderNumber || sql`nextval('sales_order_number_seq')::text`},
+        ${input.invoiceNumber}, ${input.notes}, ${input.estimateId ?? null}
       ) returning id`;
     const id = Number(row.id);
     await sql`insert into job_activities (job_id, kind, body, created_by) values (${id}, 'status', 'Job created', ${createdBy})`;

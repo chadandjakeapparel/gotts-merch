@@ -198,6 +198,44 @@ export type Job = {
   files: JobFile[];
 };
 
+export type Vendor = {
+  id: number;
+  name: string;
+  contactName: string;
+  email: string;
+  phone: string;
+  address: Address;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PurchaseOrderStatus = "draft" | "sent" | "received" | "cancelled";
+
+export type PurchaseOrderLine = {
+  id: number;
+  itemName: string;
+  description: string;
+  color: string;
+  size: string;
+  quantity: number;
+  unitCost: number;
+};
+
+export type PurchaseOrder = {
+  id: number;
+  /** Auto-assigned, sequential -- shown to vendors as "PO #<poNumber>". */
+  poNumber: number;
+  vendorId: number | null;
+  /** The job (sales order) this purchase order is sourcing goods for, if any. */
+  jobId: number | null;
+  status: PurchaseOrderStatus;
+  notes: string;
+  lines: PurchaseOrderLine[];
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type EstimateStatus = "draft" | "sent" | "approved" | "changes_requested";
 
 export type EstimateLineItem = {

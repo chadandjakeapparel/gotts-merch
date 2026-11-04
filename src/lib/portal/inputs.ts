@@ -5,8 +5,10 @@ import type { ItemInput, OrderInput } from "./data";
 import type { EstimateInput } from "./estimates";
 import type { JobInput } from "./jobs";
 import type { JobPostingInput } from "./job-postings";
+import type { PurchaseOrderInput, PurchaseOrderLineInput } from "./purchase-orders";
 import type { TaskInput } from "./tasks";
-import type { Address, JobPostingStatus } from "./types";
+import type { Address, JobPostingStatus, PurchaseOrderStatus } from "./types";
+import type { VendorInput } from "./vendors";
 import { int, money, PortalError, text } from "./http";
 
 export function toTaskInput(body: Record<string, unknown>): TaskInput {
@@ -69,6 +71,46 @@ export function toCustomerInput(body: Record<string, unknown>): CustomerInput {
     subscribed: Boolean(body.subscribed),
     inventoryHeld: Boolean(body.inventoryHeld),
     notes: text(body.notes, 10000),
+  };
+}
+
+export function toVendorInput(body: Record<string, unknown>): VendorInput {
+  return {
+    name: text(body.name, 200),
+    contactName: text(body.contactName, 200),
+    email: text(body.email, 200),
+    phone: text(body.phone, 60),
+    address: toAddressInput(body.address),
+    notes: text(body.notes, 2000),
+  };
+}
+
+const PURCHASE_ORDER_STATUSES: PurchaseOrderStatus[] = ["draft", "sent", "received", "cancelled"];
+
+export function toPurchaseOrderInput(body: Record<string, unknown>): PurchaseOrderInput {
+  const vendorId = body.vendorId == null || body.vendorId === "" ? null : int(body.vendorId);
+  const jobId = body.jobId == null || body.jobId === "" ? null : int(body.jobId);
+  const lines = Array.isArray(body.lines) ? body.lines : [];
+  const status = PURCHASE_ORDER_STATUSES.includes(body.status as PurchaseOrderStatus)
+    ? (body.status as PurchaseOrderStatus)
+    : "draft";
+  return {
+    vendorId: vendorId != null && Number.isFinite(vendorId) ? vendorId : null,
+    jobId: jobId != null && Number.isFinite(jobId) ? jobId : null,
+    status,
+    notes: text(body.notes, 2000),
+    lines: lines.map((l) => {
+      const line = (l && typeof l === "object" ? l : {}) as Record<string, unknown>;
+      const unitCost = money(line.unitCost);
+      return {
+        itemName: text(line.itemName, 300),
+        description: text(line.description, 2000),
+        color: text(line.color, 80),
+        size: text(line.size, 40),
+        quantity: int(line.quantity) || 0,
+        unitCost: Number.isFinite(unitCost) ? unitCost : 0,
+      } satisfies PurchaseOrderLineInput;
+    }),
   };
 }
 

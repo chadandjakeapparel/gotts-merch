@@ -334,7 +334,10 @@ export function JobsApp({
                       type="button"
                     >
                       <h4>{customerName(j.customerId) || "Unassigned customer"}</h4>
-                      <p className="portal-card-jobname">{j.jobName || "Untitled job"}</p>
+                      <p className="portal-card-jobname">
+                        {j.jobName || "Untitled job"}
+                        {j.salesOrderNumber ? <span className="portal-muted small"> · SO #{j.salesOrderNumber}</span> : null}
+                      </p>
                       <div className="portal-card-meta">
                         <span className="portal-muted">{j.inHandDate ? fmtInHandDate(j.inHandDate) : "No in-hand date"}</span>
                         <span className={`portal-pill ${j.goodsOrdered ? "ok" : "warn"}`}>
@@ -651,7 +654,14 @@ export function JobModal({
         </label>
 
         <div className="portal-row">
-          <label className="portal-field">Sales Order Number<input onChange={set("salesOrderNumber")} value={form.salesOrderNumber} /></label>
+          <label className="portal-field">
+            Sales Order Number
+            <input
+              onChange={set("salesOrderNumber")}
+              placeholder={job ? "" : "Leave blank to auto-assign the next number"}
+              value={form.salesOrderNumber}
+            />
+          </label>
           <label className="portal-field">Invoice Number<input onChange={set("invoiceNumber")} value={form.invoiceNumber} /></label>
         </div>
 
