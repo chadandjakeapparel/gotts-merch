@@ -304,9 +304,18 @@ create index if not exists jobs_customer_idx on jobs (customer_id);
 alter table jobs add column if not exists notes text not null default '';
 alter table jobs add column if not exists sales_order_number text not null default '';
 alter table jobs add column if not exists invoice_number text not null default '';
--- Backs the auto-assigned Sales Order Number: a new job gets the next value
--- unless it's given one explicitly (e.g. importing legacy data).
+-- Backs the auto-assigned Sales Order Number: a new job gets "SO-GM" plus
+-- the next value, unless it's given one explicitly (e.g. importing legacy
+-- data). Numbering was asked to start at 84944 -- guarded by the sequence's
+-- current value (not "ran before") so this restart fires exactly once,
+-- the first deploy after it was added, and never again.
 create sequence if not exists sales_order_number_seq;
+do $$
+begin
+  if (select last_value from sales_order_number_seq) < 84944 then
+    alter sequence sales_order_number_seq restart with 84944;
+  end if;
+end $$;
 
 create table if not exists job_activities (
   id serial primary key,

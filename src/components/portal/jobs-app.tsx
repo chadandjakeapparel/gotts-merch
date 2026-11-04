@@ -336,7 +336,7 @@ export function JobsApp({
                       <h4>{customerName(j.customerId) || "Unassigned customer"}</h4>
                       <p className="portal-card-jobname">
                         {j.jobName || "Untitled job"}
-                        {j.salesOrderNumber ? <span className="portal-muted small"> · SO #{j.salesOrderNumber}</span> : null}
+                        {j.salesOrderNumber ? <span className="portal-muted small"> · {j.salesOrderNumber}</span> : null}
                       </p>
                       <div className="portal-card-meta">
                         <span className="portal-muted">{j.inHandDate ? fmtInHandDate(j.inHandDate) : "No in-hand date"}</span>

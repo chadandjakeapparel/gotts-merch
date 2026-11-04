@@ -202,7 +202,7 @@ export async function createJob(input: JobInput, createdBy: string): Promise<num
         ${input.customerId}, ${input.jobName}, ${input.contactName}, ${input.inHandDate || null},
         ${input.goodsOrdered}, ${input.poNumbers}, ${input.decorationType}, ${input.quantity},
         ${input.productionFacility},
-        ${salesOrderNumber || sql`nextval('sales_order_number_seq')::text`},
+        ${salesOrderNumber || sql`'SO-GM' || nextval('sales_order_number_seq')::text`},
         ${input.invoiceNumber}, ${input.notes}, ${input.estimateId ?? null}
       ) returning id`;
     const id = Number(row.id);

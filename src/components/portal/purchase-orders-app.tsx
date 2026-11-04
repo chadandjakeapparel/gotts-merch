@@ -68,7 +68,7 @@ function ModalFrame({ title, children, footer, close, wide }: { title: string; c
 function jobLabel(job: Job, customers: Customer[]) {
   const customer = customers.find((c) => c.id === job.customerId);
   const customerName = customer ? (customer.kind === "company" ? customer.companyName : [customer.firstName, customer.lastName].filter(Boolean).join(" ")) : "";
-  const parts = [job.salesOrderNumber ? `SO #${job.salesOrderNumber}` : `Job #${job.id}`, job.jobName || "Untitled job", customerName].filter(Boolean);
+  const parts = [job.salesOrderNumber || `Job #${job.id}`, job.jobName || "Untitled job", customerName].filter(Boolean);
   return parts.join(" — ");
 }
 
@@ -150,7 +150,7 @@ export function PurchaseOrdersApp({
                     <td>{vendorName(po.vendorId) || <span className="portal-muted">No vendor</span>}</td>
                     <td>
                       {linkedJobs.length ? (
-                        linkedJobs.map((j) => (j.salesOrderNumber ? `SO #${j.salesOrderNumber}` : `Job #${j.id}`)).join(", ")
+                        linkedJobs.map((j) => j.salesOrderNumber || `Job #${j.id}`).join(", ")
                       ) : (
                         <span className="portal-muted">Not linked</span>
                       )}
