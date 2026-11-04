@@ -19,6 +19,7 @@ export type PortalNavKey =
   | "business-info"
   | "items"
   | "job-postings"
+  | "blog"
   | "account";
 
 export function PortalHeader({
@@ -60,6 +61,7 @@ export function PortalHeader({
 
   // Alphabetical, per how this menu was asked to be laid out.
   const adminMenuItems: [PortalNavKey, string, string][] = [
+    ["blog", "/portal/admin/blog", "Blog"],
     ["business-info", "/portal/admin/business-info", "Business Information"],
     ["admin", "/portal/admin", "Client Logins"],
     ["designer-products", "/portal/designer-products", "Designer Products"],

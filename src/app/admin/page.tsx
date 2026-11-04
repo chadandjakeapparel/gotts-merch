@@ -957,13 +957,13 @@ export default function AdminPage() {
         <section className="gm-admin-section">
           <h2>Blog</h2>
           <p className="gm-admin-hint">
-            Blog posts have their own workspace, built for writing and publishing as many as you
-            need — currently {content.blogPosts.length}{" "}
+            Blog posts now live in the staff portal, so writing and publishing uses the same login
+            as the rest of day-to-day work — currently {content.blogPosts.length}{" "}
             {content.blogPosts.length === 1 ? "post" : "posts"}.
           </p>
-          <Link className="gm-btn gm-btn--primary" href="/admin/blog">
-            Open Blog editor →
-          </Link>
+          <a className="gm-btn gm-btn--primary" href="/portal/admin/blog">
+            Open Blog editor in the portal →
+          </a>
         </section>
 
         <section className="gm-admin-section">
