@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import { KpisApp } from "@/components/portal/kpis-app";
 import { PortalHeader } from "@/components/portal/portal-header";
 import { listJobs } from "@/lib/portal/jobs";
@@ -23,7 +24,9 @@ export default async function KpisPage() {
     <div className="portal">
       <PortalHeader current="kpis" viewer={toViewer(user)} />
       <main className="portal-main">
-        <KpisApp initialJobs={jobs} loadError={loadError} />
+        <Suspense fallback={null}>
+          <KpisApp initialJobs={jobs} loadError={loadError} />
+        </Suspense>
       </main>
     </div>
   );
