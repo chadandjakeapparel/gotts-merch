@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import { CrmApp } from "@/components/portal/crm-app";
 import { PortalHeader } from "@/components/portal/portal-header";
 import { listUsers } from "@/lib/portal/accounts";
@@ -31,14 +32,16 @@ export default async function CrmPage() {
     <div className="portal">
       <PortalHeader current="crm" viewer={toViewer(user)} />
       <main className="portal-main">
-        <CrmApp
-          currentUserName={user.name || user.email}
-          initialLeads={leads}
-          initialTasks={tasks}
-          loadError={loadError}
-          staffNames={staffNames}
-          staffUsers={staffUsers}
-        />
+        <Suspense fallback={null}>
+          <CrmApp
+            currentUserName={user.name || user.email}
+            initialLeads={leads}
+            initialTasks={tasks}
+            loadError={loadError}
+            staffNames={staffNames}
+            staffUsers={staffUsers}
+          />
+        </Suspense>
       </main>
     </div>
   );

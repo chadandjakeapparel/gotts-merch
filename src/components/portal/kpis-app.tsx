@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
-import type { Job } from "@/lib/portal/types";
+import type { Job, OpenEstimateSummary } from "@/lib/portal/types";
 import { api } from "./api";
 
 const count = new Intl.NumberFormat("en-US");
@@ -50,6 +50,20 @@ const AGE_BUCKETS: { label: string; test: (days: number) => boolean }[] = [
   { label: "15-30 days", test: (d) => d > 14 && d <= 30 },
   { label: "31+ days", test: (d) => d > 30 },
 ];
+
+/** Short enough to fit a bar chart column without colliding with its neighbor -- the table uses the fuller ESTIMATE_STATUS_LABEL instead. */
+const OPEN_ESTIMATE_STATUSES: { key: OpenEstimateSummary["status"]; label: string }[] = [
+  { key: "draft", label: "Draft" },
+  { key: "sent", label: "Sent" },
+  { key: "changes_requested", label: "Changes" },
+];
+
+const ESTIMATE_STATUS_LABEL: Record<OpenEstimateSummary["status"], string> = {
+  draft: "Draft",
+  sent: "Sent for approval",
+  approved: "Approved",
+  changes_requested: "Changes requested",
+};
 
 type Bar = { key: string; label: string; value: number };
 
@@ -138,16 +152,26 @@ function BigBarChart({ bars, formatValue }: { bars: Bar[]; formatValue: (n: numb
   );
 }
 
-type MetricKey = "stage" | "value" | "age";
+type MetricKey = "stage" | "value" | "age" | "estimates";
 
 const METRIC_TITLE: Record<MetricKey, string> = {
   stage: "Open orders by stage",
   value: "Open order value by stage",
   age: "Open orders by age",
+  estimates: "Open estimates by status",
 };
 
-export function KpisApp({ initialJobs, loadError }: { initialJobs: Job[]; loadError: string }) {
+export function KpisApp({
+  initialJobs,
+  initialOpenEstimates,
+  loadError,
+}: {
+  initialJobs: Job[];
+  initialOpenEstimates: OpenEstimateSummary[];
+  loadError: string;
+}) {
   const [jobs, setJobs] = useState(initialJobs);
+  const [openEstimates, setOpenEstimates] = useState(initialOpenEstimates);
   const [error, setError] = useState(loadError);
   const [refreshing, setRefreshing] = useState(false);
   const searchParams = useSearchParams();
@@ -156,8 +180,12 @@ export function KpisApp({ initialJobs, loadError }: { initialJobs: Job[]; loadEr
   async function refresh() {
     setRefreshing(true);
     try {
-      const res = await api<{ jobs: Job[] }>("GET", "/api/portal/jobs");
-      setJobs(res.jobs);
+      const [jobsRes, estimatesRes] = await Promise.all([
+        api<{ jobs: Job[] }>("GET", "/api/portal/jobs"),
+        api<{ estimates: OpenEstimateSummary[] }>("GET", "/api/portal/kpis/open-estimates"),
+      ]);
+      setJobs(jobsRes.jobs);
+      setOpenEstimates(estimatesRes.estimates);
       setError("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "KPIs couldn't be refreshed.");
@@ -192,6 +220,13 @@ export function KpisApp({ initialJobs, loadError }: { initialJobs: Job[]; loadEr
     return OPEN_STAGES.findIndex((s) => s.key === a.status) - OPEN_STAGES.findIndex((s) => s.key === b.status);
   });
 
+  const estimateStatusBars: Bar[] = OPEN_ESTIMATE_STATUSES.map((s) => ({
+    key: s.key,
+    label: s.label,
+    value: openEstimates.filter((e) => e.status === s.key).length,
+  }));
+  const detailEstimates = [...openEstimates].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+
   return (
     <div className="portal-crm">
       <div className="portal-title-row">
@@ -224,6 +259,12 @@ export function KpisApp({ initialJobs, loadError }: { initialJobs: Job[]; loadEr
           <MiniBarChart bars={ageBars} formatValue={(n) => count.format(n)} />
           <span className="portal-kpi-card__link">View breakdown →</span>
         </Link>
+        <Link className={`portal-kpi-card${view === "estimates" ? " active" : ""}`} href="/portal/kpis?view=estimates">
+          <span className="portal-eyebrow">Open estimates</span>
+          <span className="portal-kpi-card__value">{count.format(openEstimates.length)}</span>
+          <MiniBarChart bars={estimateStatusBars} formatValue={(n) => count.format(n)} />
+          <span className="portal-kpi-card__link">View breakdown →</span>
+        </Link>
       </div>
 
       {view ? (
@@ -234,40 +275,75 @@ export function KpisApp({ initialJobs, loadError }: { initialJobs: Job[]; loadEr
           </div>
           <div className="portal-kpi-detail__chart">
             <BigBarChart
-              bars={view === "stage" ? stageBars : view === "value" ? valueBars : ageBars}
+              bars={view === "stage" ? stageBars : view === "value" ? valueBars : view === "age" ? ageBars : estimateStatusBars}
               formatValue={view === "value" ? (n) => compactCurrency.format(n) : (n) => count.format(n)}
             />
           </div>
-          <div className="portal-table-wrap">
-            <table className="portal-table">
-              <thead>
-                <tr>
-                  <th>Job</th>
-                  <th>Stage</th>
-                  <th className="r">Value</th>
-                  <th>Created</th>
-                  <th className="r">Days open</th>
-                </tr>
-              </thead>
-              <tbody>
-                {detailJobs.length ? (
-                  detailJobs.map((j) => (
-                    <tr key={j.id}>
-                      <td>{j.jobName || "Untitled job"}{j.salesOrderNumber ? <span className="portal-muted small"> · {j.salesOrderNumber}</span> : null}</td>
-                      <td><span className="portal-badge">{STAGE_LABEL[j.status]}</span></td>
-                      <td className="r">{currency.format(jobValue(j))}</td>
-                      <td>{fmtCreatedDate(j.createdAt)}</td>
-                      <td className="r">{count.format(daysOpen(j))}</td>
-                    </tr>
-                  ))
-                ) : (
+          {view === "estimates" ? (
+            <div className="portal-table-wrap">
+              <table className="portal-table">
+                <thead>
                   <tr>
-                    <td className="portal-col-empty" colSpan={5}>No open orders.</td>
+                    <th>Lead</th>
+                    <th>Status</th>
+                    <th>Date built</th>
+                    <th className="r">Value</th>
+                    <th></th>
                   </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {detailEstimates.length ? (
+                    detailEstimates.map((e) => (
+                      <tr key={e.id}>
+                        <td>{e.leadTitle}</td>
+                        <td><span className="portal-badge">{ESTIMATE_STATUS_LABEL[e.status]}</span></td>
+                        <td>{fmtCreatedDate(e.createdAt)}</td>
+                        <td className="r">{currency.format(e.total)}</td>
+                        <td className="r">
+                          <Link className="portal-link" href={`/portal/crm?lead=${e.leadId}`}>Open in CRM →</Link>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td className="portal-col-empty" colSpan={5}>No open estimates.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="portal-table-wrap">
+              <table className="portal-table">
+                <thead>
+                  <tr>
+                    <th>Job</th>
+                    <th>Stage</th>
+                    <th className="r">Value</th>
+                    <th>Created</th>
+                    <th className="r">Days open</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {detailJobs.length ? (
+                    detailJobs.map((j) => (
+                      <tr key={j.id}>
+                        <td>{j.jobName || "Untitled job"}{j.salesOrderNumber ? <span className="portal-muted small"> · {j.salesOrderNumber}</span> : null}</td>
+                        <td><span className="portal-badge">{STAGE_LABEL[j.status]}</span></td>
+                        <td className="r">{currency.format(jobValue(j))}</td>
+                        <td>{fmtCreatedDate(j.createdAt)}</td>
+                        <td className="r">{count.format(daysOpen(j))}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td className="portal-col-empty" colSpan={5}>No open orders.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
         </section>
       ) : null}
     </div>

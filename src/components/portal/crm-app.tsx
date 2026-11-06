@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CatalogItem, ContactMethod, Estimate, Lead, LeadActivity, LeadStatus, Task } from "@/lib/portal/types";
 import { CopyField } from "./admin-app";
@@ -115,10 +116,15 @@ export function CrmApp({
   currentUserName: string;
   loadError: string;
 }) {
+  const searchParams = useSearchParams();
   const [leads, setLeads] = useState(initialLeads);
   const [tasks, setTasks] = useState(initialTasks);
   const [error, setError] = useState(loadError);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  // Opens straight to a lead when linked in as /portal/crm?lead=<id>, e.g. from a KPI drill-down.
+  const [selectedId, setSelectedId] = useState<number | null>(() => {
+    const leadParam = Number(searchParams.get("lead"));
+    return leadParam > 0 ? leadParam : null;
+  });
   const [adding, setAdding] = useState(false);
   const [draggingId, setDraggingId] = useState<number | null>(null);
   const [dragOverStage, setDragOverStage] = useState<LeadStatus | null>(null);

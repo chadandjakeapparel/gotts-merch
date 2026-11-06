@@ -280,6 +280,16 @@ export type Estimate = {
   updatedAt: string;
 };
 
+/** An open (not yet approved) estimate, joined with its lead's name -- for the KPIs "Open estimates" drill-down. */
+export type OpenEstimateSummary = {
+  id: number;
+  leadId: number;
+  leadTitle: string;
+  status: EstimateStatus;
+  createdAt: string;
+  total: number;
+};
+
 /** A master product record, independent of any client's own stock inventory -- used to autocomplete estimate line items. */
 export type CatalogItem = {
   id: number;

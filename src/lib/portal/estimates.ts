@@ -3,7 +3,7 @@ import { addActivity, ensureLeadClient, setLeadStatus } from "./crm";
 import { db } from "./db";
 import { PortalError } from "./http";
 import { createJob } from "./jobs";
-import type { Estimate, EstimateLineItem, EstimateStatus } from "./types";
+import type { Estimate, EstimateLineItem, EstimateStatus, OpenEstimateSummary } from "./types";
 
 type Row = Record<string, unknown>;
 
@@ -76,6 +76,33 @@ export async function getEstimateForClient(clientId: number): Promise<Estimate |
   if (!row) return null;
   const lineItems = await sql`select * from estimate_line_items where estimate_id = ${row.id} order by sort_order, id`;
   return toEstimate(row, lineItems.map(toLineItem));
+}
+
+/** Every estimate not yet approved, across all leads -- for the KPIs "Open estimates" drill-down. */
+export async function listOpenEstimates(): Promise<OpenEstimateSummary[]> {
+  const sql = await db();
+  const [rows, lineItems] = await Promise.all([
+    sql`
+      select e.*, l.company_name, l.contact_name from estimates e join leads l on l.id = e.lead_id
+      where e.status != 'approved' order by e.created_at desc`,
+    sql`select * from estimate_line_items order by estimate_id, sort_order`,
+  ]);
+  const linesByEstimate = new Map<number, Row[]>();
+  for (const li of lineItems) {
+    const id = num(li.estimate_id);
+    linesByEstimate.set(id, [...(linesByEstimate.get(id) || []), li]);
+  }
+  return rows.map((r) => {
+    const estimate = toEstimate(r, (linesByEstimate.get(num(r.id)) || []).map(toLineItem));
+    return {
+      id: estimate.id,
+      leadId: estimate.leadId,
+      leadTitle: str(r.company_name) || str(r.contact_name) || "Untitled lead",
+      status: estimate.status,
+      createdAt: estimate.createdAt,
+      total: estimateTotals(estimate).total,
+    };
+  });
 }
 
 export type EstimateLineItemInput = {
