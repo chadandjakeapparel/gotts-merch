@@ -4,7 +4,7 @@ import { getUser } from "@/lib/portal/auth";
 import { getBusinessInfo } from "@/lib/portal/business-info";
 import { getLead } from "@/lib/portal/crm";
 import { EstimatePdfDocument } from "@/lib/portal/estimate-pdf";
-import { getEstimateForLead } from "@/lib/portal/estimates";
+import { estimateNumber, getEstimateForLead } from "@/lib/portal/estimates";
 import { int } from "@/lib/portal/http";
 
 type Params = { params: Promise<{ id: string }> };
@@ -26,7 +26,7 @@ export async function GET(request: Request, { params }: Params) {
   if (!estimate.lineItems.length) return new Response("Add at least one line item before exporting.", { status: 400 });
 
   const buffer = await renderToBuffer(EstimatePdfDocument({ estimate, lead, business, logoUrl: site.logoUrl }));
-  const fileName = `Estimate-EST-${String(estimate.id).padStart(5, "0")}.pdf`;
+  const fileName = `${estimateNumber(estimate.id)}.pdf`;
   return new Response(new Uint8Array(buffer), {
     headers: {
       "Content-Type": "application/pdf",

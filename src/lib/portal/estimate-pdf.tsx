@@ -1,6 +1,6 @@
 import { Document, Image, Page, Path, StyleSheet, Svg, Text, View } from "@react-pdf/renderer";
 import type { BusinessAddress, BusinessInfo } from "./business-info";
-import { estimateTotals } from "./estimates";
+import { estimateNumber, estimateTotals } from "./estimates";
 import type { Estimate, Lead } from "./types";
 
 const NAVY = "#0b2545";
@@ -102,14 +102,14 @@ export function EstimatePdfDocument({
 }) {
   const { subtotal, tax, total } = estimateTotals(estimate);
   const billName = lead.companyName || lead.contactName || "Customer";
-  const estimateNumber = `EST-${String(estimate.id).padStart(5, "0")}`;
+  const docNumber = estimateNumber(estimate.id);
   const date = fmtDate(estimate.sentAt || estimate.createdAt);
   const businessName = business.businessName || "Gotts Merch";
   const businessEmail = business.email || "hello@gottsmerch.com";
   const remitLines = addressLines(business.remitAddress);
 
   return (
-    <Document title={`${estimateNumber} - ${billName}`}>
+    <Document title={`${docNumber} - ${billName}`}>
       <Page size="LETTER" style={styles.page}>
         <View style={styles.headerRow}>
           <View style={styles.brandRow}>
@@ -125,7 +125,7 @@ export function EstimatePdfDocument({
           </View>
           <View>
             <Text style={styles.docTitle}>ESTIMATE</Text>
-            <Text style={styles.docMeta}>{estimateNumber}</Text>
+            <Text style={styles.docMeta}>{docNumber}</Text>
             <Text style={styles.docMeta}>{date}</Text>
           </View>
         </View>

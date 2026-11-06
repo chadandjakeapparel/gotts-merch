@@ -50,6 +50,14 @@ export function estimateTotals(estimate: Estimate) {
   return { subtotal, taxableSubtotal, tax, total: subtotal + tax };
 }
 
+/** Numbering starts at 1401 (estimate id 1) instead of 1, so existing and future estimates read "EST-01401", "EST-01402", etc. */
+const ESTIMATE_NUMBER_OFFSET = 1400;
+
+/** "EST-01402" -- derived straight from the estimate's id, so it needs no counter of its own and never collides. */
+export function estimateNumber(id: number): string {
+  return `EST-${String(id + ESTIMATE_NUMBER_OFFSET).padStart(5, "0")}`;
+}
+
 /** The one estimate for a lead, for staff building or reviewing it in the CRM. */
 export async function getEstimateForLead(leadId: number): Promise<Estimate | null> {
   const sql = await db();
