@@ -122,6 +122,9 @@ export function CrmApp({
   const [adding, setAdding] = useState(false);
   const [draggingId, setDraggingId] = useState<number | null>(null);
   const [dragOverStage, setDragOverStage] = useState<LeadStatus | null>(null);
+  const [nameQuery, setNameQuery] = useState("");
+  const [createdFrom, setCreatedFrom] = useState("");
+  const [createdTo, setCreatedTo] = useState("");
 
   const reload = async () => {
     try {
@@ -153,11 +156,22 @@ export function CrmApp({
     }
   }
 
+  const filteredLeads = useMemo(() => {
+    const q = nameQuery.trim().toLowerCase();
+    return leads.filter((l) => {
+      if (q && !leadTitle(l).toLowerCase().includes(q) && !l.contactName.toLowerCase().includes(q)) return false;
+      const createdDate = l.createdAt.slice(0, 10);
+      if (createdFrom && createdDate < createdFrom) return false;
+      if (createdTo && createdDate > createdTo) return false;
+      return true;
+    });
+  }, [leads, nameQuery, createdFrom, createdTo]);
+
   const byStage = useMemo(() => {
     const m = new Map<LeadStatus, Lead[]>(STAGES.map((s) => [s.key, [] as Lead[]]));
-    for (const l of leads) m.get(l.status)?.push(l);
+    for (const l of filteredLeads) m.get(l.status)?.push(l);
     return m;
-  }, [leads]);
+  }, [filteredLeads]);
 
   const totals = useMemo(() => {
     const open = leads.filter((l) => l.status !== "won" && l.status !== "lost");
@@ -188,6 +202,37 @@ export function CrmApp({
         <div><span className="portal-eyebrow">Won</span><strong>{count.format(totals.won)}</strong></div>
         <div><span className="portal-eyebrow">Lost</span><strong>{count.format(totals.lost)}</strong></div>
       </section>
+
+      <div className="portal-toolbar">
+        <input
+          aria-label="Search customer name"
+          onChange={(e) => setNameQuery(e.target.value)}
+          placeholder="Search customer name…"
+          type="search"
+          value={nameQuery}
+        />
+        <label className="portal-toolbar-date">
+          Added after
+          <input aria-label="Added after" onChange={(e) => setCreatedFrom(e.target.value)} type="date" value={createdFrom} />
+        </label>
+        <label className="portal-toolbar-date">
+          Added before
+          <input aria-label="Added before" onChange={(e) => setCreatedTo(e.target.value)} type="date" value={createdTo} />
+        </label>
+        {nameQuery || createdFrom || createdTo ? (
+          <button
+            className="portal-btn small"
+            onClick={() => {
+              setNameQuery("");
+              setCreatedFrom("");
+              setCreatedTo("");
+            }}
+            type="button"
+          >
+            Clear filters
+          </button>
+        ) : null}
+      </div>
 
       <div className="portal-board">
         {STAGES.map((s) => {
