@@ -748,6 +748,11 @@ create index if not exists purchase_orders_vendor_idx on purchase_orders (vendor
 create index if not exists purchase_orders_job_idx on purchase_orders (job_id);
 create index if not exists purchase_orders_status_idx on purchase_orders (status);
 
+-- Points at this PO's "PO #GM<n>" folder under Files -- left null until the
+-- first document is attached, at which point that folder (and its "Purchase
+-- Order" parent, if needed) is created lazily rather than for every PO.
+alter table purchase_orders add column if not exists folder_id integer references file_folders(id) on delete set null;
+
 create table if not exists purchase_order_lines (
   id serial primary key,
   purchase_order_id integer not null references purchase_orders(id) on delete cascade,

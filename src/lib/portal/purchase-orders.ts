@@ -1,13 +1,19 @@
 import type { TransactionSql } from "postgres";
 import { db } from "./db";
+import { createFolder, deleteFolderFile, toFile } from "./files";
 import { PortalError } from "./http";
-import type { PurchaseOrder, PurchaseOrderLine, PurchaseOrderStatus } from "./types";
+import type { FolderFile, PurchaseOrder, PurchaseOrderLine, PurchaseOrderStatus } from "./types";
 
 type Row = Record<string, unknown>;
 
 const iso = (v: unknown) => (v instanceof Date ? v.toISOString() : v ? String(v) : null);
 const num = (v: unknown) => Number(v) || 0;
 const str = (v: unknown) => (v == null ? "" : String(v));
+
+/** The number staff and vendors see -- the stored po_number is a plain sequential integer; "GM" is a display-only prefix. Mirrors the client-side poLabel() in purchase-orders-app.tsx. */
+function poLabel(poNumber: number) {
+  return `GM${poNumber}`;
+}
 
 export const PURCHASE_ORDER_STATUSES: PurchaseOrderStatus[] = ["draft", "sent", "received", "cancelled"];
 export const PURCHASE_ORDER_STATUS_LABEL: Record<PurchaseOrderStatus, string> = {
@@ -29,7 +35,7 @@ function toLine(r: Row): PurchaseOrderLine {
   };
 }
 
-function toPurchaseOrder(r: Row, lines: PurchaseOrderLine[], jobIds: number[]): PurchaseOrder {
+function toPurchaseOrder(r: Row, lines: PurchaseOrderLine[], jobIds: number[], files: FolderFile[]): PurchaseOrder {
   return {
     id: num(r.id),
     poNumber: num(r.po_number),
@@ -38,6 +44,8 @@ function toPurchaseOrder(r: Row, lines: PurchaseOrderLine[], jobIds: number[]): 
     status: r.status as PurchaseOrderStatus,
     notes: str(r.notes),
     lines,
+    folderId: r.folder_id == null ? null : num(r.folder_id),
+    files,
     createdAt: iso(r.created_at) || "",
     updatedAt: iso(r.updated_at) || "",
   };
@@ -60,7 +68,21 @@ export async function listPurchaseOrders(): Promise<PurchaseOrder[]> {
     const id = Number(r.purchase_order_id);
     jobIdsByOrder.set(id, [...(jobIdsByOrder.get(id) || []), Number(r.job_id)]);
   }
-  return orders.map((r) => toPurchaseOrder(r, linesByOrder.get(Number(r.id)) || [], jobIdsByOrder.get(Number(r.id)) || []));
+  const folderIds = [...new Set(orders.map((r) => r.folder_id).filter((v) => v != null).map(Number))];
+  const files = folderIds.length ? await sql`select * from folder_files where folder_id in ${sql(folderIds)} order by created_at desc` : [];
+  const filesByFolder = new Map<number, FolderFile[]>();
+  for (const r of files) {
+    const id = Number(r.folder_id);
+    filesByFolder.set(id, [...(filesByFolder.get(id) || []), toFile(r)]);
+  }
+  return orders.map((r) =>
+    toPurchaseOrder(
+      r,
+      linesByOrder.get(Number(r.id)) || [],
+      jobIdsByOrder.get(Number(r.id)) || [],
+      r.folder_id == null ? [] : filesByFolder.get(Number(r.folder_id)) || [],
+    ),
+  );
 }
 
 export async function getPurchaseOrder(id: number): Promise<PurchaseOrder | null> {
@@ -70,7 +92,52 @@ export async function getPurchaseOrder(id: number): Promise<PurchaseOrder | null
     sql`select * from purchase_order_lines where purchase_order_id = ${id} order by sort_order`,
     sql`select job_id from purchase_order_jobs where purchase_order_id = ${id} order by job_id`,
   ]);
-  return row ? toPurchaseOrder(row, lines.map(toLine), jobLinks.map((r) => Number(r.job_id))) : null;
+  if (!row) return null;
+  const files =
+    row.folder_id == null ? [] : (await sql`select * from folder_files where folder_id = ${row.folder_id} order by created_at desc`).map(toFile);
+  return toPurchaseOrder(row, lines.map(toLine), jobLinks.map((r) => Number(r.job_id)), files);
+}
+
+/** Finds the folder named `name` directly under `parentFolderId` (or at the root when null), creating it if it doesn't exist yet. */
+async function findOrCreateFolder(
+  sql: Awaited<ReturnType<typeof db>>,
+  name: string,
+  parentFolderId: number | null,
+  createdBy: string,
+): Promise<number> {
+  const [existing] =
+    parentFolderId == null
+      ? await sql`select id from file_folders where name = ${name} and parent_folder_id is null`
+      : await sql`select id from file_folders where name = ${name} and parent_folder_id = ${parentFolderId}`;
+  if (existing) return Number(existing.id);
+  return createFolder(name, createdBy, parentFolderId);
+}
+
+const PURCHASE_ORDER_ROOT_FOLDER_NAME = "Purchase Order";
+
+/**
+ * Lazily creates (only on a PO's first document upload) the Files folder its documents live in --
+ * a shared "Purchase Order" folder at the root, then a "PO #GM<n>" subfolder for this specific PO --
+ * and remembers it on the purchase order row so every later upload reuses the same folder.
+ */
+export async function ensurePurchaseOrderFolder(id: number, createdBy: string): Promise<number> {
+  const sql = await db();
+  const [po] = await sql`select folder_id, po_number from purchase_orders where id = ${id}`;
+  if (!po) throw new PortalError("That purchase order no longer exists.", 404);
+  if (po.folder_id != null) return Number(po.folder_id);
+
+  const rootId = await findOrCreateFolder(sql, PURCHASE_ORDER_ROOT_FOLDER_NAME, null, createdBy);
+  const folderId = await findOrCreateFolder(sql, `PO #${poLabel(num(po.po_number))}`, rootId, createdBy);
+  await sql`update purchase_orders set folder_id = ${folderId} where id = ${id}`;
+  return folderId;
+}
+
+/** Resolves a PO's own folder, then deletes the file from it -- so staff can't delete a file via a PO id that isn't actually that file's folder. */
+export async function deletePurchaseOrderFile(id: number, fileId: number): Promise<void> {
+  const sql = await db();
+  const [po] = await sql`select folder_id from purchase_orders where id = ${id}`;
+  if (!po || po.folder_id == null) return;
+  await deleteFolderFile(Number(po.folder_id), fileId);
 }
 
 export type PurchaseOrderLineInput = {

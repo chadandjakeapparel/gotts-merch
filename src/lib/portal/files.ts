@@ -9,7 +9,7 @@ const iso = (v: unknown) => (v instanceof Date ? v.toISOString() : v ? String(v)
 const num = (v: unknown) => Number(v) || 0;
 const str = (v: unknown) => (v == null ? "" : String(v));
 
-function toFile(r: Row): FolderFile {
+export function toFile(r: Row): FolderFile {
   return {
     id: num(r.id),
     fileName: str(r.file_name),

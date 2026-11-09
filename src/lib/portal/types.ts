@@ -246,6 +246,9 @@ export type PurchaseOrder = {
   status: PurchaseOrderStatus;
   notes: string;
   lines: PurchaseOrderLine[];
+  /** The Files folder this PO's documents live in ("Purchase Order" -> "PO #GM<n>") -- null until the first document is attached. */
+  folderId: number | null;
+  files: FolderFile[];
   createdAt: string;
   updatedAt: string;
 };

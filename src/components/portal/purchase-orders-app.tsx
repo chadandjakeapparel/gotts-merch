@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { Customer, Job, PurchaseOrder, PurchaseOrderStatus, Vendor } from "@/lib/portal/types";
 import { api } from "./api";
@@ -28,6 +29,13 @@ function poTotal(po: Pick<PurchaseOrder, "lines">) {
 /** The number staff and vendors see -- the stored po_number is a plain sequential integer; "GM" is a display-only prefix. */
 function poLabel(poNumber: number) {
   return `GM${poNumber}`;
+}
+
+function fmtFileSize(bytes: number) {
+  if (!bytes) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function useSubmit(onDone: () => Promise<void>) {
@@ -364,7 +372,106 @@ function PurchaseOrderModal({
 
       <label className="portal-field">Notes<textarea onChange={(e) => setNotes(e.target.value)} rows={3} value={notes} /></label>
       {error ? <p className="portal-msg err" role="alert">{error}</p> : null}
+
+      {purchaseOrder ? <PurchaseOrderFilesSection onChanged={onSaved} purchaseOrder={purchaseOrder} /> : null}
     </ModalFrame>
+  );
+}
+
+/** Drag-and-drop (or click to browse) document uploads for a purchase order -- stored in Files under Purchase Order / PO #GM<n>, created the first time a file lands here. */
+function PurchaseOrderFilesSection({ purchaseOrder, onChanged }: { purchaseOrder: PurchaseOrder; onChanged: () => Promise<void> }) {
+  const [dragOver, setDragOver] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState("");
+  const [removingId, setRemovingId] = useState<number | null>(null);
+
+  async function uploadFiles(fileList: FileList | File[]) {
+    const files = Array.from(fileList);
+    if (!files.length) return;
+    setUploading(true);
+    setError("");
+    try {
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append("file", file);
+        const response = await fetch(`/api/portal/purchase-orders/${purchaseOrder.id}/files`, { method: "POST", body: formData });
+        const data = (await response.json()) as { ok?: boolean; error?: string };
+        if (!response.ok || !data.ok) throw new Error(data.error || "Upload failed");
+      }
+      await onChanged();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function removeFile(fileId: number) {
+    setRemovingId(fileId);
+    setError("");
+    try {
+      await api("DELETE", `/api/portal/purchase-orders/${purchaseOrder.id}/files/${fileId}`);
+      await onChanged();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't remove that file.");
+    } finally {
+      setRemovingId(null);
+    }
+  }
+
+  return (
+    <div className="portal-files-section">
+      <span className="portal-eyebrow">Files</span>
+      <label
+        className={`portal-dropzone${dragOver ? " drag-over" : ""}`}
+        onDragLeave={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOver(false);
+        }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragOver(true);
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragOver(false);
+          if (e.dataTransfer.files?.length) void uploadFiles(e.dataTransfer.files);
+        }}
+      >
+        <input
+          multiple
+          onChange={(e) => {
+            if (e.target.files?.length) void uploadFiles(e.target.files);
+            e.target.value = "";
+          }}
+          type="file"
+        />
+        <span>{uploading ? "Uploading…" : "Drag files here, or click to browse"}</span>
+      </label>
+      {error ? <p className="portal-msg err" role="alert">{error}</p> : null}
+      {purchaseOrder.files.length ? (
+        <ul className="portal-file-list">
+          {purchaseOrder.files.map((f) => (
+            <li key={f.id}>
+              <a href={f.url} rel="noreferrer" target="_blank">{f.fileName}</a>
+              <span className="portal-muted small">{fmtFileSize(f.size)}</span>
+              <button
+                aria-label={`Remove ${f.fileName}`}
+                disabled={removingId === f.id}
+                onClick={() => void removeFile(f.id)}
+                type="button"
+              >
+                Remove
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="portal-muted small">No files yet.</p>
+      )}
+      {purchaseOrder.folderId != null ? (
+        <Link className="portal-link" href={`/portal/files/${purchaseOrder.folderId}`}>View in Files →</Link>
+      ) : null}
+    </div>
   );
 }
 
