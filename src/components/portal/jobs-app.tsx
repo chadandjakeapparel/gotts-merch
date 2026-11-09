@@ -775,6 +775,14 @@ export function JobModal({
                   />
                   Taxable
                 </label>
+                <button
+                  aria-label="Duplicate this line"
+                  className="portal-btn small"
+                  onClick={() => setLines([...lines.slice(0, i + 1), { ...l }, ...lines.slice(i + 1)])}
+                  type="button"
+                >
+                  Duplicate
+                </button>
                 {lines.length > 1 ? (
                   <button aria-label="Remove line" className="portal-btn small danger" onClick={() => setLines(lines.filter((_, j) => j !== i))} type="button">
                     Remove
