@@ -28,6 +28,23 @@ function fmtDate(value: string) {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
+/** Saves an in-memory blob under a chosen filename -- works everywhere, including for a blob fetched from another origin, since by this point the data is already local. */
+function saveBlob(blob: Blob, fileName: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+async function readError(response: Response): Promise<string> {
+  const data = (await response.json().catch(() => null)) as { error?: string } | null;
+  return data?.error || "That didn't work. Try again.";
+}
+
 function useFeedbackForm(token: string) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -108,8 +125,49 @@ export function ShareFolderApp({ token, logoUrl, brandName }: { token: string; l
   const [error, setError] = useState("");
   const [folder, setFolder] = useState<{ title: string; files: SharedFile[] } | null>(null);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [downloadError, setDownloadError] = useState("");
+  const [downloadingAll, setDownloadingAll] = useState(false);
+  const [downloadingId, setDownloadingId] = useState<number | null>(null);
 
   const imageFiles = useMemo(() => (folder?.files || []).filter((f) => isImageFile(f.contentType)), [folder]);
+
+  async function downloadAll() {
+    if (downloadingAll) return;
+    setDownloadingAll(true);
+    setDownloadError("");
+    try {
+      const response = await fetch(`/api/files/${token}/download-all`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+      if (!response.ok) throw new Error(await readError(response));
+      saveBlob(await response.blob(), `${folder?.title || "files"}.zip`);
+    } catch (err) {
+      setDownloadError(err instanceof Error ? err.message : "That didn't work. Try again.");
+    } finally {
+      setDownloadingAll(false);
+    }
+  }
+
+  async function downloadFile(file: SharedFile) {
+    if (downloadingId) return;
+    setDownloadingId(file.id);
+    setDownloadError("");
+    try {
+      const response = await fetch(`/api/files/${token}/download/${file.id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+      if (!response.ok) throw new Error(await readError(response));
+      saveBlob(await response.blob(), file.fileName);
+    } catch (err) {
+      setDownloadError(err instanceof Error ? err.message : "That didn't work. Try again.");
+    } finally {
+      setDownloadingId(null);
+    }
+  }
 
   async function unlock(e: React.FormEvent) {
     e.preventDefault();
@@ -170,7 +228,13 @@ export function ShareFolderApp({ token, logoUrl, brandName }: { token: string; l
           <span className="portal-eyebrow">Shared files</span>
           <h1>{folder.title}</h1>
         </div>
+        {folder.files.length ? (
+          <button className="portal-btn primary" disabled={downloadingAll} onClick={() => void downloadAll()} type="button">
+            {downloadingAll ? "Zipping…" : "Download All"}
+          </button>
+        ) : null}
       </div>
+      {downloadError ? <p className="portal-msg err" role="alert">{downloadError}</p> : null}
       {folder.files.length ? (
         <div className="portal-table-wrap">
           <table className="portal-table portal-file-table">
@@ -186,13 +250,24 @@ export function ShareFolderApp({ token, logoUrl, brandName }: { token: string; l
                 <tr key={f.id}>
                   <td>
                     {isImageFile(f.contentType) ? (
-                      <button
-                        className="portal-file-name"
-                        onClick={() => setLightboxIndex(imageFiles.findIndex((img) => img.id === f.id))}
-                        type="button"
-                      >
-                        {f.fileName}
-                      </button>
+                      <span className="portal-row-actions">
+                        <button
+                          className="portal-file-name"
+                          onClick={() => setLightboxIndex(imageFiles.findIndex((img) => img.id === f.id))}
+                          type="button"
+                        >
+                          {f.fileName}
+                        </button>
+                        <button
+                          aria-label={`Download ${f.fileName}`}
+                          className="portal-btn small"
+                          disabled={downloadingId === f.id}
+                          onClick={() => void downloadFile(f)}
+                          type="button"
+                        >
+                          {downloadingId === f.id ? "Downloading…" : "Download"}
+                        </button>
+                      </span>
                     ) : (
                       <a href={f.url} rel="noreferrer" target="_blank">{f.fileName}</a>
                     )}
