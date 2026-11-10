@@ -307,6 +307,11 @@ create table if not exists jobs (
 create index if not exists jobs_status_idx on jobs (status);
 create index if not exists jobs_customer_idx on jobs (customer_id);
 
+-- The job this lead was converted into -- set once, whether that happened via
+-- the customer approving a sent estimate or staff marking the lead Won
+-- directly from the CRM board; guards against creating a second job either way.
+alter table leads add column if not exists job_id integer references jobs(id) on delete set null;
+
 alter table jobs add column if not exists notes text not null default '';
 alter table jobs add column if not exists sales_order_number text not null default '';
 alter table jobs add column if not exists invoice_number text not null default '';

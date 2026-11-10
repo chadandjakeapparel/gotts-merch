@@ -103,6 +103,8 @@ export type Lead = {
   notes: string;
   lostReason: string;
   clientId: number | null;
+  /** The Job Board job this lead was converted into, if any -- set once, either by the customer approving a sent estimate or by staff marking the lead Won directly. */
+  jobId: number | null;
   createdAt: string;
   updatedAt: string;
   activities: LeadActivity[];

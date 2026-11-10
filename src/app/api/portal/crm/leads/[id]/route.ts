@@ -1,4 +1,5 @@
-import { deleteLead, parseStatus, setLeadStatus, updateLead } from "@/lib/portal/crm";
+import { addActivity, deleteLead, parseStatus, setLeadStatus, updateLead } from "@/lib/portal/crm";
+import { convertLeadToJob } from "@/lib/portal/estimates";
 import { handle, int, readJson, text } from "@/lib/portal/http";
 import { toLeadInput } from "@/lib/portal/inputs";
 
@@ -11,13 +12,19 @@ export async function PATCH(request: Request, { params }: Params) {
     const body = await readJson(request);
     await updateLead(id, toLeadInput(body));
     let clientId: number | null = null;
+    let jobId: number | null = null;
     if (body.status != null) {
-      const result = await setLeadStatus(id, parseStatus(body.status), user.name || user.email, {
-        lostReason: text(body.lostReason, 300),
-      });
+      const createdBy = user.name || user.email;
+      const status = parseStatus(body.status);
+      const result = await setLeadStatus(id, status, createdBy, { lostReason: text(body.lostReason, 300) });
       clientId = result.clientId;
+      if (result.changed && status === "won") {
+        const converted = await convertLeadToJob(id, createdBy);
+        jobId = converted.jobId;
+        if (converted.created) await addActivity(id, "status", "Job board job created", createdBy);
+      }
     }
-    return { clientId };
+    return { clientId, jobId };
   });
 }
 

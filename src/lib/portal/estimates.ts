@@ -1,5 +1,5 @@
 import { createUser, listUsersByClient } from "./accounts";
-import { addActivity, ensureLeadClient, setLeadStatus } from "./crm";
+import { addActivity, ensureLeadClient, setLeadJob, setLeadStatus } from "./crm";
 import { db } from "./db";
 import { PortalError } from "./http";
 import { createJob } from "./jobs";
@@ -238,6 +238,57 @@ async function ensureLeadCustomer(leadId: number): Promise<number> {
 }
 
 /**
+ * Creates (if one doesn't already exist) the Job Board job a lead becomes --
+ * shared by the customer approving a sent estimate and by staff marking a
+ * lead Won directly from the CRM board. Carries over the lead's estimate
+ * (whatever its status) if one exists, otherwise creates a job with no line
+ * items yet. The lead's own job_id guards against ever creating a second job
+ * for the same lead, however this ends up getting called.
+ */
+export async function convertLeadToJob(leadId: number, createdBy: string): Promise<{ jobId: number; created: boolean }> {
+  const sql = await db();
+  const [lead] = await sql`select job_id, job_name, contact_name, company_name, notes from leads where id = ${leadId}`;
+  if (!lead) throw new PortalError("That lead no longer exists.", 404);
+  if (lead.job_id != null) return { jobId: Number(lead.job_id), created: false };
+
+  const customerId = await ensureLeadCustomer(leadId);
+  const estimate = await getEstimateForLead(leadId);
+
+  const jobId = await createJob(
+    {
+      customerId,
+      jobName: str(lead.job_name) || str(lead.company_name) || str(lead.contact_name) || "New job",
+      contactName: str(lead.contact_name),
+      inHandDate: "",
+      goodsOrdered: false,
+      poNumbers: "",
+      decorationType: "",
+      quantity: estimate ? estimate.lineItems.reduce((sum, li) => sum + li.quantity, 0) : 0,
+      productionFacility: "",
+      salesOrderNumber: "",
+      invoiceNumber: "",
+      notes: estimate ? estimate.notes : str(lead.notes),
+      lineItems: estimate
+        ? estimate.lineItems.map((li) => ({
+            itemName: li.itemName,
+            description: li.description,
+            color: li.color,
+            size: li.size,
+            quantity: li.quantity,
+            unitPrice: li.unitPrice,
+            taxable: li.taxable,
+          }))
+        : [],
+      taxRate: estimate ? estimate.taxRate : 0,
+      estimateId: estimate ? estimate.id : null,
+    },
+    createdBy,
+  );
+  await setLeadJob(leadId, jobId);
+  return { jobId, created: true };
+}
+
+/**
  * The customer's approval: locks the estimate, moves the lead to Won,
  * links it to a customer, and creates the Job Board job from the line
  * items. Always resolved from the signed-in client's own clientId.
@@ -257,38 +308,8 @@ export async function approveEstimate(clientId: number, approvedBy: string): Pro
   if (!estimate) throw new PortalError("That estimate no longer exists.", 404);
   const { total } = estimateTotals(estimate);
 
-  const [lead] = await sql`select company_name, contact_name, job_name from leads where id = ${leadId}`;
   await setLeadStatus(leadId, "won", approvedBy);
-  const customerId = await ensureLeadCustomer(leadId);
-
-  const jobId = await createJob(
-    {
-      customerId,
-      jobName: str(lead?.job_name) || str(lead?.company_name) || str(lead?.contact_name) || "New job",
-      contactName: str(lead?.contact_name),
-      inHandDate: "",
-      goodsOrdered: false,
-      poNumbers: "",
-      decorationType: "",
-      quantity: estimate.lineItems.reduce((sum, li) => sum + li.quantity, 0),
-      productionFacility: "",
-      salesOrderNumber: "",
-      invoiceNumber: "",
-      notes: estimate.notes,
-      lineItems: estimate.lineItems.map((li) => ({
-        itemName: li.itemName,
-        description: li.description,
-        color: li.color,
-        size: li.size,
-        quantity: li.quantity,
-        unitPrice: li.unitPrice,
-        taxable: li.taxable,
-      })),
-      taxRate: estimate.taxRate,
-      estimateId,
-    },
-    approvedBy,
-  );
+  const { jobId } = await convertLeadToJob(leadId, approvedBy);
 
   await addActivity(leadId, "estimate", `Estimate approved by customer ($${total.toFixed(2)}) -- job board job created`, approvedBy);
   return { jobId };

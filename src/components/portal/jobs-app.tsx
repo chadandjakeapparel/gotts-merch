@@ -1,5 +1,6 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CatalogItem, Customer, Job, JobActivity, JobStatus, SalesRep, Task } from "@/lib/portal/types";
 import { api } from "./api";
@@ -120,12 +121,17 @@ export function JobsApp({
   currentUserName: string;
   loadError: string;
 }) {
+  const searchParams = useSearchParams();
   const [jobs, setJobs] = useState(initialJobs);
   const [customers, setCustomers] = useState(initialCustomers);
   const [tasks, setTasks] = useState(initialTasks);
   const salesReps = initialSalesReps;
   const [error, setError] = useState(loadError);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  // Opens straight to a job when linked in as /portal/jobs?job=<id>, e.g. from the CRM after a lead is converted.
+  const [selectedId, setSelectedId] = useState<number | null>(() => {
+    const jobParam = Number(searchParams.get("job"));
+    return jobParam > 0 ? jobParam : null;
+  });
   const [adding, setAdding] = useState(false);
   const [draggingId, setDraggingId] = useState<number | null>(null);
   const [dragOverStage, setDragOverStage] = useState<JobStatus | null>(null);

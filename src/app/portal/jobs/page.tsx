@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import { JobsApp } from "@/components/portal/jobs-app";
 import { PortalHeader } from "@/components/portal/portal-header";
 import { listUsers } from "@/lib/portal/accounts";
@@ -46,15 +47,17 @@ export default async function JobsPage() {
     <div className="portal">
       <PortalHeader current="jobs" viewer={toViewer(user)} />
       <main className="portal-main">
-        <JobsApp
-          currentUserName={user.name || user.email}
-          initialCustomers={customers}
-          initialJobs={jobs}
-          initialSalesReps={salesReps}
-          initialTasks={tasks}
-          loadError={loadError}
-          staffUsers={staffUsers}
-        />
+        <Suspense fallback={null}>
+          <JobsApp
+            currentUserName={user.name || user.email}
+            initialCustomers={customers}
+            initialJobs={jobs}
+            initialSalesReps={salesReps}
+            initialTasks={tasks}
+            loadError={loadError}
+            staffUsers={staffUsers}
+          />
+        </Suspense>
       </main>
     </div>
   );

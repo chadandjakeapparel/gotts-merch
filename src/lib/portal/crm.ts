@@ -69,6 +69,7 @@ function toLead(r: Row, activities: LeadActivity[]): Lead {
     notes: str(r.notes),
     lostReason: str(r.lost_reason),
     clientId: r.client_id == null ? null : num(r.client_id),
+    jobId: r.job_id == null ? null : num(r.job_id),
     createdAt: iso(r.created_at) || "",
     updatedAt: iso(r.updated_at) || "",
     activities,
@@ -198,6 +199,12 @@ export async function ensureLeadClient(id: number): Promise<number> {
     await tx`update leads set client_id = ${row.id} where id = ${id}`;
     return Number(row.id);
   });
+}
+
+/** Records which job a lead was converted into -- lets convertLeadToJob() guard against ever creating a second job for the same lead. */
+export async function setLeadJob(leadId: number, jobId: number) {
+  const sql = await db();
+  await sql`update leads set job_id = ${jobId} where id = ${leadId}`;
 }
 
 export async function addActivity(leadId: number, kind: LeadActivity["kind"], body: string, createdBy: string) {

@@ -457,6 +457,11 @@ function LeadModal({
           Won — <Link className="portal-link" href={`/portal?client=${lead.clientId}`}>open their inventory</Link> to start tracking orders.
         </p>
       ) : null}
+      {lead?.jobId ? (
+        <p className="portal-hint">
+          <Link className="portal-link" href={`/portal/jobs?job=${lead.jobId}`}>View the Job Board card →</Link>
+        </p>
+      ) : null}
       <label className="portal-field">Notes<textarea onChange={set("notes")} rows={3} value={form.notes} /></label>
       {error ? <p className="portal-msg err" role="alert">{error}</p> : null}
       {lead ? <EstimateSection lead={lead} onStatusChanged={setStatus} /> : null}
