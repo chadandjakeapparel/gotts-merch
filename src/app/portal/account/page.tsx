@@ -9,7 +9,7 @@ export default async function AccountPage() {
   const user = await requireUser({ allowPasswordChange: true });
   return (
     <div className="portal">
-      <PortalHeader current="account" viewer={toViewer(user)} />
+      <PortalHeader current="account" viewer={await toViewer(user)} />
       <main className="portal-main narrow">
         <AccountForm email={user.email} minLength={MIN_PASSWORD} mustChange={user.mustChangePassword} />
       </main>

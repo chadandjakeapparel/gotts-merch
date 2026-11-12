@@ -71,6 +71,26 @@ create unique index if not exists users_email_key on users (lower(email));
 -- Pre-existing databases created before the owner flag existed.
 alter table users add column if not exists is_owner boolean not null default false;
 
+-- A staff login's role within the portal (separate from "staff" vs "client"
+-- above, which is about client-data access). Defaults every existing and
+-- new staff login to 'admin' (full access, same as today) so this never
+-- narrows anyone's access on its own -- an owner has to hand out the
+-- narrower roles deliberately from Roles & Permissions.
+alter table users add column if not exists staff_role text not null default 'admin';
+alter table users drop constraint if exists users_staff_role_check;
+alter table users add constraint users_staff_role_check check (staff_role in ('admin', 'sales_rep', 'finance'));
+
+-- Per-area access for the 'sales_rep' and 'finance' staff roles ('admin' is
+-- always full access and never stored here). A role with no row for an area
+-- defaults to allowed -- so every role starts with full access everywhere,
+-- and an owner narrows it area by area from Roles & Permissions.
+create table if not exists role_permissions (
+  staff_role text not null check (staff_role in ('sales_rep', 'finance')),
+  area text not null,
+  allowed boolean not null default true,
+  primary key (staff_role, area)
+);
+
 create table if not exists items (
   id serial primary key,
   client_id integer not null references clients(id) on delete cascade,

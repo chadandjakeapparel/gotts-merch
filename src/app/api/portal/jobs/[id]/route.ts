@@ -6,7 +6,7 @@ type Params = { params: Promise<{ id: string }> };
 
 /** Saves the job's fields and, if `status` is included, moves it to that stage. */
 export async function PATCH(request: Request, { params }: Params) {
-  return handle(request, { staff: true }, async ({ user }) => {
+  return handle(request, { staff: true, area: "jobs" }, async ({ user }) => {
     const id = int((await params).id);
     const body = await readJson(request);
     const createdBy = user.name || user.email;
@@ -17,7 +17,7 @@ export async function PATCH(request: Request, { params }: Params) {
 }
 
 export async function DELETE(request: Request, { params }: Params) {
-  return handle(request, { staff: true }, async () => {
+  return handle(request, { staff: true, area: "jobs" }, async () => {
     await deleteJob(int((await params).id));
     return {};
   });

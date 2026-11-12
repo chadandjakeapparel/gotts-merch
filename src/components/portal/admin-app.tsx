@@ -55,7 +55,7 @@ export function AdminApp({
   const [editing, setEditing] = useState<{ id: number; name: string } | null>(null);
   const [editingUser, setEditingUser] = useState<{ id: number; name: string } | null>(null);
   const [confirming, setConfirming] = useState<string | null>(null);
-  const [login, setLogin] = useState({ email: "", name: "", clientId: initialClients[0] ? String(initialClients[0].id) : "staff" });
+  const [login, setLogin] = useState({ email: "", name: "", clientId: initialClients[0] ? String(initialClients[0].id) : "staff", staffRole: "admin" });
   const [busy, setBusy] = useState(false);
 
   useEffect(() => setOrigin(window.location.origin), []);
@@ -196,6 +196,7 @@ export function AdminApp({
                 email: login.email,
                 name: login.name,
                 role: staff ? "staff" : "client",
+                staffRole: staff ? login.staffRole : undefined,
                 clientId: staff ? null : Number(login.clientId),
               });
               setSecret({ ...res, created: true });
@@ -208,14 +209,24 @@ export function AdminApp({
           <label className="portal-field">Access
             <select onChange={(e) => setLogin({ ...login, clientId: e.target.value })} value={login.clientId}>
               {clients.map((c) => <option key={c.id} value={c.id}>{c.name} (view only)</option>)}
-              <option value="staff">Staff: full admin access</option>
+              <option value="staff">Staff login</option>
             </select>
           </label>
+          {login.clientId === "staff" ? (
+            <label className="portal-field">Role
+              <select onChange={(e) => setLogin({ ...login, staffRole: e.target.value })} value={login.staffRole}>
+                <option value="admin">Admin</option>
+                <option value="sales_rep">Sales Rep</option>
+                <option value="finance">Finance</option>
+              </select>
+            </label>
+          ) : null}
           <button className="portal-btn primary" disabled={busy} type="submit">Create login</button>
         </form>
         <p className="portal-hint portal-login-add-hint">
-          &quot;Staff&quot; logins all have the same full access — inventory, orders, CRM, and this page. The
-          only difference is the account owner (marked below) can&apos;t be removed by another staff login.
+          A staff login&apos;s role decides which backend areas it can use — set up from{" "}
+          <Link href="/portal/admin/roles">Roles &amp; Permissions</Link>. Admin always has full access. The
+          account owner (marked below) can&apos;t be removed by another staff login.
         </p>
 
         <div className="portal-table-wrap">
@@ -250,7 +261,24 @@ export function AdminApp({
                       </span>
                     )}
                   </td>
-                  <td>{u.role === "staff" ? <strong>Staff</strong> : clientNames.get(u.clientId ?? 0) || "Unknown client"}</td>
+                  <td>
+                    {u.role === "staff" ? (
+                      <select
+                        aria-label={`Role for ${u.email}`}
+                        disabled={busy}
+                        onChange={(e) => void run(async () => {
+                          await api("PATCH", `/api/portal/admin/users/${u.id}`, { action: "set-role", staffRole: e.target.value });
+                        })}
+                        value={u.staffRole ?? "admin"}
+                      >
+                        <option value="admin">Admin</option>
+                        <option value="sales_rep">Sales Rep</option>
+                        <option value="finance">Finance</option>
+                      </select>
+                    ) : (
+                      clientNames.get(u.clientId ?? 0) || "Unknown client"
+                    )}
+                  </td>
                   <td>{fmtDate(u.lastLoginAt)}</td>
                   <td className="r">
                     {confirming === `delete-${u.id}` ? (

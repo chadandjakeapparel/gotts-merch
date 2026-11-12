@@ -15,7 +15,7 @@ async function requireScopedUser(customerId: number, userId: number) {
  * `{ action: "rename", name }` changes the login's display name.
  */
 export async function PATCH(request: Request, { params }: Params) {
-  return handle(request, { staff: true }, async () => {
+  return handle(request, { staff: true, area: "customers" }, async () => {
     const { id, userId } = await params;
     await requireScopedUser(int(id), int(userId));
     const body = await readJson(request);
@@ -29,7 +29,7 @@ export async function PATCH(request: Request, { params }: Params) {
 }
 
 export async function DELETE(request: Request, { params }: Params) {
-  return handle(request, { staff: true }, async ({ user }) => {
+  return handle(request, { staff: true, area: "customers" }, async ({ user }) => {
     const { id, userId } = await params;
     await requireScopedUser(int(id), int(userId));
     await deleteUser(int(userId), user.id);

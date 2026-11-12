@@ -1,9 +1,11 @@
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { CrmApp } from "@/components/portal/crm-app";
+import { AccessDenied } from "@/components/portal/access-denied";
 import { PortalHeader } from "@/components/portal/portal-header";
 import { listUsers } from "@/lib/portal/accounts";
 import { listLeads } from "@/lib/portal/crm";
+import { can } from "@/lib/portal/permissions";
 import { requireUser, toViewer } from "@/lib/portal/session";
 import { listTasks } from "@/lib/portal/tasks";
 
@@ -12,6 +14,17 @@ export const dynamic = "force-dynamic";
 export default async function CrmPage() {
   const user = await requireUser();
   if (user.role !== "staff") redirect("/portal");
+
+  if (!(await can(user, "crm"))) {
+    return (
+      <div className="portal">
+        <PortalHeader current="crm" viewer={await toViewer(user)} />
+        <main className="portal-main">
+          <AccessDenied area="CRM" />
+        </main>
+      </div>
+    );
+  }
 
   let leads: Awaited<ReturnType<typeof listLeads>> = [];
   let tasks: Awaited<ReturnType<typeof listTasks>> = [];
@@ -30,7 +43,7 @@ export default async function CrmPage() {
 
   return (
     <div className="portal">
-      <PortalHeader current="crm" viewer={toViewer(user)} />
+      <PortalHeader current="crm" viewer={await toViewer(user)} />
       <main className="portal-main">
         <Suspense fallback={null}>
           <CrmApp

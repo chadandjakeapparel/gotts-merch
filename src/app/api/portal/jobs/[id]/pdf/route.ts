@@ -6,6 +6,7 @@ import { getCustomer } from "@/lib/portal/customers";
 import { int } from "@/lib/portal/http";
 import { SalesOrderPdfDocument } from "@/lib/portal/job-pdf";
 import { getJob } from "@/lib/portal/jobs";
+import { can } from "@/lib/portal/permissions";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -14,6 +15,7 @@ export async function GET(request: Request, { params }: Params) {
   const user = await getUser();
   if (!user) return new Response("Your session has ended. Sign in again.", { status: 401 });
   if (user.role !== "staff") return new Response("Your account can't export sales orders.", { status: 403 });
+  if (!(await can(user, "jobs"))) return new Response("Your role doesn't have access to this area.", { status: 403 });
 
   const id = int((await params).id);
   const job = await getJob(id);

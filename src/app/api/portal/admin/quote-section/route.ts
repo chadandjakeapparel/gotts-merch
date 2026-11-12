@@ -14,11 +14,11 @@ function readInput(body: Record<string, unknown>): QuoteSectionInput {
 }
 
 export async function GET(request: Request) {
-  return handle(request, { staff: true }, async () => ({ quoteSection: await getQuoteSection() }));
+  return handle(request, { staff: true, area: "quote" }, async () => ({ quoteSection: await getQuoteSection() }));
 }
 
 export async function PATCH(request: Request) {
-  return handle(request, { staff: true }, async () => {
+  return handle(request, { staff: true, area: "quote" }, async () => {
     const body = await readJson(request);
     await updateQuoteSection(readInput(body));
     return {};

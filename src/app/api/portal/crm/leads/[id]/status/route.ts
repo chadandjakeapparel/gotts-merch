@@ -6,7 +6,7 @@ type Params = { params: Promise<{ id: string }> };
 
 /** Moves a lead to a stage without needing its other fields -- used by the board's drag and drop. */
 export async function PATCH(request: Request, { params }: Params) {
-  return handle(request, { staff: true }, async ({ user }) => {
+  return handle(request, { staff: true, area: "crm" }, async ({ user }) => {
     const id = int((await params).id);
     const body = await readJson(request);
     const createdBy = user.name || user.email;

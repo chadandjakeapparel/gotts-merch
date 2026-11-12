@@ -1,9 +1,11 @@
 import { notFound, redirect } from "next/navigation";
 import { CustomerDetailApp } from "@/components/portal/customer-detail-app";
+import { AccessDenied } from "@/components/portal/access-denied";
 import { PortalHeader } from "@/components/portal/portal-header";
 import { listUsers } from "@/lib/portal/accounts";
 import { getCustomer, listCustomers, listSalesReps } from "@/lib/portal/customers";
 import { listJobsByCustomer } from "@/lib/portal/jobs";
+import { can } from "@/lib/portal/permissions";
 import { requireUser, toViewer } from "@/lib/portal/session";
 import { listTasks } from "@/lib/portal/tasks";
 
@@ -14,6 +16,17 @@ type Params = { params: Promise<{ id: string }> };
 export default async function CustomerDetailPage({ params }: Params) {
   const user = await requireUser();
   if (user.role !== "staff") redirect("/portal");
+
+  if (!(await can(user, "customers"))) {
+    return (
+      <div className="portal">
+        <PortalHeader current="customers" viewer={await toViewer(user)} />
+        <main className="portal-main">
+          <AccessDenied area="Customers" />
+        </main>
+      </div>
+    );
+  }
 
   const id = Number((await params).id);
   if (!Number.isInteger(id) || id <= 0) notFound();
@@ -52,7 +65,7 @@ export default async function CustomerDetailPage({ params }: Params) {
 
   return (
     <div className="portal">
-      <PortalHeader current="customers" viewer={toViewer(user)} />
+      <PortalHeader current="customers" viewer={await toViewer(user)} />
       <main className="portal-main">
         <CustomerDetailApp
           currentUserName={user.name || user.email}

@@ -1,10 +1,12 @@
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { JobsApp } from "@/components/portal/jobs-app";
+import { AccessDenied } from "@/components/portal/access-denied";
 import { PortalHeader } from "@/components/portal/portal-header";
 import { listUsers } from "@/lib/portal/accounts";
 import { listCustomers, listSalesReps } from "@/lib/portal/customers";
 import { listJobs } from "@/lib/portal/jobs";
+import { can } from "@/lib/portal/permissions";
 import { requireUser, toViewer } from "@/lib/portal/session";
 import { listTasks } from "@/lib/portal/tasks";
 
@@ -13,6 +15,17 @@ export const dynamic = "force-dynamic";
 export default async function JobsPage() {
   const user = await requireUser();
   if (user.role !== "staff") redirect("/portal");
+
+  if (!(await can(user, "jobs"))) {
+    return (
+      <div className="portal">
+        <PortalHeader current="jobs" viewer={await toViewer(user)} />
+        <main className="portal-main">
+          <AccessDenied area="the Job Board" />
+        </main>
+      </div>
+    );
+  }
 
   let jobs: Awaited<ReturnType<typeof listJobs>> = [];
   let customers: Awaited<ReturnType<typeof listCustomers>> = [];
@@ -45,7 +58,7 @@ export default async function JobsPage() {
 
   return (
     <div className="portal">
-      <PortalHeader current="jobs" viewer={toViewer(user)} />
+      <PortalHeader current="jobs" viewer={await toViewer(user)} />
       <main className="portal-main">
         <Suspense fallback={null}>
           <JobsApp

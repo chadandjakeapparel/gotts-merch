@@ -6,6 +6,7 @@ import { getLead } from "@/lib/portal/crm";
 import { EstimatePdfDocument } from "@/lib/portal/estimate-pdf";
 import { estimateNumber, getEstimateForLead } from "@/lib/portal/estimates";
 import { int } from "@/lib/portal/http";
+import { can } from "@/lib/portal/permissions";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -14,6 +15,7 @@ export async function GET(request: Request, { params }: Params) {
   const user = await getUser();
   if (!user) return new Response("Your session has ended. Sign in again.", { status: 401 });
   if (user.role !== "staff") return new Response("Your account can't export estimates.", { status: 403 });
+  if (!(await can(user, "crm"))) return new Response("Your role doesn't have access to this area.", { status: 403 });
 
   const id = int((await params).id);
   const [estimate, lead, business, site] = await Promise.all([

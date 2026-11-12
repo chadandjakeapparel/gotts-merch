@@ -7,6 +7,7 @@ import type { Viewer } from "@/lib/portal/types";
 export type PortalNavKey =
   | "inventory"
   | "admin"
+  | "roles"
   | "crm"
   | "jobs"
   | "kpis"
@@ -61,18 +62,41 @@ export function PortalHeader({
     };
   }, [menuOpen]);
 
+  // A staff login only sees a link if their role can use that area; "admin"
+  // and "roles" (login/permission management) show for the Admin role only,
+  // whatever Roles & Permissions says, since granting those would let a
+  // restricted login just grant itself everything else.
+  const canSee = (key: PortalNavKey) =>
+    key === "admin" || key === "roles" ? viewer.isAdmin : key === "account" ? true : viewer.permissions[key as keyof typeof viewer.permissions] ?? true;
+
+  const mainNavItems: [PortalNavKey, string, string][] = (
+    [
+      ["crm", "/portal/crm", "CRM"],
+      ["jobs", "/portal/jobs", "Job Board"],
+      ["kpis", "/portal/kpis", "KPIs"],
+      ["customers", "/portal/customers", "Customers"],
+      ["tasks", "/portal/tasks", "Tasks"],
+      ["files", "/portal/files", "Files"],
+      ["items", "/portal/items", "Items"],
+      ["purchase-orders", "/portal/purchase-orders", "Purchase Orders"],
+    ] as [PortalNavKey, string, string][]
+  ).filter(([key]) => canSee(key));
+
   // Alphabetical, per how this menu was asked to be laid out.
-  const adminMenuItems: [PortalNavKey, string, string][] = [
-    ["blog", "/portal/admin/blog", "Blog"],
-    ["business-info", "/portal/admin/business-info", "Business Information"],
-    ["admin", "/portal/admin", "Client Logins"],
-    ["designer-products", "/portal/designer-products", "Designer Products"],
-    ["quote", "/portal/quote", "Get a Quote"],
-    ["inventory", inventoryHref, "Inventory"],
-    ["job-postings", "/portal/admin/job-postings", "Job Postings"],
-    ["account", "/portal/account", "My Account"],
-    ["designs", "/portal/designs", "Saved Designs"],
-  ];
+  const adminMenuItems: [PortalNavKey, string, string][] = (
+    [
+      ["blog", "/portal/admin/blog", "Blog"],
+      ["business-info", "/portal/admin/business-info", "Business Information"],
+      ["admin", "/portal/admin", "Client Logins"],
+      ["designer-products", "/portal/designer-products", "Designer Products"],
+      ["quote", "/portal/quote", "Get a Quote"],
+      ["inventory", inventoryHref, "Inventory"],
+      ["job-postings", "/portal/admin/job-postings", "Job Postings"],
+      ["account", "/portal/account", "My Account"],
+      ["roles", "/portal/admin/roles", "Roles & Permissions"],
+      ["designs", "/portal/designs", "Saved Designs"],
+    ] as [PortalNavKey, string, string][]
+  ).filter(([key]) => canSee(key));
   const adminMenuActive = adminMenuItems.some(([key]) => key === current);
 
   return (
@@ -84,14 +108,9 @@ export function PortalHeader({
         <nav aria-label="Portal" className="portal-nav">
           {viewer.role === "staff" ? (
             <>
-              <Link aria-current={current === "crm" ? "page" : undefined} href="/portal/crm">CRM</Link>
-              <Link aria-current={current === "jobs" ? "page" : undefined} href="/portal/jobs">Job Board</Link>
-              <Link aria-current={current === "kpis" ? "page" : undefined} href="/portal/kpis">KPIs</Link>
-              <Link aria-current={current === "customers" ? "page" : undefined} href="/portal/customers">Customers</Link>
-              <Link aria-current={current === "tasks" ? "page" : undefined} href="/portal/tasks">Tasks</Link>
-              <Link aria-current={current === "files" ? "page" : undefined} href="/portal/files">Files</Link>
-              <Link aria-current={current === "items" ? "page" : undefined} href="/portal/items">Items</Link>
-              <Link aria-current={current === "purchase-orders" ? "page" : undefined} href="/portal/purchase-orders">Purchase Orders</Link>
+              {mainNavItems.map(([key, href, text]) => (
+                <Link aria-current={current === key ? "page" : undefined} href={href} key={key}>{text}</Link>
+              ))}
               <div className="portal-nav-dropdown" ref={menuRef}>
                 <button
                   aria-expanded={menuOpen}

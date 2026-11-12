@@ -25,7 +25,7 @@ function readInput(body: Record<string, unknown>): DesignProductInput {
 
 export async function PATCH(request: Request, { params }: Params) {
   const id = Number((await params).id);
-  return handle(request, { staff: true }, async () => {
+  return handle(request, { staff: true, area: "designer-products" }, async () => {
     const body = await readJson(request);
     await updateDesignProduct(id, readInput(body));
     return {};
@@ -34,7 +34,7 @@ export async function PATCH(request: Request, { params }: Params) {
 
 export async function DELETE(request: Request, { params }: Params) {
   const id = Number((await params).id);
-  return handle(request, { staff: true }, async () => {
+  return handle(request, { staff: true, area: "designer-products" }, async () => {
     await deleteDesignProduct(id);
     return {};
   });

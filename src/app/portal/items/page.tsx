@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 import { ItemsApp } from "@/components/portal/items-app";
+import { AccessDenied } from "@/components/portal/access-denied";
 import { PortalHeader } from "@/components/portal/portal-header";
 import { countCatalogItems, listCatalogItemFilters, listCatalogItems } from "@/lib/portal/catalog-items";
+import { can } from "@/lib/portal/permissions";
 import { requireUser, toViewer } from "@/lib/portal/session";
 
 export const dynamic = "force-dynamic";
@@ -9,6 +11,17 @@ export const dynamic = "force-dynamic";
 export default async function ItemsPage() {
   const user = await requireUser();
   if (user.role !== "staff") redirect("/portal");
+
+  if (!(await can(user, "items"))) {
+    return (
+      <div className="portal">
+        <PortalHeader current="items" viewer={await toViewer(user)} />
+        <main className="portal-main">
+          <AccessDenied area="Items" />
+        </main>
+      </div>
+    );
+  }
 
   let initialItems: Awaited<ReturnType<typeof listCatalogItems>> = [];
   let initialFilters = { itemTypes: [] as string[], vendors: [] as string[] };
@@ -27,7 +40,7 @@ export default async function ItemsPage() {
 
   return (
     <div className="portal">
-      <PortalHeader current="items" viewer={toViewer(user)} />
+      <PortalHeader current="items" viewer={await toViewer(user)} />
       <main className="portal-main">
         <ItemsApp initialFilters={initialFilters} initialItems={initialItems} initialTotal={initialTotal} loadError={loadError} />
       </main>

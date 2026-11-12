@@ -5,7 +5,7 @@ import { handle, int, PortalError, readJson, text } from "@/lib/portal/http";
 type Params = { params: Promise<{ id: string }> };
 
 export async function GET(request: Request, { params }: Params) {
-  return handle(request, { staff: true }, async () => {
+  return handle(request, { staff: true, area: "customers" }, async () => {
     const customer = await getCustomer(int((await params).id));
     if (!customer) throw new PortalError("That customer no longer exists.", 404);
     if (customer.clientId == null) {
@@ -17,7 +17,7 @@ export async function GET(request: Request, { params }: Params) {
 
 /** Creates a portal login for this customer, linking it to a client (creating one) if it doesn't have one yet. */
 export async function POST(request: Request, { params }: Params) {
-  return handle(request, { staff: true }, async () => {
+  return handle(request, { staff: true, area: "customers" }, async () => {
     const id = int((await params).id);
     const body = await readJson(request);
     const clientId = await ensureCustomerClient(id);

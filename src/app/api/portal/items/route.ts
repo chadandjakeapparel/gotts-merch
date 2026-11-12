@@ -4,7 +4,7 @@ import { toItemInput } from "@/lib/portal/inputs";
 
 /** Adds one line, or upserts many when the body carries `rows`. */
 export async function POST(request: Request) {
-  return handle(request, { staff: true, client: true }, async ({ clientId }) => {
+  return handle(request, { staff: true, client: true, area: "inventory" }, async ({ clientId }) => {
     const body = await readJson(request);
     if (Array.isArray(body.rows)) {
       const rows = body.rows.map((r, i) => {

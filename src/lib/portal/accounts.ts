@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { hashPassword, temporaryPassword, type Role } from "./auth";
+import { hashPassword, temporaryPassword, type Role, type StaffRole } from "./auth";
 import { db } from "./db";
 import { PortalError } from "./http";
 import type { ClientSummary, PortalUser } from "./types";
@@ -15,6 +15,7 @@ function toUser(r: Row): PortalUser {
     email: String(r.email),
     name: String(r.name),
     role: r.role as PortalUser["role"],
+    staffRole: r.role === "staff" ? (r.staff_role as PortalUser["staffRole"]) : null,
     clientId: r.client_id == null ? null : Number(r.client_id),
     mustChangePassword: Boolean(r.must_change_password),
     isOwner: Boolean(r.is_owner),
@@ -135,7 +136,7 @@ export async function requireUserInClient(userId: number, clientId: number) {
   if (!row || Number(row.client_id) !== clientId) throw new PortalError("That login doesn't belong to this customer.", 404);
 }
 
-export async function createUser(input: { email: string; name: string; role: Role; clientId: number | null }) {
+export async function createUser(input: { email: string; name: string; role: Role; staffRole?: StaffRole; clientId: number | null }) {
   const email = input.email.trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new PortalError("Enter a valid email address.");
   if (input.role === "client" && !input.clientId) throw new PortalError("Choose which client this login belongs to.");
@@ -143,8 +144,8 @@ export async function createUser(input: { email: string; name: string; role: Rol
   const sql = await db();
   try {
     await sql`
-      insert into users (email, name, password_hash, role, client_id, must_change_password)
-      values (${email}, ${input.name}, ${await hashPassword(password)}, ${input.role},
+      insert into users (email, name, password_hash, role, staff_role, client_id, must_change_password)
+      values (${email}, ${input.name}, ${await hashPassword(password)}, ${input.role}, ${input.role === "staff" ? (input.staffRole ?? "admin") : "admin"},
         ${input.role === "client" ? input.clientId : null}, true)`;
   } catch (error) {
     if ((error as { code?: string }).code === "23505") throw new PortalError(`${email} already has a login.`, 409);
@@ -152,6 +153,13 @@ export async function createUser(input: { email: string; name: string; role: Rol
     throw error;
   }
   return { email, password };
+}
+
+/** Changes a staff login's role (Admin / Sales Rep / Finance). No-op on a client login. */
+export async function setUserStaffRole(id: number, staffRole: StaffRole) {
+  const sql = await db();
+  const rows = await sql`update users set staff_role = ${staffRole} where id = ${id} and role = 'staff' returning id`;
+  if (!rows.length) throw new PortalError("That login isn't a staff login.", 404);
 }
 
 export async function renameUser(id: number, name: string) {

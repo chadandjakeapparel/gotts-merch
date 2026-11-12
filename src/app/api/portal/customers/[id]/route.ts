@@ -5,7 +5,7 @@ import { toCustomerInput } from "@/lib/portal/inputs";
 type Params = { params: Promise<{ id: string }> };
 
 export async function PATCH(request: Request, { params }: Params) {
-  return handle(request, { staff: true }, async () => {
+  return handle(request, { staff: true, area: "customers" }, async () => {
     const body = await readJson(request);
     await updateCustomer(int((await params).id), toCustomerInput(body));
     return {};
@@ -13,7 +13,7 @@ export async function PATCH(request: Request, { params }: Params) {
 }
 
 export async function DELETE(request: Request, { params }: Params) {
-  return handle(request, { staff: true }, async () => {
+  return handle(request, { staff: true, area: "customers" }, async () => {
     await deleteCustomer(int((await params).id));
     return {};
   });

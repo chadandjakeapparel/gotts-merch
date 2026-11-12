@@ -22,11 +22,11 @@ function readInput(body: Record<string, unknown>): DesignProductInput {
 }
 
 export async function GET(request: Request) {
-  return handle(request, { staff: true }, async () => ({ products: await listAllDesignProducts() }));
+  return handle(request, { staff: true, area: "designer-products" }, async () => ({ products: await listAllDesignProducts() }));
 }
 
 export async function POST(request: Request) {
-  return handle(request, { staff: true }, async () => {
+  return handle(request, { staff: true, area: "designer-products" }, async () => {
     const body = await readJson(request);
     return { id: await createDesignProduct(readInput(body)) };
   });

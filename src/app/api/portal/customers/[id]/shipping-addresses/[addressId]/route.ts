@@ -5,7 +5,7 @@ import { toAddressInput } from "@/lib/portal/inputs";
 type Params = { params: Promise<{ id: string; addressId: string }> };
 
 export async function PATCH(request: Request, { params }: Params) {
-  return handle(request, { staff: true }, async () => {
+  return handle(request, { staff: true, area: "customers" }, async () => {
     const { id, addressId } = await params;
     const body = await readJson(request);
     await updateShippingAddress(int(id), int(addressId), toAddressInput(body));
@@ -14,7 +14,7 @@ export async function PATCH(request: Request, { params }: Params) {
 }
 
 export async function DELETE(request: Request, { params }: Params) {
-  return handle(request, { staff: true }, async () => {
+  return handle(request, { staff: true, area: "customers" }, async () => {
     const { id, addressId } = await params;
     await deleteShippingAddress(int(id), int(addressId));
     return {};

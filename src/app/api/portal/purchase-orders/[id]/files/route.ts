@@ -23,7 +23,7 @@ const ALLOWED_TYPES: Record<string, string> = {
 
 /** Uploading a PO's first document lazily creates its "Purchase Order / PO #GM<n>" folder under Files -- every file lives there, not in a separate table, so it's the same file whether opened from the PO card or from Files. */
 export async function POST(request: Request, { params }: Params) {
-  return handle(request, { staff: true }, async ({ user }) => {
+  return handle(request, { staff: true, area: "purchase-orders" }, async ({ user }) => {
     const id = int((await params).id);
     const formData = await request.formData();
     const file = formData.get("file");

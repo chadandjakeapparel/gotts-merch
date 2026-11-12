@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 export default async function EstimatesPage() {
   const user = await requireUser();
-  const viewer = toViewer(user);
+  const viewer = await toViewer(user);
 
   if (user.role === "staff") {
     return (

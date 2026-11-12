@@ -9,7 +9,7 @@ const ALLOWED_TYPES: Record<string, string> = {
 };
 
 export async function POST(request: Request) {
-  return handle(request, { staff: true }, async () => {
+  return handle(request, { staff: true, area: "blog" }, async () => {
     const formData = await request.formData();
     const file = formData.get("file");
     if (!(file instanceof File)) throw new PortalError("No file provided.");

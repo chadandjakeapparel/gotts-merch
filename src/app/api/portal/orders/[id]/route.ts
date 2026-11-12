@@ -6,7 +6,7 @@ type Params = { params: Promise<{ id: string }> };
 
 /** Order actions: `fulfill`, `ship` (carrier, tracking), `cancel`, or `edit` (order fields and lines). */
 export async function PATCH(request: Request, { params }: Params) {
-  return handle(request, { staff: true, client: true }, async ({ clientId }) => {
+  return handle(request, { staff: true, client: true, area: "inventory" }, async ({ clientId }) => {
     const id = int((await params).id);
     const body = await readJson(request);
     switch (body.action) {

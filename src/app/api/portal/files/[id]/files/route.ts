@@ -21,7 +21,7 @@ const ALLOWED_TYPES: Record<string, string> = {
 };
 
 export async function POST(request: Request, { params }: Params) {
-  return handle(request, { staff: true }, async ({ user }) => {
+  return handle(request, { staff: true, area: "files" }, async ({ user }) => {
     const id = int((await params).id);
     const formData = await request.formData();
     const file = formData.get("file");

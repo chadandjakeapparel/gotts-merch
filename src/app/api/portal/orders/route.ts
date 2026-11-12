@@ -4,7 +4,7 @@ import { toOrderInput } from "@/lib/portal/inputs";
 
 /** Creates an order by hand; `fulfillNow` also takes the stock out straight away. */
 export async function POST(request: Request) {
-  return handle(request, { staff: true, client: true }, async ({ clientId }) => {
+  return handle(request, { staff: true, client: true, area: "inventory" }, async ({ clientId }) => {
     const body = await readJson(request);
     const input = toOrderInput(body);
     if (!input.lines.length) throw new PortalError("Add at least one style and quantity.");

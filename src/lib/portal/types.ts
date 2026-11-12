@@ -391,6 +391,8 @@ export type PortalUser = {
   email: string;
   name: string;
   role: "staff" | "client";
+  /** Null for a client login; only meaningful when role is "staff". */
+  staffRole: "admin" | "sales_rep" | "finance" | null;
   clientId: number | null;
   mustChangePassword: boolean;
   /** The account owner; protected from removal, even by other staff logins. */
@@ -404,4 +406,8 @@ export type Viewer = {
   name: string;
   email: string;
   role: "staff" | "client";
+  /** Which backend areas this staff login can use; a client viewer gets every area true (unused). */
+  permissions: Record<import("./permissions").AreaKey, boolean>;
+  /** Admin staff role -- can see Client Logins and Roles & Permissions. Always false for a client viewer. */
+  isAdmin: boolean;
 };

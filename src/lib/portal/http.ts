@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getUser, type SessionUser } from "./auth";
 import { db } from "./db";
+import { can, type AreaKey } from "./permissions";
 
 export class PortalError extends Error {
   constructor(
@@ -29,11 +30,15 @@ export async function resolveClientId(user: SessionUser, requested: string | nul
 
 /**
  * Runs a portal API handler for a signed-in user. `staff` limits it to staff;
- * `client` resolves which client's data the request is about.
+ * `client` resolves which client's data the request is about; `area` further
+ * limits it to staff whose role can use that backend area; `adminOnly`
+ * limits it to the Admin staff role specifically (logins and role/permission
+ * management -- never delegable, since a Sales Rep or Finance login with
+ * access there could just grant itself everything else).
  */
 export async function handle(
   request: Request,
-  need: { staff?: boolean; client?: boolean },
+  need: { staff?: boolean; client?: boolean; area?: AreaKey; adminOnly?: boolean },
   run: (ctx: Ctx) => Promise<unknown>,
 ) {
   try {
@@ -41,6 +46,12 @@ export async function handle(
     if (!user) throw new PortalError("Your session has ended. Sign in again.", 401);
     if (need.staff && user.role !== "staff") {
       throw new PortalError("Your account can view this information but cannot change it.", 403);
+    }
+    if (need.adminOnly && (user.role !== "staff" || (user.staffRole ?? "admin") !== "admin")) {
+      throw new PortalError("Only an admin login can do this.", 403);
+    }
+    if (need.area && user.role === "staff" && !(await can(user, need.area))) {
+      throw new PortalError("Your role doesn't have access to this area. Ask an admin for access.", 403);
     }
     const clientId = need.client
       ? await resolveClientId(user, new URL(request.url).searchParams.get("client"))

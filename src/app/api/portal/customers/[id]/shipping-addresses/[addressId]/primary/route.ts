@@ -5,7 +5,7 @@ type Params = { params: Promise<{ id: string; addressId: string }> };
 
 /** Makes this the customer's primary shipping address, demoting whichever one was. */
 export async function POST(request: Request, { params }: Params) {
-  return handle(request, { staff: true }, async () => {
+  return handle(request, { staff: true, area: "customers" }, async () => {
     const { id, addressId } = await params;
     await makeShippingAddressPrimary(int(id), int(addressId));
     return {};

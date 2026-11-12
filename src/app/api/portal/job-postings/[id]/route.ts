@@ -5,7 +5,7 @@ import { toJobPostingInput } from "@/lib/portal/inputs";
 type Params = { params: Promise<{ id: string }> };
 
 export async function PATCH(request: Request, { params }: Params) {
-  return handle(request, { staff: true }, async () => {
+  return handle(request, { staff: true, area: "job-postings" }, async () => {
     const id = int((await params).id);
     const body = await readJson(request);
     await updateJobPosting(id, toJobPostingInput(body));
@@ -14,7 +14,7 @@ export async function PATCH(request: Request, { params }: Params) {
 }
 
 export async function DELETE(request: Request, { params }: Params) {
-  return handle(request, { staff: true }, async () => {
+  return handle(request, { staff: true, area: "job-postings" }, async () => {
     await deleteJobPosting(int((await params).id));
     return {};
   });

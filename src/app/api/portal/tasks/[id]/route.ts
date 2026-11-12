@@ -6,7 +6,7 @@ type Params = { params: Promise<{ id: string }> };
 
 /** Saves the task's fields and, if `completed` is included, toggles it done/not done. */
 export async function PATCH(request: Request, { params }: Params) {
-  return handle(request, { staff: true }, async () => {
+  return handle(request, { staff: true, area: "tasks" }, async () => {
     const id = int((await params).id);
     const body = await readJson(request);
     if (body.completed != null) {
@@ -19,7 +19,7 @@ export async function PATCH(request: Request, { params }: Params) {
 }
 
 export async function DELETE(request: Request, { params }: Params) {
-  return handle(request, { staff: true }, async () => {
+  return handle(request, { staff: true, area: "tasks" }, async () => {
     await deleteTask(int((await params).id));
     return {};
   });

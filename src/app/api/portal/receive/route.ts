@@ -2,7 +2,7 @@ import { receiveStock } from "@/lib/portal/data";
 import { handle, int, PortalError, readJson, text } from "@/lib/portal/http";
 
 export async function POST(request: Request) {
-  return handle(request, { staff: true, client: true }, async ({ clientId }) => {
+  return handle(request, { staff: true, client: true, area: "inventory" }, async ({ clientId }) => {
     const body = await readJson(request);
     const lines = Array.isArray(body.lines) ? body.lines : [];
     await receiveStock(clientId, {

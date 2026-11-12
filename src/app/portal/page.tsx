@@ -1,10 +1,12 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { AccessDenied } from "@/components/portal/access-denied";
 import { PortalApp } from "@/components/portal/portal-app";
 import { PortalHeader } from "@/components/portal/portal-header";
 import { clientName, listClients } from "@/lib/portal/accounts";
 import { inventoryHeldForClient, listHeldCustomers } from "@/lib/portal/customers";
 import { getState } from "@/lib/portal/data";
+import { can } from "@/lib/portal/permissions";
 import { requireUser, toViewer } from "@/lib/portal/session";
 import type { ClientSummary, PortalState } from "@/lib/portal/types";
 
@@ -21,7 +23,17 @@ export default async function PortalPage({
   // for inventory via the nav's own Inventory link (?view=inventory) or the "Open
   // inventory" links elsewhere that pass ?client=.
   if (user.role === "staff" && !requestedClientParam && view !== "inventory") redirect("/portal/crm");
-  const viewer = toViewer(user);
+  if (user.role === "staff" && !(await can(user, "inventory"))) {
+    return (
+      <div className="portal">
+        <PortalHeader current="inventory" viewer={await toViewer(user)} />
+        <main className="portal-main">
+          <AccessDenied area="Inventory" />
+        </main>
+      </div>
+    );
+  }
+  const viewer = await toViewer(user);
 
   let clients: ClientSummary[] | null = null;
   let heldCustomers: { id: number; name: string }[] = [];

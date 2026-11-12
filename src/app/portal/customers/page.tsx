@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 import { CustomersApp } from "@/components/portal/customers-app";
+import { AccessDenied } from "@/components/portal/access-denied";
 import { PortalHeader } from "@/components/portal/portal-header";
 import { listCustomers, listSalesReps } from "@/lib/portal/customers";
+import { can } from "@/lib/portal/permissions";
 import { requireUser, toViewer } from "@/lib/portal/session";
 
 export const dynamic = "force-dynamic";
@@ -9,6 +11,17 @@ export const dynamic = "force-dynamic";
 export default async function CustomersPage() {
   const user = await requireUser();
   if (user.role !== "staff") redirect("/portal");
+
+  if (!(await can(user, "customers"))) {
+    return (
+      <div className="portal">
+        <PortalHeader current="customers" viewer={await toViewer(user)} />
+        <main className="portal-main">
+          <AccessDenied area="Customers" />
+        </main>
+      </div>
+    );
+  }
 
   let customers: Awaited<ReturnType<typeof listCustomers>> = [];
   let salesReps: Awaited<ReturnType<typeof listSalesReps>> = [];
@@ -25,7 +38,7 @@ export default async function CustomersPage() {
 
   return (
     <div className="portal">
-      <PortalHeader current="customers" viewer={toViewer(user)} />
+      <PortalHeader current="customers" viewer={await toViewer(user)} />
       <main className="portal-main">
         <CustomersApp initialCustomers={customers} initialSalesReps={salesReps} loadError={loadError} />
       </main>

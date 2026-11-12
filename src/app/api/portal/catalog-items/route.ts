@@ -10,7 +10,7 @@ import { toCatalogItemInput } from "@/lib/portal/inputs";
 
 /** Matching items (bounded -- this is a search endpoint, not a full list) plus filter options and a total count. */
 export async function GET(request: Request) {
-  return handle(request, { staff: true }, async () => {
+  return handle(request, { staff: true, area: "items" }, async () => {
     const params = new URL(request.url).searchParams;
     const [items, filters, total] = await Promise.all([
       listCatalogItems({
@@ -28,7 +28,7 @@ export async function GET(request: Request) {
 
 /** Adds one item, or upserts many (matched by item number) when the body carries `rows`. */
 export async function POST(request: Request) {
-  return handle(request, { staff: true }, async () => {
+  return handle(request, { staff: true, area: "items" }, async () => {
     const body = await readJson(request);
     if (Array.isArray(body.rows)) {
       const rows = body.rows.map((r, i) => {

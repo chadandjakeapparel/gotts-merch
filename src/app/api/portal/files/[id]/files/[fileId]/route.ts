@@ -4,7 +4,7 @@ import { handle, int, readJson, text } from "@/lib/portal/http";
 type Params = { params: Promise<{ id: string; fileId: string }> };
 
 export async function PATCH(request: Request, { params }: Params) {
-  return handle(request, { staff: true }, async () => {
+  return handle(request, { staff: true, area: "files" }, async () => {
     const { id, fileId } = await params;
     const body = await readJson(request);
     await renameFolderFile(int(id), int(fileId), text(body.fileName, 300));
@@ -13,7 +13,7 @@ export async function PATCH(request: Request, { params }: Params) {
 }
 
 export async function DELETE(request: Request, { params }: Params) {
-  return handle(request, { staff: true }, async () => {
+  return handle(request, { staff: true, area: "files" }, async () => {
     const { id, fileId } = await params;
     await deleteFolderFile(int(id), int(fileId));
     return {};

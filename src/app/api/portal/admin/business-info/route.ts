@@ -22,11 +22,11 @@ function readInput(body: Record<string, unknown>): BusinessInfoInput {
 }
 
 export async function GET(request: Request) {
-  return handle(request, { staff: true }, async () => ({ businessInfo: await getBusinessInfo() }));
+  return handle(request, { staff: true, area: "business-info" }, async () => ({ businessInfo: await getBusinessInfo() }));
 }
 
 export async function PATCH(request: Request) {
-  return handle(request, { staff: true }, async () => {
+  return handle(request, { staff: true, area: "business-info" }, async () => {
     const body = await readJson(request);
     await updateBusinessInfo(readInput(body));
     return {};

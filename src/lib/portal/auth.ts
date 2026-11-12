@@ -6,12 +6,15 @@ import { db } from "./db";
 const scrypt = promisify(scryptCb) as (password: string, salt: Buffer, keylen: number, options: object) => Promise<Buffer>;
 
 export type Role = "staff" | "client";
+export type StaffRole = "admin" | "sales_rep" | "finance";
 
 export type SessionUser = {
   id: number;
   email: string;
   name: string;
   role: Role;
+  /** Null for a client login; only meaningful when role is "staff". */
+  staffRole: StaffRole | null;
   clientId: number | null;
   mustChangePassword: boolean;
 };
@@ -105,6 +108,7 @@ export async function getUser(): Promise<SessionUser | null> {
     email: row.email,
     name: row.name,
     role: row.role,
+    staffRole: row.role === "staff" ? (row.staff_role as StaffRole) : null,
     clientId: row.client_id,
     mustChangePassword: row.must_change_password,
   };

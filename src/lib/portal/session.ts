@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getUser, type SessionUser } from "./auth";
+import { viewerPermissions } from "./permissions";
 import type { Viewer } from "./types";
 
 /** For portal pages: the signed-in user, or a redirect to sign in. */
@@ -15,4 +16,12 @@ export async function requireUser(options: { allowPasswordChange?: boolean } = {
   return user;
 }
 
-export const toViewer = (user: SessionUser): Viewer => ({ name: user.name, email: user.email, role: user.role });
+export async function toViewer(user: SessionUser): Promise<Viewer> {
+  return {
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    permissions: await viewerPermissions(user),
+    isAdmin: user.role === "staff" && (user.staffRole ?? "admin") === "admin",
+  };
+}

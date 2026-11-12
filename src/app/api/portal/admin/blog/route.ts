@@ -16,7 +16,7 @@ function toBlogPost(value: unknown): BlogPost {
 }
 
 export async function GET(request: Request) {
-  return handle(request, { staff: true }, async () => {
+  return handle(request, { staff: true, area: "blog" }, async () => {
     const content = await getSiteContent();
     return {
       blogEyebrow: content.blogEyebrow,
@@ -29,7 +29,7 @@ export async function GET(request: Request) {
 
 /** Merges into a freshly-read copy of the site content, so this never clobbers unrelated sections someone else saved in the meantime. */
 export async function PATCH(request: Request) {
-  return handle(request, { staff: true }, async () => {
+  return handle(request, { staff: true, area: "blog" }, async () => {
     const body = await readJson(request);
     const blogPosts = Array.isArray(body.blogPosts) ? body.blogPosts.map(toBlogPost) : [];
     const current = await getSiteContent();
