@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Vendor } from "@/lib/portal/types";
 import { api } from "./api";
 
@@ -112,6 +112,23 @@ function VendorEditModal({ vendor, close, onSaved }: { vendor: Vendor | null; cl
     close();
   });
 
+  const lastZipLookup = useRef("");
+  const [zipStatus, setZipStatus] = useState<"idle" | "looking" | "miss">("idle");
+
+  async function lookupZip() {
+    const zip = form.address.zip.trim();
+    if (!/^\d{5}$/.test(zip) || zip === lastZipLookup.current) return;
+    lastZipLookup.current = zip;
+    setZipStatus("looking");
+    try {
+      const res = await api<{ city: string; state: string }>("GET", `/api/portal/zip-lookup?zip=${zip}`);
+      setForm((f) => ({ ...f, address: { ...f.address, zip, city: res.city || f.address.city, state: res.state || f.address.state } }));
+      setZipStatus("idle");
+    } catch {
+      setZipStatus("miss");
+    }
+  }
+
   function save(e: React.FormEvent) {
     e.preventDefault();
     if (!form.name.trim()) return setError("Give the vendor a name.");
@@ -156,10 +173,13 @@ function VendorEditModal({ vendor, close, onSaved }: { vendor: Vendor | null; cl
       <label className="portal-field">Address line 1<input onChange={(e) => setForm({ ...form, address: { ...form.address, line1: e.target.value } })} value={form.address.line1} /></label>
       <label className="portal-field">Address line 2<input onChange={(e) => setForm({ ...form, address: { ...form.address, line2: e.target.value } })} value={form.address.line2} /></label>
       <div className="portal-row">
+        <label className="portal-field">
+          Zip<input inputMode="numeric" onBlur={lookupZip} onChange={(e) => setForm({ ...form, address: { ...form.address, zip: e.target.value } })} value={form.address.zip} />
+        </label>
         <label className="portal-field">City<input onChange={(e) => setForm({ ...form, address: { ...form.address, city: e.target.value } })} value={form.address.city} /></label>
         <label className="portal-field">State<input onChange={(e) => setForm({ ...form, address: { ...form.address, state: e.target.value } })} value={form.address.state} /></label>
-        <label className="portal-field">Zip<input onChange={(e) => setForm({ ...form, address: { ...form.address, zip: e.target.value } })} value={form.address.zip} /></label>
       </div>
+      {zipStatus === "miss" ? <p className="portal-hint">Couldn&apos;t look up that ZIP code -- enter the city and state yourself.</p> : null}
       <label className="portal-field">Notes<textarea onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={3} value={form.notes} /></label>
       {error ? <p className="portal-msg err" role="alert">{error}</p> : null}
     </ModalFrame>
