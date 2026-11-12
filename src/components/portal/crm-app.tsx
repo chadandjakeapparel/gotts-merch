@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { CatalogItem, ContactMethod, Estimate, Lead, LeadActivity, LeadStatus, Task } from "@/lib/portal/types";
 import { CopyField } from "./admin-app";
 import { api } from "./api";
+import { formatPhone } from "./phone";
 import { type StaffOption, TasksSection } from "./tasks-app";
 
 const currency = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
@@ -420,7 +421,7 @@ function LeadModal({
       <label className="portal-field">Job name<input onChange={set("jobName")} value={form.jobName} /></label>
       <div className="portal-row">
         <label className="portal-field">Email<input onChange={set("email")} type="email" value={form.email} /></label>
-        <label className="portal-field">Phone<input onChange={set("phone")} type="tel" value={form.phone} /></label>
+        <label className="portal-field">Phone<input onBlur={(e) => setForm({ ...form, phone: formatPhone(e.target.value) })} onChange={set("phone")} type="tel" value={form.phone} /></label>
       </div>
       <div className="portal-row">
         <label className="portal-field">Source<input onChange={set("source")} placeholder="Referral, website, trade show…" value={form.source} /></label>

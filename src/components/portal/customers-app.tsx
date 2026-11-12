@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { Address, Customer, CustomerKind, SalesRep, ShippingAddress } from "@/lib/portal/types";
 import { api } from "./api";
 import { CUSTOMER_TEMPLATE_EXAMPLE_ROWS, CUSTOMER_TEMPLATE_HEADERS, parseCustomerSheet } from "./customers-sheet";
+import { formatPhone } from "./phone";
 
 function downloadFile(filename: string, content: string, mime: string) {
   const url = URL.createObjectURL(new Blob([content], { type: mime }));
@@ -582,7 +583,7 @@ export function CustomerModal({
       ) : null}
 
       <div className="portal-row">
-        <label className="portal-field">Phone number<input onChange={set("phone")} type="tel" value={form.phone} /></label>
+        <label className="portal-field">Phone number<input onBlur={(e) => setForm({ ...form, phone: formatPhone(e.target.value) })} onChange={set("phone")} type="tel" value={form.phone} /></label>
         <label className="portal-field">Point of contact<input onChange={set("pointOfContact")} value={form.pointOfContact} /></label>
       </div>
 

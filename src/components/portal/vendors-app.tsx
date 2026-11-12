@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Vendor } from "@/lib/portal/types";
 import { api } from "./api";
+import { formatPhone } from "./phone";
 
 function useSubmit(onDone: () => Promise<void>) {
   const [busy, setBusy] = useState(false);
@@ -168,7 +169,7 @@ function VendorEditModal({ vendor, close, onSaved }: { vendor: Vendor | null; cl
       <div className="portal-row">
         <label className="portal-field">Contact name<input onChange={(e) => setForm({ ...form, contactName: e.target.value })} value={form.contactName} /></label>
         <label className="portal-field">Email<input onChange={(e) => setForm({ ...form, email: e.target.value })} type="email" value={form.email} /></label>
-        <label className="portal-field">Phone<input onChange={(e) => setForm({ ...form, phone: e.target.value })} value={form.phone} /></label>
+        <label className="portal-field">Phone<input onBlur={(e) => setForm({ ...form, phone: formatPhone(e.target.value) })} onChange={(e) => setForm({ ...form, phone: e.target.value })} value={form.phone} /></label>
       </div>
       <label className="portal-field">Address line 1<input onChange={(e) => setForm({ ...form, address: { ...form.address, line1: e.target.value } })} value={form.address.line1} /></label>
       <label className="portal-field">Address line 2<input onChange={(e) => setForm({ ...form, address: { ...form.address, line2: e.target.value } })} value={form.address.line2} /></label>

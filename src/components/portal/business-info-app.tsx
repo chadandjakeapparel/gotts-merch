@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { BusinessAddress, BusinessInfo } from "@/lib/portal/business-info";
 import { api } from "@/components/portal/api";
+import { formatPhone } from "@/components/portal/phone";
 
 function AddressFields({
   value,
@@ -76,7 +77,7 @@ export function BusinessInfoApp({ initial }: { initial: BusinessInfo }) {
             </label>
             <label className="portal-field">
               Phone number
-              <input onChange={(e) => update("phone", e.target.value)} type="tel" value={form.phone} />
+              <input onBlur={(e) => update("phone", formatPhone(e.target.value))} onChange={(e) => update("phone", e.target.value)} type="tel" value={form.phone} />
             </label>
             <label className="portal-field">
               EIN
