@@ -49,15 +49,20 @@ export type DailyReportActivity = {
 
 export type DailyReportStats = {
   newLeads: number;
+  newLeadsValue: number;
   leadsWon: number;
   leadsWonValue: number;
   leadsLost: number;
+  leadsLostValue: number;
   estimatesSent: number;
+  estimatesSentValue: number;
   estimatesApproved: number;
   estimatesApprovedValue: number;
   newJobs: number;
+  newJobsValue: number;
   newCustomers: number;
   purchaseOrdersCreated: number;
+  purchaseOrdersValue: number;
   tasksCompleted: number;
 };
 
@@ -77,7 +82,7 @@ export async function getDailyReport(now: Date = new Date()): Promise<DailyRepor
   const start = startOfLocalDay(now, REPORT_TIMEZONE);
   const sql = await db();
 
-  const [leadActivities, jobActivities, newCustomers, newPurchaseOrders, completedTasks] = await Promise.all([
+  const [leadActivities, jobActivities, newJobsWithTotals, newCustomers, newPurchaseOrders, completedTasks] = await Promise.all([
     sql`
       select la.*, l.company_name, l.contact_name, l.estimated_value
       from lead_activities la join leads l on l.id = la.lead_id
@@ -88,26 +93,46 @@ export async function getDailyReport(now: Date = new Date()): Promise<DailyRepor
       from job_activities ja join jobs j on j.id = ja.job_id
       where ja.created_at >= ${start} and ja.created_at <= ${now}
       order by ja.created_at desc`,
+    sql`
+      select j.id, j.tax_rate,
+        coalesce((select sum(jl.quantity * jl.unit_price) from job_line_items jl where jl.job_id = j.id), 0) as subtotal,
+        coalesce((select sum(jl.quantity * jl.unit_price) from job_line_items jl where jl.job_id = j.id and jl.taxable), 0) as taxable_subtotal
+      from jobs j
+      where j.created_at >= ${start} and j.created_at <= ${now}`,
     sql`select * from customers where created_at >= ${start} and created_at <= ${now} order by created_at desc`,
     sql`
-      select po.*, v.name as vendor_name
+      select po.*, v.name as vendor_name,
+        coalesce((select sum(pol.quantity * pol.unit_cost) from purchase_order_lines pol where pol.purchase_order_id = po.id), 0) as line_total
       from purchase_orders po left join vendors v on v.id = po.vendor_id
       where po.created_at >= ${start} and po.created_at <= ${now}
       order by po.created_at desc`,
     sql`select * from tasks where completed and completed_at >= ${start} and completed_at <= ${now} order by completed_at desc`,
   ]);
 
+  const newJobsValue = newJobsWithTotals.reduce((sum, row) => {
+    const subtotal = num(row.subtotal);
+    const taxableSubtotal = num(row.taxable_subtotal);
+    const tax = Math.round(taxableSubtotal * (num(row.tax_rate) / 100) * 100) / 100;
+    return sum + subtotal + tax;
+  }, 0);
+  const purchaseOrdersValue = newPurchaseOrders.reduce((sum, row) => sum + num(row.line_total), 0);
+
   const stats: DailyReportStats = {
     newLeads: 0,
+    newLeadsValue: 0,
     leadsWon: 0,
     leadsWonValue: 0,
     leadsLost: 0,
+    leadsLostValue: 0,
     estimatesSent: 0,
+    estimatesSentValue: 0,
     estimatesApproved: 0,
     estimatesApprovedValue: 0,
-    newJobs: 0,
+    newJobs: newJobsWithTotals.length,
+    newJobsValue,
     newCustomers: newCustomers.length,
     purchaseOrdersCreated: newPurchaseOrders.length,
+    purchaseOrdersValue,
     tasksCompleted: completedTasks.length,
   };
 
@@ -116,13 +141,22 @@ export async function getDailyReport(now: Date = new Date()): Promise<DailyRepor
   for (const row of leadActivities) {
     const kind = str(row.kind);
     const body = str(row.body);
-    if (kind === "status" && body === "Lead created") stats.newLeads += 1;
+    if (kind === "status" && body === "Lead created") {
+      stats.newLeads += 1;
+      stats.newLeadsValue += num(row.estimated_value);
+    }
     if (kind === "status" && body.startsWith("Status changed to Won")) {
       stats.leadsWon += 1;
       stats.leadsWonValue += num(row.estimated_value);
     }
-    if (kind === "status" && body.startsWith("Status changed to Lost")) stats.leadsLost += 1;
-    if (kind === "estimate" && body.startsWith("Estimate sent")) stats.estimatesSent += 1;
+    if (kind === "status" && body.startsWith("Status changed to Lost")) {
+      stats.leadsLost += 1;
+      stats.leadsLostValue += num(row.estimated_value);
+    }
+    if (kind === "estimate" && body.startsWith("Estimate sent")) {
+      stats.estimatesSent += 1;
+      stats.estimatesSentValue += firstDollarAmount(body);
+    }
     if (kind === "estimate" && body.startsWith("Estimate approved")) {
       stats.estimatesApproved += 1;
       stats.estimatesApprovedValue += firstDollarAmount(body);
@@ -138,7 +172,6 @@ export async function getDailyReport(now: Date = new Date()): Promise<DailyRepor
 
   for (const row of jobActivities) {
     const body = str(row.body);
-    if (str(row.kind) === "status" && body === "Job created") stats.newJobs += 1;
     activity.push({
       at: new Date(row.created_at as string).toISOString(),
       area: "Jobs",

@@ -69,14 +69,14 @@ type Stat = { label: string; value: string; sub?: string };
 export function DailyReportPdfDocument({ report, logoUrl }: { report: DailyReport; logoUrl?: string }) {
   const { stats } = report;
   const tiles: Stat[] = [
-    { label: "New leads", value: String(stats.newLeads) },
+    { label: "New leads", value: String(stats.newLeads), sub: stats.newLeads ? currency(stats.newLeadsValue) : undefined },
     { label: "Leads won", value: String(stats.leadsWon), sub: stats.leadsWon ? currency(stats.leadsWonValue) : undefined },
-    { label: "Leads lost", value: String(stats.leadsLost) },
-    { label: "Estimates sent", value: String(stats.estimatesSent) },
+    { label: "Leads lost", value: String(stats.leadsLost), sub: stats.leadsLost ? currency(stats.leadsLostValue) : undefined },
+    { label: "Estimates sent", value: String(stats.estimatesSent), sub: stats.estimatesSent ? currency(stats.estimatesSentValue) : undefined },
     { label: "Estimates approved", value: String(stats.estimatesApproved), sub: stats.estimatesApproved ? currency(stats.estimatesApprovedValue) : undefined },
-    { label: "New jobs", value: String(stats.newJobs) },
+    { label: "New jobs", value: String(stats.newJobs), sub: stats.newJobs ? currency(stats.newJobsValue) : undefined },
     { label: "New customers", value: String(stats.newCustomers) },
-    { label: "POs created", value: String(stats.purchaseOrdersCreated) },
+    { label: "POs created", value: String(stats.purchaseOrdersCreated), sub: stats.purchaseOrdersCreated ? currency(stats.purchaseOrdersValue) : undefined },
     { label: "Tasks completed", value: String(stats.tasksCompleted) },
   ];
 
@@ -109,7 +109,7 @@ export function DailyReportPdfDocument({ report, logoUrl }: { report: DailyRepor
               <View style={styles.statTileInner}>
                 <Text style={styles.statLabel}>{tile.label}</Text>
                 <Text style={styles.statValue}>{tile.value}</Text>
-                {tile.sub ? <Text style={styles.statSub}>{tile.sub}</Text> : null}
+                <Text style={styles.statSub}>{tile.sub || " "}</Text>
               </View>
             </View>
           ))}
