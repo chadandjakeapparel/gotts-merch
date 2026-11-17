@@ -234,9 +234,12 @@ export function KpisApp({
           <span className="portal-eyebrow">Staff</span>
           <h1>KPIs</h1>
         </div>
-        <button className="portal-btn" disabled={refreshing} onClick={() => void refresh()} type="button">
-          {refreshing ? "Refreshing…" : "Refresh"}
-        </button>
+        <span className="portal-row-actions">
+          <a className="portal-btn" href="/api/portal/daily-report/pdf" rel="noreferrer" target="_blank">Daily Report (PDF)</a>
+          <button className="portal-btn" disabled={refreshing} onClick={() => void refresh()} type="button">
+            {refreshing ? "Refreshing…" : "Refresh"}
+          </button>
+        </span>
       </div>
       {error ? <p className="portal-msg err" role="alert">{error}</p> : null}
 
