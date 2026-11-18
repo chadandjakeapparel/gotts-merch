@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DocBody } from "@/components/doc-body";
 import { getSiteContent } from "@/lib/content";
+import { findTeamMember, teamSlug } from "@/lib/team";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +40,7 @@ export default async function BlogPostPage({ params }: Params) {
   if (!post) notFound();
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://gottsmerch.com";
+  const authorMember = post.author ? findTeamMember(content.teamMembers, teamSlug(post.author)) : null;
 
   const breadcrumbJsonLd = {
     "@context": "https://schema.org",
@@ -79,7 +81,17 @@ export default async function BlogPostPage({ params }: Params) {
           <h1>{post.title}</h1>
           {post.publishedAt || post.author ? (
             <p className="gm-doc__updated">
-              {[fmtDate(post.publishedAt), post.author ? `By ${post.author}` : ""].filter(Boolean).join(" · ")}
+              {fmtDate(post.publishedAt)}
+              {post.publishedAt && post.author ? " · " : ""}
+              {post.author ? (
+                authorMember ? (
+                  <>
+                    By <Link href={`/team/${teamSlug(post.author)}`}>{post.author}</Link>
+                  </>
+                ) : (
+                  `By ${post.author}`
+                )
+              ) : null}
             </p>
           ) : null}
         </div>

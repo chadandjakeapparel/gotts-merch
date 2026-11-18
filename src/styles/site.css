@@ -943,6 +943,17 @@ fieldset {
   font-size: 0.82rem;
 }
 
+.gm-doc__updated a {
+  color: var(--gm-blue);
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  transition: text-decoration-color 0.15s ease;
+}
+
+.gm-doc__updated a:hover {
+  text-decoration-color: currentColor;
+}
+
 .gm-doc__body {
   max-width: 760px;
   margin-top: 28px;
