@@ -534,7 +534,14 @@
   white-space: nowrap;
 }
 .portal-table .r { text-align: right; }
+.portal-table .c { text-align: center; }
 .portal-table tbody tr:hover td { background: #f7f9fc; }
+.portal-table .group-row th { background: var(--p-sunk); color: var(--p-ink); font-size: 11px; }
+.portal-role-summary { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
+.portal-role-summary-card { flex: 1; min-width: 160px; background: var(--p-sunk); border: 1px solid var(--p-line); border-radius: 10px; padding: 12px 14px; }
+.portal-role-summary-card .portal-eyebrow { display: block; margin-bottom: 4px; }
+.portal-role-summary-count { font-size: 20px; font-weight: 800; color: var(--p-ink); }
+.portal-role-summary-count span { font-size: 13px; font-weight: 600; color: var(--p-muted); }
 .portal-table tfoot td { border-bottom: 0; background: var(--p-sunk); font-weight: 800; }
 .portal-table.compact th,
 .portal-table.compact td { padding: 7px 12px; font-size: 14px; }

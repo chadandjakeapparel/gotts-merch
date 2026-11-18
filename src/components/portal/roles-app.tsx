@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { api } from "./api";
 
 type Area = { key: string; label: string; group: string };
@@ -17,6 +17,7 @@ export function RolesApp({ areas, initialPermissions }: { areas: Area[]; initial
   const [saving, setSaving] = useState<string | null>(null);
 
   const groups = Array.from(new Set(areas.map((a) => a.group)));
+  const enabledCount = (role: "sales_rep" | "finance") => areas.filter((a) => permissions[role][a.key] ?? true).length;
 
   async function toggle(role: "sales_rep" | "finance", areaKey: string, allowed: boolean) {
     const cellKey = `${role}:${areaKey}`;
@@ -43,55 +44,64 @@ export function RolesApp({ areas, initialPermissions }: { areas: Area[]; initial
         </div>
       </div>
       <p className="portal-hint">
-        Admin logins always have full access everywhere and can&apos;t be restricted here. Sales Rep and Finance
-        logins start with full access to every area below -- turn an area off for a role to hide it (and block its
-        actions) for every login with that role.
+        Admin always has full access everywhere and isn&apos;t shown below -- it can&apos;t be restricted. Sales Rep
+        and Finance start with every area turned on; switch one off to hide that area (and block its actions) for
+        every login with that role.
       </p>
       {error ? <p className="portal-msg err" role="alert">{error}</p> : null}
 
-      {groups.map((group) => (
-        <section className="portal-panel" key={group}>
-          <div className="portal-panel-head">
-            <h2>{group}</h2>
+      <div className="portal-role-summary">
+        {ROLE_COLUMNS.map((c) => (
+          <div className="portal-role-summary-card" key={c.key}>
+            <span className="portal-eyebrow">{c.label}</span>
+            <div className="portal-role-summary-count">
+              {enabledCount(c.key)} <span>of {areas.length} areas enabled</span>
+            </div>
           </div>
-          <div className="portal-table-wrap">
-            <table className="portal-table">
-              <thead>
-                <tr>
-                  <th>Area</th>
-                  <th>Admin</th>
-                  {ROLE_COLUMNS.map((c) => (
-                    <th key={c.key}>{c.label}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {areas
-                  .filter((a) => a.group === group)
-                  .map((area) => (
-                    <tr key={area.key}>
-                      <td>{area.label}</td>
-                      <td>
-                        <input aria-label={`Admin: ${area.label} (always on)`} checked disabled type="checkbox" />
-                      </td>
-                      {ROLE_COLUMNS.map((c) => (
-                        <td key={c.key}>
-                          <input
-                            aria-label={`${c.label}: ${area.label}`}
-                            checked={permissions[c.key][area.key] ?? true}
-                            disabled={saving === `${c.key}:${area.key}`}
-                            onChange={(e) => void toggle(c.key, area.key, e.target.checked)}
-                            type="checkbox"
-                          />
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      ))}
+        ))}
+      </div>
+
+      <section className="portal-panel">
+        <div className="portal-table-wrap">
+          <table className="portal-table">
+            <thead>
+              <tr>
+                <th>Area</th>
+                {ROLE_COLUMNS.map((c) => (
+                  <th className="c" key={c.key}>{c.label}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {groups.map((group) => (
+                <Fragment key={group}>
+                  <tr className="group-row">
+                    <th colSpan={1 + ROLE_COLUMNS.length}>{group}</th>
+                  </tr>
+                  {areas
+                    .filter((a) => a.group === group)
+                    .map((area) => (
+                      <tr key={area.key}>
+                        <td>{area.label}</td>
+                        {ROLE_COLUMNS.map((c) => (
+                          <td className="c" key={c.key}>
+                            <input
+                              aria-label={`${c.label}: ${area.label}`}
+                              checked={permissions[c.key][area.key] ?? true}
+                              disabled={saving === `${c.key}:${area.key}`}
+                              onChange={(e) => void toggle(c.key, area.key, e.target.checked)}
+                              type="checkbox"
+                            />
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                </Fragment>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
     </div>
   );
 }
