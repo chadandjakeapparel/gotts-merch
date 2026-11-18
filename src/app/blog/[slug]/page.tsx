@@ -59,7 +59,7 @@ export default async function BlogPostPage({ params }: Params) {
     dateModified: post.publishedAt || undefined,
     image: post.coverImageUrl || undefined,
     url: `${siteUrl}/blog/${post.slug}`,
-    author: { "@type": "Organization", name: content.brandName },
+    author: post.author ? { "@type": "Person", name: post.author } : { "@type": "Organization", name: content.brandName },
     publisher: { "@type": "Organization", name: content.brandName },
   };
 
@@ -77,7 +77,11 @@ export default async function BlogPostPage({ params }: Params) {
         <div className="gm-section-heading">
           <p className="gm-eyebrow">{content.blogEyebrow}</p>
           <h1>{post.title}</h1>
-          {post.publishedAt ? <p className="gm-doc__updated">{fmtDate(post.publishedAt)}</p> : null}
+          {post.publishedAt || post.author ? (
+            <p className="gm-doc__updated">
+              {[fmtDate(post.publishedAt), post.author ? `By ${post.author}` : ""].filter(Boolean).join(" · ")}
+            </p>
+          ) : null}
         </div>
 
         {post.coverImageUrl ? (

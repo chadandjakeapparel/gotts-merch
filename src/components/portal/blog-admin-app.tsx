@@ -25,7 +25,7 @@ async function uploadCover(file: File): Promise<string> {
   return data.url;
 }
 
-export function BlogAdminApp({ initial }: { initial: Intro & { blogPosts: BlogPost[] } }) {
+export function BlogAdminApp({ initial, authorOptions }: { initial: Intro & { blogPosts: BlogPost[] }; authorOptions: string[] }) {
   const [intro, setIntro] = useState<Intro>({
     blogEyebrow: initial.blogEyebrow,
     blogTitle: initial.blogTitle,
@@ -36,6 +36,7 @@ export function BlogAdminApp({ initial }: { initial: Intro & { blogPosts: BlogPo
   const [error, setError] = useState("");
   const [photoStatus, setPhotoStatus] = useState<Record<number, PhotoStatus>>({});
   const [photoError, setPhotoError] = useState<Record<number, string>>({});
+  const [pendingAuthor, setPendingAuthor] = useState<Record<number, string>>({});
 
   function updateIntro<K extends keyof Intro>(key: K, value: Intro[K]) {
     setIntro((current) => ({ ...current, [key]: value }));
@@ -45,10 +46,40 @@ export function BlogAdminApp({ initial }: { initial: Intro & { blogPosts: BlogPo
     setPosts((current) => current.map((post, i) => (i === index ? { ...post, [field]: value } : post)));
   }
 
+  // A post with no author yet is set directly; changing an already-assigned
+  // author needs confirmation first, so a wrong click in the dropdown can't
+  // silently reassign who wrote a live post.
+  function chooseAuthor(index: number, nextAuthor: string) {
+    const current = posts[index].author;
+    if (!current || current === nextAuthor) {
+      updatePost(index, "author", nextAuthor);
+      return;
+    }
+    setPendingAuthor((p) => ({ ...p, [index]: nextAuthor }));
+  }
+
+  function confirmAuthorChange(index: number) {
+    const next = pendingAuthor[index];
+    if (next !== undefined) updatePost(index, "author", next);
+    setPendingAuthor((p) => {
+      const next = { ...p };
+      delete next[index];
+      return next;
+    });
+  }
+
+  function cancelAuthorChange(index: number) {
+    setPendingAuthor((p) => {
+      const next = { ...p };
+      delete next[index];
+      return next;
+    });
+  }
+
   function addPost() {
     setPosts((current) => [
       ...current,
-      { slug: "", title: "", excerpt: "", coverImageUrl: "", publishedAt: todayIso(), body: "", published: false },
+      { slug: "", title: "", excerpt: "", coverImageUrl: "", publishedAt: todayIso(), body: "", published: false, author: "" },
     ]);
   }
 
@@ -60,6 +91,11 @@ export function BlogAdminApp({ initial }: { initial: Intro & { blogPosts: BlogPo
       return next;
     });
     setPhotoError((current) => {
+      const next = { ...current };
+      delete next[index];
+      return next;
+    });
+    setPendingAuthor((current) => {
       const next = { ...current };
       delete next[index];
       return next;
@@ -168,6 +204,24 @@ export function BlogAdminApp({ initial }: { initial: Intro & { blogPosts: BlogPo
                 Published date
                 <input onChange={(e) => updatePost(index, "publishedAt", e.target.value)} type="date" value={post.publishedAt} />
               </label>
+              <label className="portal-field">
+                Written by
+                <select onChange={(e) => chooseAuthor(index, e.target.value)} value={post.author}>
+                  <option value="">— Unassigned —</option>
+                  {post.author && !authorOptions.includes(post.author) ? <option value={post.author}>{post.author}</option> : null}
+                  {authorOptions.map((name) => (
+                    <option key={name} value={name}>{name}</option>
+                  ))}
+                </select>
+              </label>
+              {pendingAuthor[index] !== undefined ? (
+                <p className="portal-msg warn">
+                  Change the author from <strong>{post.author}</strong> to <strong>{pendingAuthor[index]}</strong>?{" "}
+                  <button className="portal-link" onClick={() => confirmAuthorChange(index)} type="button">Yes, change it</button>
+                  {" · "}
+                  <button className="portal-link" onClick={() => cancelAuthorChange(index)} type="button">Cancel</button>
+                </p>
+              ) : null}
               <label className="portal-field">
                 Excerpt (shown on the blog index and as the page description)
                 <textarea onChange={(e) => updatePost(index, "excerpt", e.target.value)} rows={2} value={post.excerpt} />

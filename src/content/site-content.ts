@@ -85,6 +85,8 @@ export type BlogPost = {
   // Drafts never appear on the public blog (index, post URL, sitemap, or
   // llms.txt) until flipped on.
   published: boolean;
+  // Who wrote it, chosen from staff logins in the portal. Blank shows no byline.
+  author: string;
 };
 
 export type SiteContent = {
@@ -611,6 +613,7 @@ For interviews, logos, product photography or other press assets, email us at {{
       coverImageUrl: "",
       publishedAt: "2026-10-28",
       published: false,
+      author: "",
       body: `If you're planning merch for a charity golf tournament, golf balls are usually the single biggest line item in the budget -- and the easiest one to either over-order or run short on. Here's a simple way to size your order before you request a quote.
 
 ## Start with the gift bag
@@ -650,6 +653,7 @@ We print and stamp balls from Titleist, Callaway, TaylorMade, Bridgestone, Srixo
       coverImageUrl: "",
       publishedAt: "2026-10-28",
       published: false,
+      author: "",
       body: `Embroidery and screen printing are the two most common ways to brand apparel, and the right choice depends on what you're printing, how many you need, and how the garment will be used.
 
 ## Embroidery

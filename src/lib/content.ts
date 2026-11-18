@@ -102,6 +102,7 @@ export const getSiteContent = cache(async (): Promise<SiteContent> => {
             publishedAt: "",
             body: "",
             published: false,
+            author: "",
           })
         : defaultContent.blogPosts,
     };

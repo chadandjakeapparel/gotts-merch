@@ -12,6 +12,7 @@ function toBlogPost(value: unknown): BlogPost {
     publishedAt: text(b.publishedAt, 20),
     body: text(b.body, 20000),
     published: Boolean(b.published),
+    author: text(b.author, 120),
   };
 }
 
