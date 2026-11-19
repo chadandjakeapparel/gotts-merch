@@ -728,6 +728,8 @@
 .portal-clients li:last-child { border-bottom: 0; }
 .portal-client-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .portal-clients .portal-link.small { align-self: flex-start; font-size: 13px; }
+.portal-expand-toggle { width: 26px; height: 26px; padding: 0; border-radius: 999px; font-size: 15px; line-height: 1; flex-shrink: 0; }
+.portal-sort-toggle { display: inline-flex; gap: 4px; }
 
 /* ---------- designer products ---------- */
 .portal-designer-products { display: flex; flex-direction: column; }

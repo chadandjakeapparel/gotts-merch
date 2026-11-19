@@ -55,6 +55,8 @@ export function AdminApp({
   const [editing, setEditing] = useState<{ id: number; name: string } | null>(null);
   const [editingUser, setEditingUser] = useState<{ id: number; name: string } | null>(null);
   const [confirming, setConfirming] = useState<string | null>(null);
+  const [clientSort, setClientSort] = useState<"asc" | "desc">("asc");
+  const [expandedClients, setExpandedClients] = useState<Set<number>>(new Set());
   const [login, setLogin] = useState({ email: "", name: "", clientId: initialClients[0] ? String(initialClients[0].id) : "staff", staffRole: "admin" });
   const [busy, setBusy] = useState(false);
 
@@ -84,6 +86,16 @@ export function AdminApp({
   }
 
   const clientNames = new Map(clients.map((c) => [c.id, c.name]));
+  const sortedClients = [...clients].sort((a, b) => (clientSort === "asc" ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)));
+
+  function toggleExpanded(id: number) {
+    setExpandedClients((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
 
   return (
     <div className="portal-admin">
@@ -112,68 +124,104 @@ export function AdminApp({
 
       <section className="portal-panel">
         <div className="portal-panel-head">
-          <h2>Clients</h2>
-          <form
-            className="portal-inline-form"
-            onSubmit={(e) => {
-              e.preventDefault();
-              const name = newClient.trim();
-              if (!name) return;
-              void run(async () => {
-                await api("POST", "/api/portal/admin/clients", { name });
-                setNewClient("");
-              });
-            }}
-          >
-            <input aria-label="New client name" onChange={(e) => setNewClient(e.target.value)} placeholder="New client name" value={newClient} />
-            <button className="portal-btn primary" disabled={busy || !newClient.trim()} type="submit">Add client</button>
-          </form>
+          <h2>Clients ({count.format(clients.length)})</h2>
+          <div className="portal-row-actions">
+            <span className="portal-sort-toggle" role="group" aria-label="Sort clients">
+              <button
+                aria-pressed={clientSort === "asc"}
+                className={`portal-btn small${clientSort === "asc" ? " primary" : ""}`}
+                onClick={() => setClientSort("asc")}
+                type="button"
+              >
+                A → Z
+              </button>
+              <button
+                aria-pressed={clientSort === "desc"}
+                className={`portal-btn small${clientSort === "desc" ? " primary" : ""}`}
+                onClick={() => setClientSort("desc")}
+                type="button"
+              >
+                Z → A
+              </button>
+            </span>
+            <form
+              className="portal-inline-form"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const name = newClient.trim();
+                if (!name) return;
+                void run(async () => {
+                  await api("POST", "/api/portal/admin/clients", { name });
+                  setNewClient("");
+                });
+              }}
+            >
+              <input aria-label="New client name" onChange={(e) => setNewClient(e.target.value)} placeholder="New client name" value={newClient} />
+              <button className="portal-btn primary" disabled={busy || !newClient.trim()} type="submit">Add client</button>
+            </form>
+          </div>
         </div>
         {clients.length ? (
           <ul className="portal-clients">
-            {clients.map((c) => (
-              <li key={c.id}>
-                <div className="portal-client-head">
-                  {editing?.id === c.id ? (
-                    <form
-                      className="portal-inline-form"
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        void run(async () => {
-                          await api("PATCH", `/api/portal/admin/clients/${c.id}`, { name: editing.name });
-                          setEditing(null);
-                        });
-                      }}
+            {sortedClients.map((c) => {
+              const open = expandedClients.has(c.id);
+              return (
+                <li key={c.id}>
+                  <div className="portal-client-head">
+                    <button
+                      aria-expanded={open}
+                      aria-label={open ? `Hide details for ${c.name}` : `Show details for ${c.name}`}
+                      className="portal-btn small portal-expand-toggle"
+                      onClick={() => toggleExpanded(c.id)}
+                      type="button"
                     >
-                      <input aria-label="Client name" autoFocus onChange={(e) => setEditing({ id: c.id, name: e.target.value })} value={editing.name} />
-                      <button className="portal-btn small primary" disabled={busy} type="submit">Save</button>
-                      <button className="portal-btn small" onClick={() => setEditing(null)} type="button">Cancel</button>
-                    </form>
-                  ) : (
+                      {open ? "−" : "+"}
+                    </button>
+                    {editing?.id === c.id ? (
+                      <form
+                        className="portal-inline-form"
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          void run(async () => {
+                            await api("PATCH", `/api/portal/admin/clients/${c.id}`, { name: editing.name });
+                            setEditing(null);
+                          });
+                        }}
+                      >
+                        <input aria-label="Client name" autoFocus onChange={(e) => setEditing({ id: c.id, name: e.target.value })} value={editing.name} />
+                        <button className="portal-btn small primary" disabled={busy} type="submit">Save</button>
+                        <button className="portal-btn small" onClick={() => setEditing(null)} type="button">Cancel</button>
+                      </form>
+                    ) : (
+                      <>
+                        <h3>{c.name}</h3>
+                        {open ? <button className="portal-link" onClick={() => setEditing({ id: c.id, name: c.name })} type="button">Rename</button> : null}
+                      </>
+                    )}
+                    <Link className="portal-btn small push-left" href={`/portal?client=${c.id}`}>Open inventory</Link>
+                  </div>
+                  {open ? (
                     <>
-                      <h3>{c.name}</h3>
-                      <button className="portal-link" onClick={() => setEditing({ id: c.id, name: c.name })} type="button">Rename</button>
+                      <p className="portal-muted small">
+                        {count.format(c.itemCount)} style lines · {count.format(c.units)} units · {count.format(c.openOrders)} open orders · {count.format(c.userCount)} logins
+                      </p>
+                      <CopyField label="JotForm webhook link" value={origin ? `${origin}/api/jotform?key=${c.webhookKey}` : ""} />
+                      {confirming === `rotate-${c.id}` ? (
+                        <p className="portal-msg warn">
+                          The current link stops working right away, so the client&apos;s JotForm needs the new one.{" "}
+                          <button className="portal-link" onClick={() => void run(async () => { await api("PATCH", `/api/portal/admin/clients/${c.id}`, { action: "rotate" }); setConfirming(null); })} type="button">
+                            Make a new link
+                          </button>{" "}
+                          · <button className="portal-link" onClick={() => setConfirming(null)} type="button">Keep current link</button>
+                        </p>
+                      ) : (
+                        <button className="portal-link small" onClick={() => setConfirming(`rotate-${c.id}`)} type="button">Replace this link</button>
+                      )}
                     </>
-                  )}
-                  <Link className="portal-btn small push-left" href={`/portal?client=${c.id}`}>Open inventory</Link>
-                </div>
-                <p className="portal-muted small">
-                  {count.format(c.itemCount)} style lines · {count.format(c.units)} units · {count.format(c.openOrders)} open orders · {count.format(c.userCount)} logins
-                </p>
-                <CopyField label="JotForm webhook link" value={origin ? `${origin}/api/jotform?key=${c.webhookKey}` : ""} />
-                {confirming === `rotate-${c.id}` ? (
-                  <p className="portal-msg warn">
-                    The current link stops working right away, so the client&apos;s JotForm needs the new one.{" "}
-                    <button className="portal-link" onClick={() => void run(async () => { await api("PATCH", `/api/portal/admin/clients/${c.id}`, { action: "rotate" }); setConfirming(null); })} type="button">
-                      Make a new link
-                    </button>{" "}
-                    · <button className="portal-link" onClick={() => setConfirming(null)} type="button">Keep current link</button>
-                  </p>
-                ) : (
-                  <button className="portal-link small" onClick={() => setConfirming(`rotate-${c.id}`)} type="button">Replace this link</button>
-                )}
-              </li>
-            ))}
+                  ) : null}
+                </li>
+              );
+            })}
           </ul>
         ) : (
           <div className="portal-empty">
